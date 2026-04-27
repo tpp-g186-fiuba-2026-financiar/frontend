@@ -1,2 +1,15 @@
-# Antes de iniciar cualquier servicio!
-> Asegurarse de tener la red en docker creada (docker network create financiar_shared_network ó make network)
+# How to run it
+Run containers
+```
+make dev
+```
+Run docker on background
+```
+make dev-d
+```
+Remove containers
+```
+make down
+```
+# Deployment
+The website is hosted on https://frontend-mfnd.onrender.com/
