@@ -28,3 +28,9 @@ jobs:
 
       - name: Run tests
         run: npx vitest run
+
+      - name: Lint
+        run: npx eslint src/
+      
+      - name: Format check
+        run: npx prettier --check src/
