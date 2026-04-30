@@ -13,6 +13,7 @@ interface Introduction {
 
 function App() {
   const apiURL = import.meta.env.VITE_SERVER_API + "/hello";
+  console.log(apiURL)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [introduction, setIntroduction] = useState<Introduction | null>(null);
