@@ -27,7 +27,7 @@ function App() {
         <>
             <section id="center">
                 <div>
-                    <h1>Welcome!</h1>
+                    <h1>Welcome to Financiar!</h1>
                     <h3>{introduction?.message}</h3>
                 </div>
             </section>
