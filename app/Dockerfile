@@ -5,6 +5,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
+ARG VITE_SERVER_API
+ENV VITE_SERVER_API=${VITE_SERVER_API}
 RUN npm run build
 
 FROM node:${NODE_VERSION} AS runner
