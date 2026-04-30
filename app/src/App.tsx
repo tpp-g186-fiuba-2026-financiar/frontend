@@ -13,7 +13,7 @@ function App() {
     const [error, setError] = useState<string | null>(null);
     const [introduction, setIntroduction] = useState<Introduction | null>(null);
     useEffect(() => {
-      const apiURL = import.meta.env.VITE_SERVER_API + '/hello';
+        const apiURL = import.meta.env.VITE_SERVER_API + '/hello';
         axios
             .get<Introduction>(apiURL)
             .then((res) => setIntroduction(res.data))
