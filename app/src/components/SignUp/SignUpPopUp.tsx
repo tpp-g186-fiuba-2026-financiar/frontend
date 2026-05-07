@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import PasswordInput from './SignUp/PasswordInput';
-import ConfirmPasswordInput from './SignUp/ConfirmPasswordInput';
-import EmailInput from './SignUp/EmailInput';
-import RiskSelector from './SignUp/RiskSelector';
-import NameInput from './SignUp/NameInput';
+import PasswordInput from './PasswordInput';
+import ConfirmPasswordInput from './ConfirmPasswordInput';
+import EmailInput from './EmailInput';
+import RiskSelector from './RiskSelector';
+import NameInput from './NameInput';
 import {
     registerEndpoint,
     type RegisterRequest,
     type RegisterResponse,
-} from '../schemas/register';
+} from '../../schemas/register';
 // import { parseRegisterResponse, registerEndpoint, RegisterResponses } from "../schemas/register";
-import SignInErrorSpan from './SignUp/SignInErrorSpan';
+import SignInErrorSpan from './../SignUp/SignInErrorSpan';
 import { useNavigate } from 'react-router-dom';
 
 interface LoginModalProps {

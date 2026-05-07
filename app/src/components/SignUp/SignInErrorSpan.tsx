@@ -1,5 +1,5 @@
 import type { RegisterResponse } from '../../schemas/register';
-import ErrorSpan from '../ErrorSpan';
+import ErrorSpan from './ErrorSpan';
 
 const SUCESSFUL_REQUEST = 200;
 interface ErrorSpanProps {
