@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import App from '../App';
+import App from '../components/Pages/App';
 
 test('shows message from API', async () => {
     render(<App />);
