@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import '../../css/App.css';
-import SignIn from '../SignUp';
+import SignUpPopUp from '../SignUp';
 import { helloEndpoint, type Introduction } from '../../schemas/hello';
 
 
@@ -29,11 +29,11 @@ function App() {
                             className="btn btn-success"
                             onClick={() => setIsOpen(true)}
                         >
-                            Sign in
+                            Sign up
                         </button>
                     </div>
                 </div>
-                <SignIn isOpen={isOpen} onClose={() => setIsOpen(false)} />
+                <SignUpPopUp isOpen={isOpen} onClose={() => setIsOpen(false)} />
             </div>
             <div className="p-1"></div>
             <div className="row">

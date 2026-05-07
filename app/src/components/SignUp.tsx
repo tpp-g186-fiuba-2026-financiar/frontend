@@ -7,6 +7,7 @@ import NameInput from './SignUp/NameInput';
 import { registerEndpoint, type RegisterRequest, type RegisterResponse } from '../schemas/register';
 // import { parseRegisterResponse, registerEndpoint, RegisterResponses } from "../schemas/register";
 import SignInErrorSpan from './SignUp/SignInErrorSpan';
+import { useNavigate } from 'react-router-dom';
 
 
 interface LoginModalProps {
@@ -14,7 +15,7 @@ interface LoginModalProps {
     onClose: () => void;
 }
 
-function SignIn({ isOpen, onClose }: LoginModalProps) {
+function SignUpPopUp({ isOpen, onClose }: LoginModalProps) {
     const [name, setName] = useState<string>('');
     const [riskType, setRiskType] = useState<string>('');
     const [email, setEmail] = useState<string>('');
@@ -24,6 +25,7 @@ function SignIn({ isOpen, onClose }: LoginModalProps) {
     const passwordsMatch = password === passwordConfirmation;
     const canSubmit = email != '' && password != '' && passwordsMatch && name != '' && riskType != '';
     const [response, setResponse] = useState<RegisterResponse | null>(null);
+    const navigate = useNavigate();
     const closePopUp = () => {
         setName('');
         setRiskType('');
@@ -34,16 +36,21 @@ function SignIn({ isOpen, onClose }: LoginModalProps) {
         onClose();
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (email){
-          let r : RegisterRequest = {
+          let request : RegisterRequest = {
             email: email,
             password: password,
             full_name: name,
             risk_profile: riskType,
           }
-          registerEndpoint(r, setResponse)
-        }
+            const response = await registerEndpoint(request);
+            setResponse(response);
+            if (response && response.code == 200) {
+                console.log("Enters here")
+                navigate("/home");
+            }
+    }
     };
 
     if (!isOpen) return null;
@@ -58,7 +65,7 @@ function SignIn({ isOpen, onClose }: LoginModalProps) {
                 >
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Sign in</h5>
+                            <h5 className="modal-title">Sign up</h5>
                             <button
                                 className="btn-close"
                                 onClick={closePopUp}
@@ -100,4 +107,4 @@ function SignIn({ isOpen, onClose }: LoginModalProps) {
         </>
     );
 }
-export default SignIn;
+export default SignUpPopUp;

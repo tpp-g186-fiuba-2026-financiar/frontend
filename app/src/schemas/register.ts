@@ -14,6 +14,7 @@ export interface RegisterResponse {
     message: string
 } 
 
-export function registerEndpoint(request: RegisterRequest, setter: Function) {
-    axios.post(apiURL, request).then((res) => setter(res.data));
+export async function registerEndpoint(request: RegisterRequest): Promise<RegisterResponse> {
+  const res = await axios.post(apiURL, request);
+  return res.data;
 }
