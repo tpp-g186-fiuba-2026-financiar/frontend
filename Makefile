@@ -14,4 +14,4 @@ stop:
 	docker compose down
 
 network:
-	docker network create data-collector-network
+	docker network create financiar_shared_network

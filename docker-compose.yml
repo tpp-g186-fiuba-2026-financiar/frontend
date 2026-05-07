@@ -21,6 +21,9 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_SERVER_API=http://localhost:8000
+    volumes:
+      - ./app:/app
+      - node_modules:/app/node_modules
     develop:
       watch:
         - action: sync
@@ -36,6 +39,8 @@ services:
           target: /app/vite.config.ts
     networks:
       - financiar_shared_network
+volumes:
+  node_modules:
 
 networks:
   financiar_shared_network:
