@@ -2,7 +2,7 @@ import SignInInput from './SignInInput';
 
 interface PasswordInputProps {
     field: string;
-    setField: Function;
+    setField: (value: string) => void;
 }
 
 function PasswordInput({ field, setField }: PasswordInputProps) {

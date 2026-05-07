@@ -2,7 +2,7 @@ import SignInInput from './SignInInput';
 
 interface NameInputProps {
     field: string;
-    setField: Function;
+    setField: (value: string) => void;
 }
 
 function NameInput({ field, setField }: NameInputProps) {

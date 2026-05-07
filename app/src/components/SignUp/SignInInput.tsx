@@ -3,7 +3,7 @@ interface SingInInputProps {
     type: string;
     placeholder: string;
     field: string;
-    fieldSetter: Function;
+    fieldSetter: (value: string) => void;
 }
 
 function SignInInput({

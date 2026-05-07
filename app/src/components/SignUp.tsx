@@ -1,14 +1,17 @@
-import { useState} from 'react';
+import { useState } from 'react';
 import PasswordInput from './SignUp/PasswordInput';
 import ConfirmPasswordInput from './SignUp/ConfirmPasswordInput';
 import EmailInput from './SignUp/EmailInput';
 import RiskSelector from './SignUp/RiskSelector';
 import NameInput from './SignUp/NameInput';
-import { registerEndpoint, type RegisterRequest, type RegisterResponse } from '../schemas/register';
+import {
+    registerEndpoint,
+    type RegisterRequest,
+    type RegisterResponse,
+} from '../schemas/register';
 // import { parseRegisterResponse, registerEndpoint, RegisterResponses } from "../schemas/register";
 import SignInErrorSpan from './SignUp/SignInErrorSpan';
 import { useNavigate } from 'react-router-dom';
-
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -23,7 +26,12 @@ function SignUpPopUp({ isOpen, onClose }: LoginModalProps) {
     const [passwordConfirmation, setPasswordConfirmation] =
         useState<string>('');
     const passwordsMatch = password === passwordConfirmation;
-    const canSubmit = email != '' && password != '' && passwordsMatch && name != '' && riskType != '';
+    const canSubmit =
+        email != '' &&
+        password != '' &&
+        passwordsMatch &&
+        name != '' &&
+        riskType != '';
     const [response, setResponse] = useState<RegisterResponse | null>(null);
     const navigate = useNavigate();
     const closePopUp = () => {
@@ -37,20 +45,20 @@ function SignUpPopUp({ isOpen, onClose }: LoginModalProps) {
     };
 
     const handleSubmit = async () => {
-        if (email){
-          let request : RegisterRequest = {
-            email: email,
-            password: password,
-            full_name: name,
-            risk_profile: riskType,
-          }
+        if (email) {
+            const request: RegisterRequest = {
+                email: email,
+                password: password,
+                full_name: name,
+                risk_profile: riskType,
+            };
             const response = await registerEndpoint(request);
             setResponse(response);
             if (response && response.code == 200) {
-                console.log("Enters here")
-                navigate("/home");
+                console.log('Enters here');
+                navigate('/home');
             }
-    }
+        }
     };
 
     if (!isOpen) return null;
@@ -74,7 +82,10 @@ function SignUpPopUp({ isOpen, onClose }: LoginModalProps) {
                         </div>
                         <div className="modal-body">
                             <NameInput field={name} setField={setName} />
-                            <RiskSelector value= {riskType} setField={setRiskType} />
+                            <RiskSelector
+                                value={riskType}
+                                setField={setRiskType}
+                            />
                             <EmailInput field={email} setField={setEmail} />
                             <PasswordInput
                                 field={password}
@@ -84,7 +95,10 @@ function SignUpPopUp({ isOpen, onClose }: LoginModalProps) {
                                 field={passwordConfirmation}
                                 setField={setPasswordConfirmation}
                             />
-                            <SignInErrorSpan passwordsMatch= {passwordsMatch} response={response}/>
+                            <SignInErrorSpan
+                                passwordsMatch={passwordsMatch}
+                                response={response}
+                            />
                         </div>
                         <div className="modal-footer">
                             <button

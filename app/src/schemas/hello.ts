@@ -1,5 +1,5 @@
-import axios from "axios";
-const ENDPOINT= "/hello"
+import axios from 'axios';
+const ENDPOINT = '/hello';
 const apiURL = import.meta.env.VITE_SERVER_API + ENDPOINT;
 
 export interface Introduction {
@@ -8,10 +8,14 @@ export interface Introduction {
     message: string;
 }
 
-export function helloEndpoint(setter: Function, errorSetter: Function, loadingSetter: Function) {
-        axios
-            .get<Introduction>(apiURL)
-            .then((res) => setter(res.data))
-            .catch((err) => errorSetter(err.message))
-            .finally(() => loadingSetter(false));
+export function helloEndpoint(
+    setter: (value: Introduction) => void,
+    errorSetter: (value: string) => void,
+    loadingSetter: (value: boolean) => void,
+) {
+    axios
+        .get<Introduction>(apiURL)
+        .then((res) => setter(res.data))
+        .catch((err) => errorSetter(err.message))
+        .finally(() => loadingSetter(false));
 }

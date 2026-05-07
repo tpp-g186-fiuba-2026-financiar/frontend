@@ -13,7 +13,9 @@ function RiskSelector({ value, setField }: RiskSelectorProps) {
                     value={value}
                     onChange={(e) => setField(e.target.value)}
                 >
-                    <option value="" disabled>Select a risk type</option>
+                    <option value="" disabled>
+                        Select a risk type
+                    </option>
                     <option value="conservative">Conservative</option>
                     <option value="moderate">Moderate</option>
                     <option value="aggressive">Aggressive</option>

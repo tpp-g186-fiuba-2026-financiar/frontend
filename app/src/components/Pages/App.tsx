@@ -3,14 +3,13 @@ import '../../css/App.css';
 import SignUpPopUp from '../SignUp';
 import { helloEndpoint, type Introduction } from '../../schemas/hello';
 
-
 function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [introduction, setIntroduction] = useState<Introduction | null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     useEffect(() => {
-        helloEndpoint(setIntroduction, setError, setLoading)
+        helloEndpoint(setIntroduction, setError, setLoading);
     }, []);
 
     if (loading) return <p>Loading...</p>;

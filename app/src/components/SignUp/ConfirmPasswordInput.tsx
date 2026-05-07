@@ -2,7 +2,7 @@ import SignInInput from './SignInInput';
 
 interface ConfirmPasswordInputProps {
     field: string;
-    setField: Function;
+    setField: (value: string) => void;
 }
 
 function ConfirmPasswordInput({ field, setField }: ConfirmPasswordInputProps) {

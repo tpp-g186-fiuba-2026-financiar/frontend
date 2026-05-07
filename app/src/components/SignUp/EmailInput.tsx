@@ -2,7 +2,7 @@ import SignInInput from './SignInInput';
 
 interface EmailInputProps {
     field: string;
-    setField: Function;
+    setField: (value: string) => void;
 }
 
 function EmailInput({ field, setField }: EmailInputProps) {
