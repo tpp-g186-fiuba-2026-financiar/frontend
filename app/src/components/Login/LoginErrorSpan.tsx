@@ -1,23 +1,12 @@
 import type { RegisterResponse } from '../../schemas/register';
-import ErrorSpan from './ErrorSpan';
+import ErrorSpan from '../SignUp/ErrorSpan';
 
 const SUCESSFUL_REQUEST = 200;
-interface ErrorSpanProps {
-    passwordsMatch: boolean;
+interface LoginErrorSpanProps {
     response: RegisterResponse | null;
 }
 
-function SignInErrorSpan({ passwordsMatch, response }: ErrorSpanProps) {
-    if (!passwordsMatch) {
-        return (
-            <>
-                <ErrorSpan
-                    errorMsg="Passwords do not match."
-                    condition={passwordsMatch}
-                />
-            </>
-        );
-    }
+function LoginErrorSpan({ response }: LoginErrorSpanProps) {
     if (response) {
         switch (response.code) {
             case SUCESSFUL_REQUEST:
@@ -36,4 +25,4 @@ function SignInErrorSpan({ passwordsMatch, response }: ErrorSpanProps) {
     return <></>;
 }
 
-export default SignInErrorSpan;
+export default LoginErrorSpan;
