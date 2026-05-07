@@ -13,12 +13,12 @@ import {
 import SignInErrorSpan from './../SignUp/SignInErrorSpan';
 import { useNavigate } from 'react-router-dom';
 
-interface LoginModalProps {
+interface SignUpProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-function SignUpPopUp({ isOpen, onClose }: LoginModalProps) {
+function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
     const [name, setName] = useState<string>('');
     const [riskType, setRiskType] = useState<string>('');
     const [email, setEmail] = useState<string>('');
@@ -52,10 +52,9 @@ function SignUpPopUp({ isOpen, onClose }: LoginModalProps) {
                 full_name: name,
                 risk_profile: riskType,
             };
-            const response = await registerEndpoint(request);
-            setResponse(response);
-            if (response && response.code == 200) {
-                console.log('Enters here');
+            const r = await registerEndpoint(request);
+            setResponse(r);
+            if (r && r.code == 200) {
                 navigate('/home');
             }
         }
