@@ -1,8 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import App from '../App';
+import App from '../components/Pages/App';
+import { MemoryRouter } from 'react-router-dom';
 
 test('shows message from API', async () => {
-    render(<App />);
+    render(
+        <MemoryRouter>
+            <App />
+        </MemoryRouter>,
+    );
 
     expect(screen.getByText('Loading...')).toBeInTheDocument();
 
@@ -10,5 +15,6 @@ test('shows message from API', async () => {
         expect(
             screen.getByText('Hello from Financiar backend!'),
         ).toBeInTheDocument();
+        expect(screen.getByText('Sign up')).toBeInTheDocument();
     });
 });

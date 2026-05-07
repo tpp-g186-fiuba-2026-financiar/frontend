@@ -1,7 +1,6 @@
 :root {
     --text: #6b6375;
     --text-h: #08060d;
-    --bg: #fff;
     --border: #e5e4e7;
     --code-bg: #f4f3ec;
     --accent: #aa3bff;
@@ -55,7 +54,6 @@
     width: 1126px;
     max-width: 100%;
     margin: 0 auto;
-    text-align: center;
     border-inline: 1px solid var(--border);
     min-height: 100svh;
     display: flex;
@@ -66,15 +64,17 @@
 body {
     margin: 0;
 }
-
-h1,
 h2 {
     font-family: var(--heading);
     font-weight: 500;
     color: var(--text-h);
 }
+h3 {
+    text-align: center;
+}
 
 h1 {
+    text-align: center;
     font-size: 56px;
     letter-spacing: -1.68px;
     margin: 32px 0;
