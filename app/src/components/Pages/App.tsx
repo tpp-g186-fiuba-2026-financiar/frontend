@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import '../../css/App.css';
 import SignUpPopUp from '../SignUp/SignUpPopUp';
-import { helloEndpoint, type Introduction } from '../../schemas/hello';
+import { helloEndpoint, type Introduction } from '../../api/hello';
 import LoginPopUp from '../Login/LoginPopUp';
 
 function App() {

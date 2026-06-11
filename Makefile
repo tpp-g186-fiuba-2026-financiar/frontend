@@ -1,16 +1,8 @@
-dev:
-	docker compose up --build dev
-
-dev-d:
-	docker compose up --build -d dev
-
-prod:
-	docker compose up --build prod
-
-prod-d:
-	docker compose up --build -d prod
+up:
+	docker compose build --no-cache
+	docker compose up
 	
-stop:
+down:
 	docker compose down
 
 network:
