@@ -11,8 +11,7 @@ export interface UserResponse {
     created_at: string;
 }
 
-export async function getUserEndpoint(
-): Promise<UserResponse> {
+export async function getUserEndpoint(): Promise<UserResponse> {
     const res = await authAxios.get(apiURL);
     return res.data;
 }
