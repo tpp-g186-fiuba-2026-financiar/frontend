@@ -9,6 +9,7 @@ export interface LoginRequest {
 export interface LoginResponse {
     code: number;
     message: string;
+    token: string;
 }
 
 export async function loginEndpoint(

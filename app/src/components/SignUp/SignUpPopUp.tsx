@@ -8,7 +8,7 @@ import {
     registerEndpoint,
     type RegisterRequest,
     type RegisterResponse,
-} from '../../schemas/register';
+} from '../../api/register';
 // import { parseRegisterResponse, registerEndpoint, RegisterResponses } from "../schemas/register";
 import SignInErrorSpan from './../SignUp/SignInErrorSpan';
 import { useNavigate } from 'react-router-dom';

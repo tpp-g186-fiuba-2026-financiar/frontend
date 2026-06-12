@@ -1,4 +1,4 @@
-import type { RegisterResponse } from '../../schemas/register';
+import type { RegisterResponse } from '../../api/register';
 import ErrorSpan from './ErrorSpan';
 
 const SUCESSFUL_REQUEST = 200;

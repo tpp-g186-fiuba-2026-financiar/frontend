@@ -5,7 +5,7 @@ import {
     loginEndpoint,
     type LoginRequest,
     type LoginResponse,
-} from '../../schemas/login';
+} from '../../api/login';
 import LoginErrorSpan from './LoginErrorSpan';
 import { useState } from 'react';
 
@@ -36,6 +36,7 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
         const r = await loginEndpoint(request);
         setResponse(r);
         if (r && r.code == 200) {
+            localStorage.setItem('token', r.token);
             closePopUp();
             navigate('/home');
         }
