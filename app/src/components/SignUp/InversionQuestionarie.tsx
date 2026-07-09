@@ -3,10 +3,10 @@ import type { Question } from './questions';
 
 interface QuestionnaireProps {
     questions: Question[];
-    handleSubmit: (answers: Record<number, number>) => void;
+    finishQuestionarie: (answers: Record<number, number>) => void;
 }
 
-function Questionnaire({ questions, handleSubmit }: QuestionnaireProps) {
+function Questionnaire({ questions, finishQuestionarie }: QuestionnaireProps) {
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [answers, setAnswers] = useState<Record<number, number>>({});
 
@@ -19,7 +19,7 @@ function Questionnaire({ questions, handleSubmit }: QuestionnaireProps) {
 
     const handleNext = () => {
         if (isLast) {
-            handleSubmit(answers);
+            finishQuestionarie(answers);
         } else {
             setCurrentIndex((prev) => prev + 1);
         }

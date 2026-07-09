@@ -19,7 +19,7 @@ export interface SignUpFormFields {
     passwordsMatch: boolean;
     response: RegisterResponse | null;
     closePopUp: () => void;
-    finishForm: () => void;
+    handleSubmit: () => void;
     canSubmit: boolean;
 }
 interface SignUpFormProps {
@@ -30,10 +30,6 @@ function SignUpForm({ formFields }: SignUpFormProps) {
     return (
         <div className="modal-body">
             <NameInput field={formFields.name} setField={formFields.setName} />
-            {/* <RiskSelector
-                                value={formFields.riskType}
-                                setField={formFields.setRiskType}
-                            /> */}
             <EmailInput
                 field={formFields.email}
                 setField={formFields.setEmail}
@@ -59,7 +55,7 @@ function SignUpForm({ formFields }: SignUpFormProps) {
                 </button>
                 <button
                     className="btn btn-primary"
-                    onClick={formFields.finishForm}
+                    onClick={formFields.handleSubmit}
                     disabled={!formFields.canSubmit}
                 >
                     Confirm
