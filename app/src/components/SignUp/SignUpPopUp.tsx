@@ -23,7 +23,11 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
         useState<string>('');
     const passwordsMatch = password === passwordConfirmation;
     const canSubmit =
-        email != '' && password != '' && passwordsMatch && name != '' && riskType != '';
+        email != '' &&
+        password != '' &&
+        passwordsMatch &&
+        name != '' &&
+        riskType != '';
     const [response, setResponse] = useState<RegisterResponse | null>(null);
     const navigate = useNavigate();
     const closePopUp = () => {
@@ -51,7 +55,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
 
     const handleSubmit = async () => {
         if (email) {
-            console.log("Entra")
+            console.log('Entra');
             const request: RegisterRequest = {
                 email: email,
                 password: password,
@@ -63,8 +67,8 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
             if (r && r.code == 200) {
                 navigate('/home');
             }
-        } else{
-            console.log("xd")
+        } else {
+            console.log('xd');
         }
     };
     const [step, setStep] = useState<string>('questionarie');
