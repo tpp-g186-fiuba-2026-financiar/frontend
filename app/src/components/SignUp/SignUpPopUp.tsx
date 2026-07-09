@@ -23,8 +23,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
         useState<string>('');
     const passwordsMatch = password === passwordConfirmation;
     const canSubmit =
-        email != '' && password != '' && passwordsMatch && name != '';
-    // riskType != '';
+        email != '' && password != '' && passwordsMatch && name != '' && riskType != '';
     const [response, setResponse] = useState<RegisterResponse | null>(null);
     const navigate = useNavigate();
     const closePopUp = () => {
@@ -41,7 +40,6 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
             (sum, score) => sum + score,
             0,
         );
-        console.log(totalScore);
         if (totalScore <= 9) {
             return 'conservative';
         } else if (totalScore <= 18) {
@@ -51,9 +49,9 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
         }
     };
 
-    const handleSubmit = async (answers: Record<number, number>) => {
-        const riskType = getRiskType(answers);
+    const handleSubmit = async () => {
         if (email) {
+            console.log("Entra")
             const request: RegisterRequest = {
                 email: email,
                 password: password,
@@ -65,11 +63,14 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
             if (r && r.code == 200) {
                 navigate('/home');
             }
+        } else{
+            console.log("xd")
         }
     };
-    const [step, setStep] = useState<string>('form');
-    const finishForm = () => {
-        setStep('questionarie');
+    const [step, setStep] = useState<string>('questionarie');
+    const finishQuestionarie = (answers: Record<number, number>) => {
+        setRiskType(getRiskType(answers));
+        setStep('form');
     };
 
     const signUpFormFields: SignUpFormFields = {
@@ -86,7 +87,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
         passwordsMatch: passwordsMatch,
         response: response,
         closePopUp: closePopUp,
-        finishForm: finishForm,
+        handleSubmit: handleSubmit,
         canSubmit: canSubmit,
     };
 
@@ -115,7 +116,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
                         {step === 'questionarie' && (
                             <Questionnaire
                                 questions={questions}
-                                handleSubmit={handleSubmit}
+                                finishQuestionarie={finishQuestionarie}
                             />
                         )}
                     </div>
@@ -125,99 +126,3 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
     );
 }
 export default SignUpPopUp;
-
-//  return (
-//         <>
-//             <div className="modal-backdrop fade show" onClick={closePopUp} />
-//             <div className="modal d-block fade show" role="dialog">
-//                 <div
-//                     className="modal-dialog modal-dialog-centered"
-//                     onClick={(e) => e.stopPropagation()}
-//                 >
-//                     <div className="modal-content">
-//                         <div className="modal-header">
-//                             <h5 className="modal-title">
-//                                 {step === 'form' ? 'Sign up' : `Question ${currentQuestion + 1} of ${questions.length}`}
-//                             </h5>
-//                             <button
-//                                 className="btn-close"
-//                                 onClick={closePopUp}
-//                                 aria-label="Close"
-//                             />
-//                         </div>
-
-//                         <div className="modal-body text-start">
-//                             {step === 'form' && (
-//                                 <>
-//                                     <NameInput field={name} setField={setName} />
-//                                     <RiskSelector value={riskType} setField={setRiskType} />
-//                                     <EmailInput field={email} setField={setEmail} />
-//                                     <PasswordInput field={password} setField={setPassword} />
-//                                     <ConfirmPasswordInput
-//                                         field={passwordConfirmation}
-//                                         setField={setPasswordConfirmation}
-//                                     />
-//                                     <SignInErrorSpan
-//                                         passwordsMatch={passwordsMatch}
-//                                         response={response}
-//                                     />
-//                                 </>
-//                             )}
-
-//                             {step === 'questionnaire' && (
-//                                 <>
-//                                     <p className="text-secondary mb-3">
-//                                         {questions[currentQuestion].text}
-//                                     </p>
-//                                     <div className="d-flex flex-column gap-2">
-//                                         {questions[currentQuestion].options.map((option) => (
-//                                             <button
-//                                                 key={option}
-//                                                 className={`btn ${answers[questions[currentQuestion].id] === option ? 'btn-primary' : 'btn-outline-secondary'}`}
-//                                                 onClick={() => handleSelectAnswer(option)}
-//                                             >
-//                                                 {option}
-//                                             </button>
-//                                         ))}
-//                                     </div>
-//                                 </>
-//                             )}
-//                         </div>
-
-//                         <div className="modal-footer">
-//                             {step === 'form' ? (
-//                                 <>
-//                                     <button className="btn btn-secondary" onClick={closePopUp}>
-//                                         Cancel
-//                                     </button>
-//                                     <button
-//                                         className="btn btn-primary"
-//                                         onClick={() => setStep('questionnaire')}
-//                                         disabled={!canSubmit}
-//                                     >
-//                                         Next
-//                                     </button>
-//                                 </>
-//                             ) : (
-//                                 <>
-//                                     <button
-//                                         className="btn btn-secondary"
-//                                         onClick={() => currentQuestion === 0 ? setStep('form') : setCurrentQuestion((prev) => prev - 1)}
-//                                     >
-//                                         Back
-//                                     </button>
-//                                     <button
-//                                         className="btn btn-primary"
-//                                         onClick={handleNext}
-//                                         disabled={!answers[questions[currentQuestion].id]}
-//                                     >
-//                                         {currentQuestion === questions.length - 1 ? 'Confirm' : 'Next'}
-//                                     </button>
-//                                 </>
-//                             )}
-//                         </div>
-//                     </div>
-//                 </div>
-//             </div>
-//         </>
-//     );
