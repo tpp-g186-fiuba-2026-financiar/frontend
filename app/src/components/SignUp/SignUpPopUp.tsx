@@ -29,7 +29,6 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
         name != '' &&
         riskType != '';
     const [response, setResponse] = useState<RegisterResponse | null>(null);
-    const navigate = useNavigate();
     const closePopUp = () => {
         setName('');
         setRiskType('');
@@ -65,10 +64,8 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
             const r = await registerEndpoint(request);
             setResponse(r);
             if (r && r.code == 200) {
-                navigate('/home');
+                closePopUp()
             }
-        } else {
-            console.log('xd');
         }
     };
     const [step, setStep] = useState<string>('questionarie');
