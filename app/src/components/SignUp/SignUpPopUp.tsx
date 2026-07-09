@@ -4,7 +4,6 @@ import {
     type RegisterRequest,
     type RegisterResponse,
 } from '../../api/register';
-import { useNavigate } from 'react-router-dom';
 import SignUpForm, { type SignUpFormFields } from './SignUpForm';
 import Questionnaire from './InversionQuestionarie';
 import { questions } from './questions';
@@ -64,7 +63,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
             const r = await registerEndpoint(request);
             setResponse(r);
             if (r && r.code == 200) {
-                closePopUp()
+                closePopUp();
             }
         }
     };
