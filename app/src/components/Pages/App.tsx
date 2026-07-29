@@ -20,17 +20,13 @@ function App() {
     if (error) return <p>Error: {error}</p>;
     return (
         <div className="container py-4">
-            <TickerTape />
-
-            <div className="row align-items-center mb-4">
-                <div className="col">
-                    <span className="wordmark">
-                        Financi<span className="accent">Ar</span>
-                    </span>
-                </div>
-                <div className="col-auto">
+            <div className="topbar">
+                <span className="wordmark">
+                    Financi<span className="accent">Ar</span>
+                </span>
+                <div className="userzone">
                     <button
-                        className="btn btn-primary me-2"
+                        className="btn btn-primary"
                         onClick={() => setIsSignUpOpen(true)}
                     >
                         Crear cuenta
@@ -43,6 +39,8 @@ function App() {
                     </button>
                 </div>
             </div>
+
+            <TickerTape />
 
             <h1 className="mb-3" style={{ fontSize: '32px' }}>
                 Señales de tendencia para el S&amp;P Merval

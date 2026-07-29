@@ -11,7 +11,7 @@ import {
 } from '../../api/userShares/getUserSharesTrendsEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
 import TickerDetail from '../Portfolio/TickerDetail';
-import TickerTape from '../Layout/TickerTape';
+import TickerTape, { type TapeItem } from '../Layout/TickerTape';
 
 interface PortfolioRow {
     ticker: string;
@@ -180,6 +180,18 @@ function Home() {
     const withTrend = rows.filter((r) => r.trend?.available);
     const upCount = withTrend.filter((r) => r.trend?.signal === 'alza').length;
 
+    const tapeItems: TapeItem[] = withTrend.map((r) => ({
+        ticker: r.ticker,
+        lastClose: r.trend?.last_close,
+        deltaPct:
+            r.trend?.last_close && r.trend?.predicted_close != null
+                ? ((r.trend.predicted_close - r.trend.last_close) /
+                      r.trend.last_close) *
+                  100
+                : null,
+        signal: r.trend?.signal,
+    }));
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/');
@@ -187,22 +199,14 @@ function Home() {
 
     return (
         <div className="container py-4">
-            <TickerTape />
-
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h3 className="mb-0">{user.full_name}</h3>
-                    <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
-                        Perfil de riesgo: {riskProfileLabel(user.risk_profile)}
-                    </p>
-                </div>
-                <div>
-                    <button
-                        className="btn btn-primary me-2"
-                        onClick={() => setIsBuilderOpen(true)}
-                    >
-                        Editar mi cartera
-                    </button>
+            <div className="topbar">
+                <span className="wordmark">
+                    Financi<span className="accent">Ar</span>
+                </span>
+                <div className="userzone">
+                    <span className="chip">
+                        {user.full_name} · {riskProfileLabel(user.risk_profile)}
+                    </span>
                     <button
                         className="btn btn-outline-light"
                         onClick={handleLogout}
@@ -211,6 +215,8 @@ function Home() {
                     </button>
                 </div>
             </div>
+
+            <TickerTape items={tapeItems.length > 0 ? tapeItems : undefined} />
 
             {selectedRow ? (
                 <TickerDetail
@@ -235,13 +241,19 @@ function Home() {
                                     Todavía no armaste tu cartera.
                                 </p>
                                 <p
-                                    className="mb-0"
+                                    className="mb-3"
                                     style={{ color: 'var(--ink-3)' }}
                                 >
-                                    Usá "Editar mi cartera" para elegir qué
-                                    acciones tenés y cuántas — así te podemos
-                                    mostrar la señal de tendencia de cada una.
+                                    Elegí qué acciones tenés y cuántas — así te
+                                    podemos mostrar la señal de tendencia de
+                                    cada una.
                                 </p>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => setIsBuilderOpen(true)}
+                                >
+                                    Editar mi cartera
+                                </button>
                             </div>
                         )}
 
@@ -260,27 +272,35 @@ function Home() {
                                     </div>
                                 )}
 
-                                {!trendsUnavailable && (
-                                    <div className="summary-banner mb-4">
-                                        <p className="mb-0">
-                                            Tu cartera ({rows.length}{' '}
-                                            {rows.length === 1
-                                                ? 'acción'
-                                                : 'acciones'}
-                                            ) tiene{' '}
-                                            <b style={{ color: 'var(--up)' }}>
-                                                {upCount} en alza
-                                            </b>{' '}
-                                            de {withTrend.length} con datos
-                                            disponibles, a{' '}
-                                            {withTrend[0]?.trend
-                                                ?.horizon_days ?? 5}{' '}
-                                            ruedas.
-                                        </p>
-                                    </div>
-                                )}
-
                                 <div className="watchlist-panel mb-4">
+                                    <div className="toolbar">
+                                        <div>
+                                            <h2 className="mb-0">Mi cartera</h2>
+                                            {!trendsUnavailable && (
+                                                <p className="summary mb-0">
+                                                    {rows.length}{' '}
+                                                    {rows.length === 1
+                                                        ? 'acción'
+                                                        : 'acciones'}{' '}
+                                                    · <b>{upCount} en alza</b>{' '}
+                                                    de {withTrend.length} con
+                                                    datos disponibles, a{' '}
+                                                    {withTrend[0]?.trend
+                                                        ?.horizon_days ??
+                                                        5}{' '}
+                                                    ruedas
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button
+                                            className="btn btn-primary"
+                                            onClick={() =>
+                                                setIsBuilderOpen(true)
+                                            }
+                                        >
+                                            Editar mi cartera
+                                        </button>
+                                    </div>
                                     <div style={{ overflowX: 'auto' }}>
                                         <table className="watchlist">
                                             <thead>
