@@ -15,6 +15,6 @@ test('shows message from API', async () => {
         expect(
             screen.getByText('Hello from Financiar backend!'),
         ).toBeInTheDocument();
-        expect(screen.getByText('Sign up')).toBeInTheDocument();
+        expect(screen.getByText('Crear cuenta')).toBeInTheDocument();
     });
 });

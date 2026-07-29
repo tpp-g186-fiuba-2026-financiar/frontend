@@ -56,14 +56,14 @@ function Questionnaire({ questions, finishQuestionarie }: QuestionnaireProps) {
                     onClick={handlePrevious}
                     disabled={currentIndex === 0}
                 >
-                    Previous
+                    Anterior
                 </button>
                 <button
                     className="btn btn-primary"
                     onClick={handleNext}
                     disabled={answers[currentQuestion.id] === undefined}
                 >
-                    {isLast ? 'Finish' : 'Next'}
+                    {isLast ? 'Finalizar' : 'Siguiente'}
                 </button>
             </div>
         </div>

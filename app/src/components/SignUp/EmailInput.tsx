@@ -11,7 +11,7 @@ function EmailInput({ field, setField }: EmailInputProps) {
             <SignInInput
                 text="Email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="vos@ejemplo.com"
                 field={field}
                 fieldSetter={setField}
             />

@@ -51,14 +51,14 @@ function SignUpForm({ formFields }: SignUpFormProps) {
                     className="btn btn-secondary"
                     onClick={formFields.closePopUp}
                 >
-                    Cancel
+                    Cancelar
                 </button>
                 <button
                     className="btn btn-primary"
                     onClick={formFields.handleSubmit}
                     disabled={!formFields.canSubmit}
                 >
-                    Confirm
+                    Crear cuenta
                 </button>
             </div>
         </div>

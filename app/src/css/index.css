@@ -1,36 +1,35 @@
 :root {
     --paper: #0a1113;
-    --paper-2: #111c1e;
-    --paper-3: #162427;
+    --paper-2: #131e21;
+    --paper-3: #182629;
     --ink: #e9f2ef;
     --ink-2: #9baea9;
-    --ink-3: #657976;
-    --line: #243634;
+    --ink-3: #66807b;
+    --line: #263a38;
 
-    --accent: #3fc1ee;
-    --accent-2: #35e3aa;
-    --accent-glow: rgba(63, 193, 238, 0.35);
+    /* marca / chrome: azul, sin relacion con la semantica alza/baja */
+    --accent: #4f8fd9;
+    --accent-2: #3f74b8;
+    --accent-soft: #17293b;
 
-    --up: #33e293;
-    --up-soft: #0f3826;
-    --up-glow: rgba(51, 226, 147, 0.4);
-
-    --down: #ff7a63;
-    --down-soft: #3d1912;
-    --down-glow: rgba(255, 122, 99, 0.38);
-
-    --warn: #f0ba53;
-    --warn-soft: #3b2c10;
-
+    /* semantica de senal: solo se usa en pills/cards de acciones */
+    --up: #2fbf82;
+    --up-soft: #12301f;
+    --down: #e2604a;
+    --down-soft: #35190f;
+    --warn: #d8a13e;
+    --warn-soft: #33280d;
     --neutral-sig: #8fa09b;
-    --neutral-soft: #1b2a28;
+    --neutral-soft: #1c2a28;
 
     --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-    --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --heading:
+        'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Noto Serif',
+        serif;
     --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
     font: 16px/145% var(--sans);
-    letter-spacing: 0.18px;
+    letter-spacing: 0.15px;
     color: var(--ink-2);
     background: var(--paper);
     font-synthesis: none;
@@ -54,8 +53,11 @@ body {
 
 h1,
 h2,
-h3 {
+h3,
+h4,
+h5 {
     font-family: var(--heading);
+    font-weight: 600;
     color: var(--ink);
 }
 
@@ -71,35 +73,26 @@ p {
 
 /* wordmark */
 .wordmark {
-    font-size: 22px;
+    font-family: var(--heading);
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: 0.2px;
+    color: var(--ink);
 }
-.wordmark .grad {
-    background: linear-gradient(120deg, var(--accent), var(--accent-2));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+.wordmark .accent {
+    color: var(--accent);
 }
 
-/* gradient buttons, matches the boceto's primary CTA */
 .btn-primary {
-    background: linear-gradient(120deg, var(--accent), var(--accent-2));
-    border-color: transparent;
-    box-shadow: 0 4px 16px var(--accent-glow);
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.2s ease,
-        filter 0.2s ease;
-}
-.btn-primary:hover,
-.btn-primary:focus {
-    filter: brightness(1.08);
-    box-shadow: 0 8px 22px var(--accent-glow);
-    transform: translateY(-1px);
+    --bs-btn-bg: var(--accent);
+    --bs-btn-border-color: var(--accent);
+    --bs-btn-hover-bg: var(--accent-2);
+    --bs-btn-hover-border-color: var(--accent-2);
+    --bs-btn-active-bg: var(--accent-2);
+    --bs-btn-active-border-color: var(--accent-2);
 }
 
-/* pills used for signal / condition badges */
+/* pills used for signal / condition badges: la unica zona con color semantico */
 .pill {
     display: inline-flex;
     align-items: center;
@@ -131,7 +124,7 @@ p {
     color: var(--warn);
 }
 
-/* share cards, matches the boceto's "mi cartera" grid */
+/* share cards */
 .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -143,27 +136,17 @@ p {
     padding: 14px 16px;
     background: var(--paper-3);
     transition:
-        border-color 0.2s,
-        box-shadow 0.25s,
-        transform 0.25s;
+        border-color 0.15s,
+        transform 0.15s;
 }
-.share-card.is-up:hover {
-    border-color: var(--up);
-    box-shadow: 0 12px 26px var(--up-glow);
-    transform: translateY(-2px);
-}
-.share-card.is-down:hover {
-    border-color: var(--down);
-    box-shadow: 0 12px 26px var(--down-glow);
-    transform: translateY(-2px);
-}
+.share-card.is-up:hover,
+.share-card.is-down:hover,
 .share-card.is-neutral:hover {
-    border-color: var(--accent);
-    box-shadow: 0 12px 26px var(--accent-glow);
+    border-color: var(--accent-2);
     transform: translateY(-2px);
 }
 .share-card.unavailable {
-    opacity: 0.65;
+    opacity: 0.7;
 }
 .share-card .row1 {
     display: flex;
@@ -204,13 +187,16 @@ p {
 }
 
 .summary-banner {
-    background: linear-gradient(
-        120deg,
-        var(--paper-3),
-        var(--paper-3) 60%,
-        var(--up-soft)
-    );
+    background: var(--paper-3);
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 14px 18px;
+}
+
+/* panel generico: estado vacio, avisos, secciones sueltas */
+.panel {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px;
+    background: var(--paper-2);
 }

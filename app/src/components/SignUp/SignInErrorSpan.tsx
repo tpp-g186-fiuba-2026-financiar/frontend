@@ -12,7 +12,7 @@ function SignInErrorSpan({ passwordsMatch, response }: ErrorSpanProps) {
         return (
             <>
                 <ErrorSpan
-                    errorMsg="Passwords do not match."
+                    errorMsg="Las contraseñas no coinciden."
                     condition={passwordsMatch}
                 />
             </>

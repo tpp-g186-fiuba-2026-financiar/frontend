@@ -9,7 +9,7 @@ function PasswordInput({ field, setField }: PasswordInputProps) {
     return (
         <>
             <SignInInput
-                text="Password"
+                text="Contraseña"
                 type="password"
                 placeholder="••••••••"
                 field={field}

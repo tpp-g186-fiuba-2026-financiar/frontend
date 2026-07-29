@@ -20,28 +20,34 @@ function App() {
     return (
         <>
             <div className="p-1"></div>
-            <div className="container text-center">
-                <div className="row align-items-center">
-                    <div className="col text-start">
+            <div className="container">
+                <div className="row align-items-center mb-4">
+                    <div className="col">
                         <span className="wordmark">
-                            <span className="grad">Financi</span>Ar
+                            Financi<span className="accent">Ar</span>
                         </span>
                     </div>
-                    <div className="col">
+                    <div className="col-auto">
                         <button
                             className="btn btn-primary me-2"
                             onClick={() => setIsSignUpOpen(true)}
                         >
-                            Sign up
+                            Crear cuenta
                         </button>
                         <button
                             className="btn btn-outline-light"
                             onClick={() => setIsLoginOpen(true)}
                         >
-                            Login
+                            Ingresar
                         </button>
                     </div>
                 </div>
+                <p style={{ color: 'var(--ink-3)', maxWidth: '60ch' }}>
+                    Plataforma informativa de señales de tendencia (alza/baja,
+                    sobrecompra/sobreventa) para acciones del S&amp;P Merval.
+                    Trabajo Profesional de Ingeniería en Informática, FIUBA —
+                    Grupo 186.
+                </p>
                 <SignUpPopUp
                     isOpen={isSignUpOpen}
                     onClose={() => setIsSignUpOpen(false)}
@@ -52,7 +58,7 @@ function App() {
                 />
             </div>
             <div className="p-1"></div>
-            <div className="row">
+            <div className="container">
                 <h3>{introduction?.message}</h3>
             </div>
         </>

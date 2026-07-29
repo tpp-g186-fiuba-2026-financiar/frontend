@@ -7,18 +7,18 @@ function RiskSelector({ value, setField }: RiskSelectorProps) {
     return (
         <>
             <div className="mb-2">
-                <label>Risk type</label>
+                <label>Perfil de riesgo</label>
                 <select
                     className="form-select"
                     value={value}
                     onChange={(e) => setField(e.target.value)}
                 >
                     <option value="" disabled>
-                        Select a risk type
+                        Elegí un perfil
                     </option>
-                    <option value="conservative">Conservative</option>
-                    <option value="moderate">Moderate</option>
-                    <option value="aggressive">Aggressive</option>
+                    <option value="conservative">Conservador</option>
+                    <option value="moderate">Moderado</option>
+                    <option value="aggressive">Agresivo</option>
                 </select>
             </div>
         </>

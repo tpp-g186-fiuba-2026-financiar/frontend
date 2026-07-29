@@ -103,7 +103,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
                 >
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Sign up</h5>
+                            <h5 className="modal-title">Crear cuenta</h5>
                             <button
                                 className="btn-close"
                                 onClick={closePopUp}

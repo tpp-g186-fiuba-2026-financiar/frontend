@@ -9,7 +9,7 @@ function ConfirmPasswordInput({ field, setField }: ConfirmPasswordInputProps) {
     return (
         <>
             <SignInInput
-                text="Confirm Password"
+                text="Confirmar contraseña"
                 type="password"
                 placeholder="••••••••"
                 field={field}

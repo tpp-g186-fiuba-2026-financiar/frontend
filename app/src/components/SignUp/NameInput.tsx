@@ -9,9 +9,9 @@ function NameInput({ field, setField }: NameInputProps) {
     return (
         <>
             <SignInInput
-                text="Name"
+                text="Nombre"
                 type=""
-                placeholder="John Smith"
+                placeholder="Juan Pérez"
                 field={field}
                 fieldSetter={setField}
             />

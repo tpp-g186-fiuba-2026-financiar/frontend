@@ -54,7 +54,7 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
                 >
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Login</h5>
+                            <h5 className="modal-title">Ingresar</h5>
                             <button
                                 className="btn-close"
                                 onClick={closePopUp}
@@ -74,14 +74,14 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
                                 className="btn btn-secondary"
                                 onClick={closePopUp}
                             >
-                                Cancel
+                                Cancelar
                             </button>
                             <button
                                 className="btn btn-primary"
                                 onClick={handleSubmit}
                                 disabled={!canSubmit}
                             >
-                                Confirm
+                                Ingresar
                             </button>
                         </div>
                     </div>

@@ -1,19 +1,32 @@
 import { useEffect, useState } from 'react';
 import { getUserEndpoint, type UserResponse } from '../../api/user/getUser';
-import { getUserSharesEndpoint } from '../../api/userShares/getUserSharesEndpoint';
+import {
+    getUserSharesEndpoint,
+    type UserShareItem,
+} from '../../api/userShares/getUserSharesEndpoint';
 import {
     getUserSharesTrendsEndpoint,
     type ShareTrend,
-    type TrendsResponse,
 } from '../../api/userShares/getUserSharesTrendsEndpoint';
-import type { UserSharesResponse } from '../../api/userShares/getUserSharesEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
 
-interface PortfolioRow extends ShareTrend {
+interface PortfolioRow {
+    ticker: string;
     quantity: number;
+    trend: ShareTrend | null;
 }
 
-function pillClass(signal: string | null): string {
+const RISK_PROFILE_LABEL: Record<string, string> = {
+    conservative: 'Conservador',
+    moderate: 'Moderado',
+    aggressive: 'Agresivo',
+};
+
+function riskProfileLabel(value: string): string {
+    return RISK_PROFILE_LABEL[value] ?? value;
+}
+
+function pillClass(signal: string | null | undefined): string {
     switch (signal) {
         case 'alza':
             return 'pill-up';
@@ -24,7 +37,7 @@ function pillClass(signal: string | null): string {
     }
 }
 
-function cardStateClass(signal: string | null): string {
+function cardStateClass(signal: string | null | undefined): string {
     switch (signal) {
         case 'alza':
             return 'is-up';
@@ -35,45 +48,62 @@ function cardStateClass(signal: string | null): string {
     }
 }
 
-function isNotableCondition(condition: string | null): boolean {
+function isNotableCondition(condition: string | null | undefined): boolean {
     return condition === 'sobrecompra' || condition === 'sobreventa';
 }
 
 function buildRows(
-    sharesRes: UserSharesResponse,
-    trendsRes: TrendsResponse,
+    shares: UserShareItem[],
+    trends: ShareTrend[] | null,
 ): PortfolioRow[] {
-    const quantityByTicker: Record<string, number> = {};
-    sharesRes.shares.forEach((s) => {
-        quantityByTicker[s.ticker] = s.quantity;
+    const trendByTicker: Record<string, ShareTrend> = {};
+    (trends ?? []).forEach((t) => {
+        trendByTicker[t.ticker] = t;
     });
-    return trendsRes.trends.map((t) => ({
-        ...t,
-        quantity: quantityByTicker[t.ticker] ?? 0,
+    return shares.map((s) => ({
+        ticker: s.ticker,
+        quantity: s.quantity,
+        trend: trendByTicker[s.ticker] ?? null,
     }));
 }
 
-async function fetchPortfolioRows(): Promise<PortfolioRow[]> {
-    const [sharesRes, trendsRes] = await Promise.all([
-        getUserSharesEndpoint(),
-        getUserSharesTrendsEndpoint(),
-    ]);
-    return buildRows(sharesRes, trendsRes);
+async function fetchPortfolio(): Promise<{
+    rows: PortfolioRow[];
+    trendsUnavailable: boolean;
+}> {
+    const sharesRes = await getUserSharesEndpoint();
+    try {
+        const trendsRes = await getUserSharesTrendsEndpoint();
+        return {
+            rows: buildRows(sharesRes.shares, trendsRes.trends),
+            trendsUnavailable: false,
+        };
+    } catch {
+        // Las acciones se guardaron igual: mostrarlas sin señal en vez de
+        // vaciar toda la pantalla si api-ml no responde.
+        return {
+            rows: buildRows(sharesRes.shares, null),
+            trendsUnavailable: true,
+        };
+    }
 }
 
 function Home() {
     const [user, setUser] = useState<UserResponse | null>(null);
     const [rows, setRows] = useState<PortfolioRow[]>([]);
     const [loadingPortfolio, setLoadingPortfolio] = useState<boolean>(true);
+    const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
 
-    const refreshPortfolio = async () => {
+    const loadPortfolio = async () => {
         try {
-            setRows(await fetchPortfolioRows());
+            const { rows, trendsUnavailable } = await fetchPortfolio();
+            setRows(rows);
+            setTrendsUnavailable(trendsUnavailable);
             setPortfolioError(null);
         } catch {
-            setPortfolioError('No se pudo actualizar la cartera.');
+            setPortfolioError('No se pudo cargar tu cartera.');
         }
     };
 
@@ -82,28 +112,28 @@ function Home() {
             const u = await getUserEndpoint();
             setUser(u);
         };
-        const fetchPortfolio = async () => {
+        const fetchInitialPortfolio = async () => {
             try {
-                setRows(await fetchPortfolioRows());
+                const { rows, trendsUnavailable } = await fetchPortfolio();
+                setRows(rows);
+                setTrendsUnavailable(trendsUnavailable);
                 setPortfolioError(null);
             } catch {
-                setPortfolioError(
-                    'No se pudo cargar la cartera. Revisá que el backend y api-ml estén levantados.',
-                );
+                setPortfolioError('No se pudo cargar tu cartera.');
             } finally {
                 setLoadingPortfolio(false);
             }
         };
         fetchUser();
-        fetchPortfolio();
+        fetchInitialPortfolio();
     }, []);
 
     if (!user) {
         return <p>Loading...</p>;
     }
 
-    const available = rows.filter((r) => r.available);
-    const upCount = available.filter((r) => r.signal === 'alza').length;
+    const withTrend = rows.filter((r) => r.trend?.available);
+    const upCount = withTrend.filter((r) => r.trend?.signal === 'alza').length;
 
     return (
         <div className="container py-4">
@@ -111,7 +141,7 @@ function Home() {
                 <div>
                     <h3 className="mb-0">{user.full_name}</h3>
                     <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
-                        Perfil de riesgo: {user.risk_profile}
+                        Perfil de riesgo: {riskProfileLabel(user.risk_profile)}
                     </p>
                 </div>
                 <button
@@ -124,34 +154,59 @@ function Home() {
 
             {loadingPortfolio && <p>Cargando cartera...</p>}
 
-            {portfolioError && <p className="text-danger">{portfolioError}</p>}
-
-            {!loadingPortfolio && !portfolioError && rows.length === 0 && (
-                <p style={{ color: 'var(--ink-3)' }}>
-                    Todavía no declaraste ninguna acción. Usá "Editar mi
-                    cartera" para elegir cuáles tenés.
-                </p>
+            {portfolioError && (
+                <div className="panel">
+                    <p className="text-danger mb-0">{portfolioError}</p>
+                </div>
             )}
 
-            {!loadingPortfolio && rows.length > 0 && (
+            {!loadingPortfolio && !portfolioError && rows.length === 0 && (
+                <div className="panel">
+                    <p className="mb-2">Todavía no armaste tu cartera.</p>
+                    <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
+                        Usá "Editar mi cartera" para elegir qué acciones tenés y
+                        cuántas — así te podemos mostrar la señal de tendencia
+                        de cada una.
+                    </p>
+                </div>
+            )}
+
+            {!loadingPortfolio && !portfolioError && rows.length > 0 && (
                 <>
-                    <div className="summary-banner mb-4">
-                        <p className="mb-0">
-                            Tu cartera ({rows.length}{' '}
-                            {rows.length === 1 ? 'acción' : 'acciones'}) tiene{' '}
-                            <b style={{ color: 'var(--up)' }}>
-                                {upCount} en alza
-                            </b>{' '}
-                            de {available.length} con datos disponibles, a{' '}
-                            {rows[0]?.horizon_days ?? 5} ruedas.
-                        </p>
-                    </div>
+                    {trendsUnavailable && (
+                        <div className="panel mb-4">
+                            <p className="mb-0 text-warning">
+                                No se pudo conectar con api-ml, así que por
+                                ahora no hay señal de tendencia. Tu cartera se
+                                guardó igual.
+                            </p>
+                        </div>
+                    )}
+
+                    {!trendsUnavailable && (
+                        <div className="summary-banner mb-4">
+                            <p className="mb-0">
+                                Tu cartera ({rows.length}{' '}
+                                {rows.length === 1 ? 'acción' : 'acciones'})
+                                tiene{' '}
+                                <b style={{ color: 'var(--up)' }}>
+                                    {upCount} en alza
+                                </b>{' '}
+                                de {withTrend.length} con datos disponibles, a{' '}
+                                {withTrend[0]?.trend?.horizon_days ?? 5} ruedas.
+                            </p>
+                        </div>
+                    )}
 
                     <div className="card-grid mb-4">
                         {rows.map((row) => (
                             <div
                                 key={row.ticker}
-                                className={`share-card ${row.available ? cardStateClass(row.signal) : 'unavailable'}`}
+                                className={`share-card ${
+                                    row.trend?.available
+                                        ? cardStateClass(row.trend.signal)
+                                        : 'unavailable'
+                                }`}
                             >
                                 <div className="row1">
                                     <div className="ticker mono">
@@ -159,40 +214,43 @@ function Home() {
                                     </div>
                                     <div className="price">
                                         <b className="num">
-                                            {row.available &&
-                                            row.last_close != null
-                                                ? `$${row.last_close.toLocaleString('es-AR')}`
+                                            {row.trend?.available &&
+                                            row.trend.last_close != null
+                                                ? `$${row.trend.last_close.toLocaleString('es-AR')}`
                                                 : '—'}
                                         </b>
                                         <span>{row.quantity} nominales</span>
                                     </div>
                                 </div>
                                 <div className="badges">
-                                    {row.available ? (
+                                    {row.trend?.available ? (
                                         <span
-                                            className={`pill ${pillClass(row.signal)}`}
+                                            className={`pill ${pillClass(row.trend.signal)}`}
                                         >
-                                            {row.signal ?? 'neutral'}
+                                            {row.trend.signal ?? 'neutral'}
                                         </span>
                                     ) : (
                                         <span
                                             className="pill pill-neutral"
-                                            title={row.reason ?? ''}
+                                            title={row.trend?.reason ?? ''}
                                         >
                                             Sin datos
                                         </span>
                                     )}
-                                    {row.available &&
-                                        isNotableCondition(row.condition) && (
+                                    {row.trend?.available &&
+                                        isNotableCondition(
+                                            row.trend.condition,
+                                        ) && (
                                             <span className="pill pill-warn">
-                                                {row.condition}
+                                                {row.trend.condition}
                                             </span>
                                         )}
                                 </div>
                                 <div className="meta">
-                                    {row.available
-                                        ? `${row.model ?? '—'} · ${row.as_of ?? ''}`
-                                        : row.reason}
+                                    {row.trend?.available
+                                        ? `${row.trend.model ?? '—'} · ${row.trend.as_of ?? ''}`
+                                        : (row.trend?.reason ??
+                                          'Todavía sin conexión a api-ml')}
                                 </div>
                             </div>
                         ))}
@@ -208,7 +266,7 @@ function Home() {
             <PortfolioBuilder
                 isOpen={isBuilderOpen}
                 onClose={() => setIsBuilderOpen(false)}
-                onSaved={refreshPortfolio}
+                onSaved={loadPortfolio}
             />
         </div>
     );
