@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getUserEndpoint, type UserResponse } from '../../api/user/getUser';
 import {
     getUserSharesEndpoint,
@@ -9,6 +10,7 @@ import {
     type ShareTrend,
 } from '../../api/userShares/getUserSharesTrendsEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
+import TickerTape from '../Layout/TickerTape';
 
 interface PortfolioRow {
     ticker: string;
@@ -89,6 +91,7 @@ async function fetchPortfolio(): Promise<{
 }
 
 function Home() {
+    const navigate = useNavigate();
     const [user, setUser] = useState<UserResponse | null>(null);
     const [rows, setRows] = useState<PortfolioRow[]>([]);
     const [loadingPortfolio, setLoadingPortfolio] = useState<boolean>(true);
@@ -135,8 +138,15 @@ function Home() {
     const withTrend = rows.filter((r) => r.trend?.available);
     const upCount = withTrend.filter((r) => r.trend?.signal === 'alza').length;
 
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/');
+    };
+
     return (
         <div className="container py-4">
+            <TickerTape />
+
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h3 className="mb-0">{user.full_name}</h3>
@@ -144,12 +154,20 @@ function Home() {
                         Perfil de riesgo: {riskProfileLabel(user.risk_profile)}
                     </p>
                 </div>
-                <button
-                    className="btn btn-primary"
-                    onClick={() => setIsBuilderOpen(true)}
-                >
-                    Editar mi cartera
-                </button>
+                <div>
+                    <button
+                        className="btn btn-primary me-2"
+                        onClick={() => setIsBuilderOpen(true)}
+                    >
+                        Editar mi cartera
+                    </button>
+                    <button
+                        className="btn btn-outline-light"
+                        onClick={handleLogout}
+                    >
+                        Cerrar sesión
+                    </button>
+                </div>
             </div>
 
             {loadingPortfolio && <p>Cargando cartera...</p>}

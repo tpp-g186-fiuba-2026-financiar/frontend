@@ -200,3 +200,121 @@ p {
     padding: 24px;
     background: var(--paper-2);
 }
+
+/* feature blurbs de la landing */
+.feature-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.feature-row .feature {
+    background: var(--paper-2);
+    padding: 20px;
+}
+.feature-row .feature h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+.feature-row .feature p {
+    font-size: 13.5px;
+    color: var(--ink-3);
+}
+@media (max-width: 720px) {
+    .feature-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* cinta de tickers en vivo */
+.marquee-wrap {
+    position: relative;
+    background: #070d0e;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.marquee-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        90deg,
+        #070d0e 0%,
+        rgba(7, 13, 14, 0) 7%,
+        rgba(7, 13, 14, 0) 93%,
+        #070d0e 100%
+    );
+}
+.marquee-track {
+    display: flex;
+    width: max-content;
+    gap: 26px;
+    padding: 9px 16px;
+    animation: marquee 26s linear infinite;
+}
+.marquee-wrap:hover .marquee-track {
+    animation-play-state: paused;
+}
+.marquee-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    color: #7fe0be;
+    padding-right: 16px;
+    border-right: 1px solid rgba(255, 255, 255, 0.14);
+    text-transform: uppercase;
+    flex: none;
+}
+.marquee-item {
+    font-size: 12.5px;
+    color: #cfefe0;
+    white-space: nowrap;
+}
+@keyframes marquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+.livedot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #3fe0a0;
+    position: relative;
+    flex: none;
+    display: inline-block;
+}
+.livedot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1px solid #3fe0a0;
+    animation: pulseRing 1.8s ease-out infinite;
+}
+@keyframes pulseRing {
+    0% {
+        transform: scale(0.6);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .marquee-track,
+    .livedot::after {
+        animation: none;
+    }
+}
