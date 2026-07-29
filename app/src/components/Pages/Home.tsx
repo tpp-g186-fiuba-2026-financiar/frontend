@@ -10,6 +10,7 @@ import {
     type ShareTrend,
 } from '../../api/userShares/getUserSharesTrendsEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
+import TickerDetail from '../Portfolio/TickerDetail';
 import TickerTape from '../Layout/TickerTape';
 
 interface PortfolioRow {
@@ -39,19 +40,59 @@ function pillClass(signal: string | null | undefined): string {
     }
 }
 
-function cardStateClass(signal: string | null | undefined): string {
+function rowStateClass(signal: string | null | undefined): string {
     switch (signal) {
         case 'alza':
             return 'is-up';
         case 'baja':
             return 'is-down';
         default:
-            return 'is-neutral';
+            return 'is-flat';
     }
 }
 
-function isNotableCondition(condition: string | null | undefined): boolean {
-    return condition === 'sobrecompra' || condition === 'sobreventa';
+function signalStrokeVar(signal: string | null | undefined): string {
+    switch (signal) {
+        case 'alza':
+            return 'var(--up)';
+        case 'baja':
+            return 'var(--down)';
+        default:
+            return 'var(--neutral-sig)';
+    }
+}
+
+// Linea de 2 puntos (ultimo cierre -> precio proyectado): son los unicos
+// datos reales que tenemos por fila, no hay historico de precios todavia.
+function MiniProjection({
+    lastClose,
+    predictedClose,
+    signal,
+}: {
+    lastClose: number;
+    predictedClose: number;
+    signal: string | null | undefined;
+}) {
+    const min = Math.min(lastClose, predictedClose);
+    const max = Math.max(lastClose, predictedClose);
+    const span = max - min || 1;
+    const y0 = 14 - ((lastClose - min) / span) * 12;
+    const y1 = 14 - ((predictedClose - min) / span) * 12;
+    const color = signalStrokeVar(signal);
+    return (
+        <svg width="34" height="18" viewBox="0 0 34 18">
+            <line
+                x1="1"
+                y1={y0}
+                x2="33"
+                y2={y1}
+                stroke={color}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+            />
+            <circle cx="33" cy={y1} r="2" fill={color} />
+        </svg>
+    );
 }
 
 function buildRows(
@@ -98,6 +139,7 @@ function Home() {
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
+    const [selectedRow, setSelectedRow] = useState<PortfolioRow | null>(null);
 
     const loadPortfolio = async () => {
         try {
@@ -170,109 +212,229 @@ function Home() {
                 </div>
             </div>
 
-            {loadingPortfolio && <p>Cargando cartera...</p>}
-
-            {portfolioError && (
-                <div className="panel">
-                    <p className="text-danger mb-0">{portfolioError}</p>
-                </div>
-            )}
-
-            {!loadingPortfolio && !portfolioError && rows.length === 0 && (
-                <div className="panel">
-                    <p className="mb-2">Todavía no armaste tu cartera.</p>
-                    <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
-                        Usá "Editar mi cartera" para elegir qué acciones tenés y
-                        cuántas — así te podemos mostrar la señal de tendencia
-                        de cada una.
-                    </p>
-                </div>
-            )}
-
-            {!loadingPortfolio && !portfolioError && rows.length > 0 && (
+            {selectedRow ? (
+                <TickerDetail
+                    row={selectedRow}
+                    onBack={() => setSelectedRow(null)}
+                />
+            ) : (
                 <>
-                    {trendsUnavailable && (
-                        <div className="panel mb-4">
-                            <p className="mb-0 text-warning">
-                                No se pudo conectar con api-ml, así que por
-                                ahora no hay señal de tendencia. Tu cartera se
-                                guardó igual.
-                            </p>
+                    {loadingPortfolio && <p>Cargando cartera...</p>}
+
+                    {portfolioError && (
+                        <div className="panel">
+                            <p className="text-danger mb-0">{portfolioError}</p>
                         </div>
                     )}
 
-                    {!trendsUnavailable && (
-                        <div className="summary-banner mb-4">
-                            <p className="mb-0">
-                                Tu cartera ({rows.length}{' '}
-                                {rows.length === 1 ? 'acción' : 'acciones'})
-                                tiene{' '}
-                                <b style={{ color: 'var(--up)' }}>
-                                    {upCount} en alza
-                                </b>{' '}
-                                de {withTrend.length} con datos disponibles, a{' '}
-                                {withTrend[0]?.trend?.horizon_days ?? 5} ruedas.
-                            </p>
-                        </div>
-                    )}
-
-                    <div className="card-grid mb-4">
-                        {rows.map((row) => (
-                            <div
-                                key={row.ticker}
-                                className={`share-card ${
-                                    row.trend?.available
-                                        ? cardStateClass(row.trend.signal)
-                                        : 'unavailable'
-                                }`}
-                            >
-                                <div className="row1">
-                                    <div className="ticker mono">
-                                        {row.ticker}
-                                    </div>
-                                    <div className="price">
-                                        <b className="num">
-                                            {row.trend?.available &&
-                                            row.trend.last_close != null
-                                                ? `$${row.trend.last_close.toLocaleString('es-AR')}`
-                                                : '—'}
-                                        </b>
-                                        <span>{row.quantity} nominales</span>
-                                    </div>
-                                </div>
-                                <div className="badges">
-                                    {row.trend?.available ? (
-                                        <span
-                                            className={`pill ${pillClass(row.trend.signal)}`}
-                                        >
-                                            {row.trend.signal ?? 'neutral'}
-                                        </span>
-                                    ) : (
-                                        <span
-                                            className="pill pill-neutral"
-                                            title={row.trend?.reason ?? ''}
-                                        >
-                                            Sin datos
-                                        </span>
-                                    )}
-                                    {row.trend?.available &&
-                                        isNotableCondition(
-                                            row.trend.condition,
-                                        ) && (
-                                            <span className="pill pill-warn">
-                                                {row.trend.condition}
-                                            </span>
-                                        )}
-                                </div>
-                                <div className="meta">
-                                    {row.trend?.available
-                                        ? `${row.trend.model ?? '—'} · ${row.trend.as_of ?? ''}`
-                                        : (row.trend?.reason ??
-                                          'Todavía sin conexión a api-ml')}
-                                </div>
+                    {!loadingPortfolio &&
+                        !portfolioError &&
+                        rows.length === 0 && (
+                            <div className="panel">
+                                <p className="mb-2">
+                                    Todavía no armaste tu cartera.
+                                </p>
+                                <p
+                                    className="mb-0"
+                                    style={{ color: 'var(--ink-3)' }}
+                                >
+                                    Usá "Editar mi cartera" para elegir qué
+                                    acciones tenés y cuántas — así te podemos
+                                    mostrar la señal de tendencia de cada una.
+                                </p>
                             </div>
-                        ))}
-                    </div>
+                        )}
+
+                    {!loadingPortfolio &&
+                        !portfolioError &&
+                        rows.length > 0 && (
+                            <>
+                                {trendsUnavailable && (
+                                    <div className="panel mb-4">
+                                        <p className="mb-0 text-warning">
+                                            No se pudo conectar con api-ml, así
+                                            que por ahora no hay señal de
+                                            tendencia. Tu cartera se guardó
+                                            igual.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {!trendsUnavailable && (
+                                    <div className="summary-banner mb-4">
+                                        <p className="mb-0">
+                                            Tu cartera ({rows.length}{' '}
+                                            {rows.length === 1
+                                                ? 'acción'
+                                                : 'acciones'}
+                                            ) tiene{' '}
+                                            <b style={{ color: 'var(--up)' }}>
+                                                {upCount} en alza
+                                            </b>{' '}
+                                            de {withTrend.length} con datos
+                                            disponibles, a{' '}
+                                            {withTrend[0]?.trend
+                                                ?.horizon_days ?? 5}{' '}
+                                            ruedas.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="watchlist-panel mb-4">
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table className="watchlist">
+                                            <thead>
+                                                <tr>
+                                                    <th>Ticker</th>
+                                                    <th></th>
+                                                    <th>Cant.</th>
+                                                    <th>Último</th>
+                                                    <th>RSI</th>
+                                                    <th>Señal</th>
+                                                    <th>Modelo · fecha</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {rows.map((row) => {
+                                                    const available =
+                                                        row.trend?.available ??
+                                                        false;
+                                                    return (
+                                                        <tr
+                                                            key={row.ticker}
+                                                            className={
+                                                                available
+                                                                    ? rowStateClass(
+                                                                          row
+                                                                              .trend
+                                                                              ?.signal,
+                                                                      )
+                                                                    : ''
+                                                            }
+                                                            onClick={() =>
+                                                                setSelectedRow(
+                                                                    row,
+                                                                )
+                                                            }
+                                                        >
+                                                            <td className="t-ticker">
+                                                                {row.ticker}
+                                                            </td>
+                                                            <td>
+                                                                {available &&
+                                                                    row.trend
+                                                                        ?.last_close !=
+                                                                        null &&
+                                                                    row.trend
+                                                                        ?.predicted_close !=
+                                                                        null && (
+                                                                        <MiniProjection
+                                                                            lastClose={
+                                                                                row
+                                                                                    .trend
+                                                                                    .last_close
+                                                                            }
+                                                                            predictedClose={
+                                                                                row
+                                                                                    .trend
+                                                                                    .predicted_close
+                                                                            }
+                                                                            signal={
+                                                                                row
+                                                                                    .trend
+                                                                                    .signal
+                                                                            }
+                                                                        />
+                                                                    )}
+                                                            </td>
+                                                            <td className="t-qty">
+                                                                {row.quantity}
+                                                            </td>
+                                                            <td className="t-price">
+                                                                {available &&
+                                                                row.trend
+                                                                    ?.last_close !=
+                                                                    null ? (
+                                                                    <span className="num">
+                                                                        $
+                                                                        {row.trend.last_close.toLocaleString(
+                                                                            'es-AR',
+                                                                        )}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="dash">
+                                                                        —
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="rsi-cell">
+                                                                {available &&
+                                                                row.trend
+                                                                    ?.rsi !=
+                                                                    null ? (
+                                                                    <>
+                                                                        <span className="rsi-bar">
+                                                                            <i
+                                                                                style={{
+                                                                                    width: `${row.trend.rsi}%`,
+                                                                                }}
+                                                                            />
+                                                                        </span>
+                                                                        <span className="num">
+                                                                            {row.trend.rsi.toFixed(
+                                                                                0,
+                                                                            )}
+                                                                        </span>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="dash">
+                                                                        —
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td>
+                                                                {available ? (
+                                                                    <span
+                                                                        className={`pill ${pillClass(row.trend?.signal)}`}
+                                                                    >
+                                                                        {row
+                                                                            .trend
+                                                                            ?.signal ??
+                                                                            'neutral'}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span
+                                                                        className="pill pill-neutral"
+                                                                        title={
+                                                                            row
+                                                                                .trend
+                                                                                ?.reason ??
+                                                                            ''
+                                                                        }
+                                                                    >
+                                                                        Sin
+                                                                        datos
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="t-model">
+                                                                {available
+                                                                    ? `${row.trend?.model ?? '—'} · ${row.trend?.as_of ?? ''}`
+                                                                    : 'sin cobertura'}
+                                                            </td>
+                                                            <td className="chev">
+                                                                ›
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                 </>
             )}
 

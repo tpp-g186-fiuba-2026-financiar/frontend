@@ -159,69 +159,248 @@ p {
     color: var(--warn);
 }
 
-/* share cards */
-.card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
-}
-.share-card {
+/* watchlist: tabla densa de la cartera, estilo pantalla de broker */
+.watchlist-panel {
     border: 1px solid var(--line);
     border-radius: 10px;
-    padding: 14px 16px;
-    background: var(--paper-3);
+    background: var(--paper-2);
     box-shadow: var(--shadow-sm);
-    transition:
-        border-color 0.15s,
-        box-shadow 0.2s,
-        transform 0.15s;
+    overflow: hidden;
 }
-.share-card.is-up:hover,
-.share-card.is-down:hover,
-.share-card.is-neutral:hover {
-    border-color: var(--accent-2);
-    box-shadow: var(--shadow);
-    transform: translateY(-2px);
+table.watchlist {
+    width: 100%;
+    border-collapse: collapse;
 }
-.share-card.unavailable {
-    opacity: 0.7;
+table.watchlist th {
+    text-align: right;
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+    font-weight: 600;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
 }
-.share-card .row1 {
+table.watchlist th:first-child,
+table.watchlist td:first-child {
+    text-align: left;
+}
+table.watchlist td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+table.watchlist tbody tr {
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s;
+}
+table.watchlist tbody tr:hover {
+    background: var(--paper-3);
+}
+table.watchlist tbody tr:last-child td {
+    border-bottom: none;
+}
+table.watchlist tbody tr::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--line);
+}
+table.watchlist tbody tr.is-up::before {
+    background: var(--up);
+}
+table.watchlist tbody tr.is-down::before {
+    background: var(--down);
+}
+table.watchlist tbody tr.is-flat::before {
+    background: var(--neutral-sig);
+}
+.t-ticker {
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 13.5px;
+}
+.t-qty {
+    text-align: right;
+    color: var(--ink-3);
+}
+.t-price {
+    text-align: right;
+    font-family: var(--mono);
+    color: var(--ink);
+}
+.t-price .dash {
+    color: var(--ink-3);
+    font-family: var(--sans);
+}
+.rsi-cell {
+    text-align: right;
+}
+.rsi-bar {
+    display: inline-block;
+    width: 46px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--line);
+    vertical-align: middle;
+    margin-right: 8px;
+    overflow: hidden;
+}
+.rsi-bar i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+}
+.t-model {
+    text-align: right;
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+.chev {
+    text-align: right;
+    color: var(--ink-3);
+    width: 20px;
+}
+
+/* vista de detalle de un ticker */
+.back-link {
+    background: none;
+    border: none;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 16px;
+    font-family: var(--sans);
+}
+.back-link:hover {
+    color: var(--ink-2);
+}
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 820px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.chart-panel canvas {
+    width: 100%;
+    height: 170px;
+    display: block;
+}
+.chart-panel h3,
+.side-panel h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+    font-family: var(--sans);
+    font-weight: 600;
+}
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+}
+.detail-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 18px;
 }
-.share-card .ticker {
-    font-size: 15.5px;
+.detail-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.detail-title h1 {
+    font-size: 22px;
+    font-family: var(--mono);
+    font-weight: 700;
+}
+.detail-sub {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    margin-top: 4px;
+}
+.detail-price {
+    text-align: right;
+}
+.detail-price .p {
+    font-family: var(--mono);
+    font-size: 22px;
     font-weight: 700;
     color: var(--ink);
 }
-.share-card .name {
-    font-size: 11.5px;
-    color: var(--ink-3);
+.detail-price .d {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    margin-left: 6px;
 }
-.share-card .price {
-    text-align: right;
+.indicator-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 }
-.share-card .price b {
+.indicator {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 10px;
+    background: var(--paper);
+}
+.indicator span {
     display: block;
-    font-size: 15px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-3);
+    margin-bottom: 4px;
+}
+.indicator b {
+    font-family: var(--mono);
+    font-size: 14px;
     color: var(--ink);
 }
-.share-card .price span {
-    font-size: 11px;
-    color: var(--ink-3);
-}
-.share-card .badges {
+.kv {
     display: flex;
-    gap: 6px;
-    margin-top: 10px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
 }
-.share-card .meta {
-    margin-top: 10px;
-    font-size: 11.5px;
+.kv:last-child {
+    border-bottom: none;
+}
+.kv span:first-child {
     color: var(--ink-3);
+}
+.kv span:last-child {
+    font-family: var(--mono);
+    color: var(--ink);
+}
+.roadmap-box {
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--ink-3);
+    background: var(--paper);
+    margin-top: 14px;
+}
+.roadmap-box b {
+    color: var(--ink-2);
 }
 
 .summary-banner {
