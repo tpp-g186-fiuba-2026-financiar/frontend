@@ -13,14 +13,25 @@ interface PortfolioRow extends ShareTrend {
     quantity: number;
 }
 
-function signalBadgeClass(signal: string | null): string {
+function pillClass(signal: string | null): string {
     switch (signal) {
         case 'alza':
-            return 'text-bg-success';
+            return 'pill-up';
         case 'baja':
-            return 'text-bg-danger';
+            return 'pill-down';
         default:
-            return 'text-bg-secondary';
+            return 'pill-neutral';
+    }
+}
+
+function cardStateClass(signal: string | null): string {
+    switch (signal) {
+        case 'alza':
+            return 'is-up';
+        case 'baja':
+            return 'is-down';
+        default:
+            return 'is-neutral';
     }
 }
 
@@ -54,10 +65,16 @@ function Home() {
     const [user, setUser] = useState<UserResponse | null>(null);
     const [rows, setRows] = useState<PortfolioRow[]>([]);
     const [loadingPortfolio, setLoadingPortfolio] = useState<boolean>(true);
+    const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
 
     const refreshPortfolio = async () => {
-        setRows(await fetchPortfolioRows());
+        try {
+            setRows(await fetchPortfolioRows());
+            setPortfolioError(null);
+        } catch {
+            setPortfolioError('No se pudo actualizar la cartera.');
+        }
     };
 
     useEffect(() => {
@@ -66,8 +83,16 @@ function Home() {
             setUser(u);
         };
         const fetchPortfolio = async () => {
-            setRows(await fetchPortfolioRows());
-            setLoadingPortfolio(false);
+            try {
+                setRows(await fetchPortfolioRows());
+                setPortfolioError(null);
+            } catch {
+                setPortfolioError(
+                    'No se pudo cargar la cartera. Revisá que el backend y api-ml estén levantados.',
+                );
+            } finally {
+                setLoadingPortfolio(false);
+            }
         };
         fetchUser();
         fetchPortfolio();
@@ -77,12 +102,15 @@ function Home() {
         return <p>Loading...</p>;
     }
 
+    const available = rows.filter((r) => r.available);
+    const upCount = available.filter((r) => r.signal === 'alza').length;
+
     return (
         <div className="container py-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h3 className="mb-0">{user.full_name}</h3>
-                    <p className="text-secondary small mb-0">
+                    <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
                         Perfil de riesgo: {user.risk_profile}
                     </p>
                 </div>
@@ -96,80 +124,85 @@ function Home() {
 
             {loadingPortfolio && <p>Cargando cartera...</p>}
 
-            {!loadingPortfolio && rows.length === 0 && (
-                <p className="text-secondary">
+            {portfolioError && <p className="text-danger">{portfolioError}</p>}
+
+            {!loadingPortfolio && !portfolioError && rows.length === 0 && (
+                <p style={{ color: 'var(--ink-3)' }}>
                     Todavía no declaraste ninguna acción. Usá "Editar mi
                     cartera" para elegir cuáles tenés.
                 </p>
             )}
 
             {!loadingPortfolio && rows.length > 0 && (
-                <div className="table-responsive">
-                    <table className="table table-dark table-striped align-middle">
-                        <thead>
-                            <tr>
-                                <th>Ticker</th>
-                                <th>Cantidad</th>
-                                <th>Último cierre</th>
-                                <th>Señal</th>
-                                <th>Condición</th>
-                                <th>Modelo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((row) => (
-                                <tr key={row.ticker}>
-                                    <td className="fw-semibold">
+                <>
+                    <div className="summary-banner mb-4">
+                        <p className="mb-0">
+                            Tu cartera ({rows.length}{' '}
+                            {rows.length === 1 ? 'acción' : 'acciones'}) tiene{' '}
+                            <b style={{ color: 'var(--up)' }}>
+                                {upCount} en alza
+                            </b>{' '}
+                            de {available.length} con datos disponibles, a{' '}
+                            {rows[0]?.horizon_days ?? 5} ruedas.
+                        </p>
+                    </div>
+
+                    <div className="card-grid mb-4">
+                        {rows.map((row) => (
+                            <div
+                                key={row.ticker}
+                                className={`share-card ${row.available ? cardStateClass(row.signal) : 'unavailable'}`}
+                            >
+                                <div className="row1">
+                                    <div className="ticker mono">
                                         {row.ticker}
-                                    </td>
-                                    <td>{row.quantity}</td>
-                                    <td>
-                                        {row.available && row.last_close != null
-                                            ? `$${row.last_close.toLocaleString('es-AR')}`
-                                            : '—'}
-                                    </td>
-                                    <td>
-                                        {row.available ? (
-                                            <span
-                                                className={`badge ${signalBadgeClass(row.signal)}`}
-                                            >
-                                                {row.signal ?? 'neutral'}
-                                            </span>
-                                        ) : (
-                                            <span
-                                                className="badge text-bg-secondary"
-                                                title={row.reason ?? ''}
-                                            >
-                                                Sin datos
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        {row.available &&
-                                        isNotableCondition(row.condition) ? (
-                                            <span className="badge text-bg-warning">
+                                    </div>
+                                    <div className="price">
+                                        <b className="num">
+                                            {row.available &&
+                                            row.last_close != null
+                                                ? `$${row.last_close.toLocaleString('es-AR')}`
+                                                : '—'}
+                                        </b>
+                                        <span>{row.quantity} nominales</span>
+                                    </div>
+                                </div>
+                                <div className="badges">
+                                    {row.available ? (
+                                        <span
+                                            className={`pill ${pillClass(row.signal)}`}
+                                        >
+                                            {row.signal ?? 'neutral'}
+                                        </span>
+                                    ) : (
+                                        <span
+                                            className="pill pill-neutral"
+                                            title={row.reason ?? ''}
+                                        >
+                                            Sin datos
+                                        </span>
+                                    )}
+                                    {row.available &&
+                                        isNotableCondition(row.condition) && (
+                                            <span className="pill pill-warn">
                                                 {row.condition}
                                             </span>
-                                        ) : (
-                                            <span className="text-secondary">
-                                                —
-                                            </span>
                                         )}
-                                    </td>
-                                    <td className="text-secondary small">
-                                        {row.model ?? '—'}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                                <div className="meta">
+                                    {row.available
+                                        ? `${row.model ?? '—'} · ${row.as_of ?? ''}`
+                                        : row.reason}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
 
-            <p className="text-secondary small mt-3">
-                Señal a {rows[0]?.horizon_days ?? 5} ruedas, generada por
-                modelos de machine learning sobre datos históricos. No es
-                asesoramiento financiero.
+            <p style={{ color: 'var(--ink-3)', fontSize: '13px' }}>
+                Señal generada por modelos de machine learning sobre datos
+                históricos. No es asesoramiento financiero.
             </p>
 
             <PortfolioBuilder

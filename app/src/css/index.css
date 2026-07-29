@@ -1,16 +1,38 @@
 :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
+    --paper: #0a1113;
+    --paper-2: #111c1e;
+    --paper-3: #162427;
+    --ink: #e9f2ef;
+    --ink-2: #9baea9;
+    --ink-3: #657976;
+    --line: #243634;
+
+    --accent: #3fc1ee;
+    --accent-2: #35e3aa;
+    --accent-glow: rgba(63, 193, 238, 0.35);
+
+    --up: #33e293;
+    --up-soft: #0f3826;
+    --up-glow: rgba(51, 226, 147, 0.4);
+
+    --down: #ff7a63;
+    --down-soft: #3d1912;
+    --down-glow: rgba(255, 122, 99, 0.38);
+
+    --warn: #f0ba53;
+    --warn-soft: #3b2c10;
+
+    --neutral-sig: #8fa09b;
+    --neutral-soft: #1b2a28;
 
     --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
     --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
     font: 16px/145% var(--sans);
     letter-spacing: 0.18px;
-    color: var(--text);
-    background: var(--bg);
+    color: var(--ink-2);
+    background: var(--paper);
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -34,9 +56,161 @@ h1,
 h2,
 h3 {
     font-family: var(--heading);
-    color: var(--text-h);
+    color: var(--ink);
 }
 
 p {
     margin: 0;
+}
+
+.mono,
+.num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* wordmark */
+.wordmark {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+.wordmark .grad {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* gradient buttons, matches the boceto's primary CTA */
+.btn-primary {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    box-shadow: 0 4px 16px var(--accent-glow);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.2s ease,
+        filter 0.2s ease;
+}
+.btn-primary:hover,
+.btn-primary:focus {
+    filter: brightness(1.08);
+    box-shadow: 0 8px 22px var(--accent-glow);
+    transform: translateY(-1px);
+}
+
+/* pills used for signal / condition badges */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.pill::before {
+    content: '●';
+    font-size: 8px;
+}
+.pill-up {
+    background: var(--up-soft);
+    color: var(--up);
+}
+.pill-down {
+    background: var(--down-soft);
+    color: var(--down);
+}
+.pill-neutral {
+    background: var(--neutral-soft);
+    color: var(--neutral-sig);
+}
+.pill-warn {
+    background: var(--warn-soft);
+    color: var(--warn);
+}
+
+/* share cards, matches the boceto's "mi cartera" grid */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+}
+.share-card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: var(--paper-3);
+    transition:
+        border-color 0.2s,
+        box-shadow 0.25s,
+        transform 0.25s;
+}
+.share-card.is-up:hover {
+    border-color: var(--up);
+    box-shadow: 0 12px 26px var(--up-glow);
+    transform: translateY(-2px);
+}
+.share-card.is-down:hover {
+    border-color: var(--down);
+    box-shadow: 0 12px 26px var(--down-glow);
+    transform: translateY(-2px);
+}
+.share-card.is-neutral:hover {
+    border-color: var(--accent);
+    box-shadow: 0 12px 26px var(--accent-glow);
+    transform: translateY(-2px);
+}
+.share-card.unavailable {
+    opacity: 0.65;
+}
+.share-card .row1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.share-card .ticker {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--ink);
+}
+.share-card .name {
+    font-size: 11.5px;
+    color: var(--ink-3);
+}
+.share-card .price {
+    text-align: right;
+}
+.share-card .price b {
+    display: block;
+    font-size: 15px;
+    color: var(--ink);
+}
+.share-card .price span {
+    font-size: 11px;
+    color: var(--ink-3);
+}
+.share-card .badges {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.share-card .meta {
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+}
+
+.summary-banner {
+    background: linear-gradient(
+        120deg,
+        var(--paper-3),
+        var(--paper-3) 60%,
+        var(--up-soft)
+    );
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 18px;
 }

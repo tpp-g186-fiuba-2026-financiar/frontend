@@ -21,19 +21,21 @@ function App() {
         <>
             <div className="p-1"></div>
             <div className="container text-center">
-                <div className="row align-items-start">
-                    <div className="col-9"></div>
+                <div className="row align-items-center">
+                    <div className="col text-start">
+                        <span className="wordmark">
+                            <span className="grad">Financi</span>Ar
+                        </span>
+                    </div>
                     <div className="col">
                         <button
-                            className="btn btn-success"
+                            className="btn btn-primary me-2"
                             onClick={() => setIsSignUpOpen(true)}
                         >
                             Sign up
                         </button>
-                    </div>
-                    <div className="col">
                         <button
-                            className="btn btn-success"
+                            className="btn btn-outline-light"
                             onClick={() => setIsLoginOpen(true)}
                         >
                             Login
@@ -51,7 +53,6 @@ function App() {
             </div>
             <div className="p-1"></div>
             <div className="row">
-                <h1 className="dark">Welcome to Financiar!</h1>
                 <h3>{introduction?.message}</h3>
             </div>
         </>
