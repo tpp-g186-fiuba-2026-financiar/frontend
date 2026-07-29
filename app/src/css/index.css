@@ -28,10 +28,13 @@
         serif;
     --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 26px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --grid-line: rgba(255, 255, 255, 0.035);
+
     font: 16px/145% var(--sans);
     letter-spacing: 0.15px;
     color: var(--ink-2);
-    background: var(--paper);
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -40,6 +43,23 @@
 
 body {
     margin: 0;
+    background:
+        radial-gradient(
+            1100px 480px at 12% -12%,
+            var(--accent-soft),
+            transparent 60%
+        ),
+        repeating-linear-gradient(
+            0deg,
+            var(--grid-line) 0 1px,
+            transparent 1px 28px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            var(--grid-line) 0 1px,
+            transparent 1px 28px
+        ),
+        var(--paper);
 }
 
 #root {
@@ -74,7 +94,7 @@ p {
 /* wordmark */
 .wordmark {
     font-family: var(--heading);
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     letter-spacing: 0.2px;
     color: var(--ink);
@@ -83,6 +103,16 @@ p {
     color: var(--accent);
 }
 
+.btn {
+    box-shadow: var(--shadow-sm);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.2s ease,
+        filter 0.15s ease;
+}
+.btn:hover {
+    transform: translateY(-1px);
+}
 .btn-primary {
     --bs-btn-bg: var(--accent);
     --bs-btn-border-color: var(--accent);
@@ -90,6 +120,11 @@ p {
     --bs-btn-hover-border-color: var(--accent-2);
     --bs-btn-active-bg: var(--accent-2);
     --bs-btn-active-border-color: var(--accent-2);
+}
+.btn-primary:hover {
+    box-shadow:
+        var(--shadow-sm),
+        0 0 0 3px var(--accent-soft);
 }
 
 /* pills used for signal / condition badges: la unica zona con color semantico */
@@ -135,14 +170,17 @@ p {
     border-radius: 10px;
     padding: 14px 16px;
     background: var(--paper-3);
+    box-shadow: var(--shadow-sm);
     transition:
         border-color 0.15s,
+        box-shadow 0.2s,
         transform 0.15s;
 }
 .share-card.is-up:hover,
 .share-card.is-down:hover,
 .share-card.is-neutral:hover {
     border-color: var(--accent-2);
+    box-shadow: var(--shadow);
     transform: translateY(-2px);
 }
 .share-card.unavailable {
@@ -191,6 +229,7 @@ p {
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 14px 18px;
+    box-shadow: var(--shadow-sm);
 }
 
 /* panel generico: estado vacio, avisos, secciones sueltas */
@@ -199,6 +238,7 @@ p {
     border-radius: 10px;
     padding: 24px;
     background: var(--paper-2);
+    box-shadow: var(--shadow-sm);
 }
 
 /* feature blurbs de la landing */
@@ -210,10 +250,25 @@ p {
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
+    box-shadow: var(--shadow);
 }
 .feature-row .feature {
     background: var(--paper-2);
-    padding: 20px;
+    padding: 22px 20px;
+    transition: background 0.15s;
+}
+.feature-row .feature:hover {
+    background: var(--paper-3);
+}
+.feature-row .feature-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    margin-bottom: 14px;
 }
 .feature-row .feature h3 {
     font-size: 16px;
@@ -227,6 +282,28 @@ p {
     .feature-row {
         grid-template-columns: 1fr;
     }
+}
+
+/* pie con creditos del proyecto */
+.site-footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    color: var(--ink-3);
+}
+.site-footer b {
+    color: var(--ink-2);
+}
+.status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 /* cinta de tickers en vivo */

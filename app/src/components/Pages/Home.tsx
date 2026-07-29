@@ -281,6 +281,13 @@ function Home() {
                 históricos. No es asesoramiento financiero.
             </p>
 
+            <footer className="site-footer">
+                <div>
+                    <b>FinanciAr</b> — Trabajo Profesional de Ingeniería en
+                    Informática, FIUBA — Grupo 186
+                </div>
+            </footer>
+
             <PortfolioBuilder
                 isOpen={isBuilderOpen}
                 onClose={() => setIsBuilderOpen(false)}
