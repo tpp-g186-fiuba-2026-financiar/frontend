@@ -202,7 +202,9 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
                 if (!cancelled) setCompare(res);
             } catch {
                 if (!cancelled)
-                    setError('No se pudo comparar los modelos para este ticker.');
+                    setError(
+                        'No se pudo comparar los modelos para este ticker.',
+                    );
             }
         };
         load();
@@ -267,7 +269,9 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
                             <tr
                                 key={name}
                                 className={
-                                    pred.available ? rowClass(pred.signal) : 'is-flat'
+                                    pred.available
+                                        ? rowClass(pred.signal)
+                                        : 'is-flat'
                                 }
                                 style={{ cursor: 'default' }}
                             >
@@ -281,7 +285,9 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
                                                 {pred.signal ?? 'neutral'}
                                             </span>
                                         </td>
-                                        <td className="num">{pred.rsi ?? '—'}</td>
+                                        <td className="num">
+                                            {pred.rsi ?? '—'}
+                                        </td>
                                         <td>{pred.condition ?? '—'}</td>
                                         <td className="num">
                                             {formatMoney(pred.last_close)}
@@ -306,7 +312,10 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
                                         </td>
                                     </>
                                 ) : (
-                                    <td colSpan={6} style={{ color: 'var(--ink-3)' }}>
+                                    <td
+                                        colSpan={6}
+                                        style={{ color: 'var(--ink-3)' }}
+                                    >
                                         {pred.reason ?? 'No disponible'}
                                     </td>
                                 )}
