@@ -1,5 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ShareTrend } from '../../api/userShares/getUserSharesTrendsEndpoint';
+import {
+    getShareTrendCompareEndpoint,
+    type CompareTrendsResponse,
+    type ModelPrediction,
+} from '../../api/userShares/getShareTrendCompareEndpoint';
 
 interface PortfolioRow {
     ticker: string;
@@ -168,6 +173,152 @@ function ProjectionChart({
     return <canvas ref={canvasRef} width={560} height={170} />;
 }
 
+function rowClass(signal: string | null | undefined): string {
+    switch (signal) {
+        case 'alza':
+            return 'is-up';
+        case 'baja':
+            return 'is-down';
+        default:
+            return 'is-flat';
+    }
+}
+
+interface ModelComparisonTableProps {
+    ticker: string;
+}
+
+function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
+    const [compare, setCompare] = useState<CompareTrendsResponse | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            setCompare(null);
+            setError(null);
+            try {
+                const res = await getShareTrendCompareEndpoint(ticker);
+                if (!cancelled) setCompare(res);
+            } catch {
+                if (!cancelled)
+                    setError('No se pudo comparar los modelos para este ticker.');
+            }
+        };
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [ticker]);
+
+    if (error) {
+        return (
+            <div className="panel mt-3">
+                <h3>Comparación de modelos</h3>
+                <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
+                    {error}
+                </p>
+            </div>
+        );
+    }
+
+    if (!compare) {
+        return (
+            <div className="panel mt-3">
+                <h3>Comparación de modelos</h3>
+                <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
+                    Cargando…
+                </p>
+            </div>
+        );
+    }
+
+    const entries = Object.entries(compare.predictions) as [
+        string,
+        ModelPrediction,
+    ][];
+
+    return (
+        <div className="panel mt-3">
+            <h3>Comparación de modelos</h3>
+            <table className="watchlist">
+                <thead>
+                    <tr>
+                        <th>Modelo</th>
+                        <th>Señal</th>
+                        <th>RSI</th>
+                        <th>Condición</th>
+                        <th>Último cierre</th>
+                        <th>Proyectado</th>
+                        <th>Δ%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {entries.map(([name, pred]) => {
+                        const delta =
+                            pred.available &&
+                            pred.last_close != null &&
+                            pred.predicted_close != null
+                                ? ((pred.predicted_close - pred.last_close) /
+                                      pred.last_close) *
+                                  100
+                                : null;
+                        return (
+                            <tr
+                                key={name}
+                                className={
+                                    pred.available ? rowClass(pred.signal) : 'is-flat'
+                                }
+                                style={{ cursor: 'default' }}
+                            >
+                                <td className="t-ticker">{name}</td>
+                                {pred.available ? (
+                                    <>
+                                        <td>
+                                            <span
+                                                className={`pill ${pillClass(pred.signal)}`}
+                                            >
+                                                {pred.signal ?? 'neutral'}
+                                            </span>
+                                        </td>
+                                        <td className="num">{pred.rsi ?? '—'}</td>
+                                        <td>{pred.condition ?? '—'}</td>
+                                        <td className="num">
+                                            {formatMoney(pred.last_close)}
+                                        </td>
+                                        <td className="num">
+                                            {formatMoney(pred.predicted_close)}
+                                        </td>
+                                        <td
+                                            className="num"
+                                            style={{
+                                                color:
+                                                    delta == null
+                                                        ? undefined
+                                                        : delta >= 0
+                                                          ? 'var(--up)'
+                                                          : 'var(--down)',
+                                            }}
+                                        >
+                                            {delta == null
+                                                ? '—'
+                                                : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`}
+                                        </td>
+                                    </>
+                                ) : (
+                                    <td colSpan={6} style={{ color: 'var(--ink-3)' }}>
+                                        {pred.reason ?? 'No disponible'}
+                                    </td>
+                                )}
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
 function TickerDetail({ row, onBack }: TickerDetailProps) {
     const trend = row.trend;
     const available = trend?.available ?? false;
@@ -278,9 +429,6 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                             hoy y la proyección del modelo{' '}
                             {trend.model ?? 'lstm'} — no es un histórico de
                             precios (todavía no hay un endpoint que lo exponga).
-                            Tampoco compara los otros 3 modelos que api-ml ya
-                            corre en paralelo (xgboost, transformer, arima);
-                            falta ese endpoint en backend-website.
                         </div>
                     </div>
                 </div>
@@ -291,6 +439,8 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                     </p>
                 </div>
             )}
+
+            <ModelComparisonTable ticker={row.ticker} />
         </div>
     );
 }
