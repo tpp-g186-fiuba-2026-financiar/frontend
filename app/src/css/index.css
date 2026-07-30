@@ -265,9 +265,14 @@ table.watchlist tbody td:first-child::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 0;
-    bottom: 0;
+    /* inset chico en vez de top:0/bottom:0: si dos filas seguidas tienen
+       la misma señal (mismo color), sin este corte la barra se fusiona en
+       una sola franja continua que tapa el limite entre filas y da la
+       sensacion de que los datos de una fila "invadieron" la de al lado. */
+    top: 3px;
+    bottom: 3px;
     width: 3px;
+    border-radius: 2px;
     background: var(--line);
 }
 table.watchlist tbody tr.is-up td:first-child::before {
@@ -628,6 +633,11 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
 .builder-body {
     padding: 16px 20px;
     overflow-y: auto;
+    /* clave para que el scroll interno funcione: sin esto, un hijo flex
+       nunca se encoge mas alla del alto natural de su contenido (el
+       "automatic minimum size" de flexbox), asi que la lista larga
+       empujaba el modal entero en vez de scrollear adentro. */
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -636,10 +646,25 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     font-size: 12.5px;
     color: var(--ink-3);
 }
+.builder-search-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.builder-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-3);
+    pointer-events: none;
+}
 .builder-search {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     box-sizing: border-box;
-    padding: 9px 12px;
+    padding: 9px 12px 9px 32px;
     border-radius: 8px;
     border: 1px solid var(--line);
     background: var(--paper);
@@ -654,16 +679,38 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
 .builder-search:focus {
     border-color: var(--accent);
 }
+.builder-count {
+    flex-shrink: 0;
+    color: var(--accent);
+    border-color: var(--accent-soft);
+    background: var(--accent-soft);
+}
 .builder-list {
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
+    /* sin esto, al ser flex-shrink:1 (default) Y tener overflow:hidden
+       (que igual que overflow:auto anula el alto minimo automatico),
+       la lista se encogia para "entrar" en el alto disponible del modal
+       en vez de desbordarlo -- literalmente ocultaba filas de mas en vez
+       de dejarlas scrolleables desde .builder-body. */
+    flex-shrink: 0;
+}
+.builder-section {
+    padding: 7px 14px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    color: var(--ink-3);
+    background: var(--paper-3);
+    border-bottom: 1px solid var(--line);
 }
 .builder-row {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 14px;
+    padding: 8px 14px;
     border-bottom: 1px solid var(--line);
     transition: background 0.12s;
 }
@@ -691,7 +738,44 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     cursor: pointer;
     flex-shrink: 0;
 }
-.builder-check span {
+.builder-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0;
+}
+.avatar-0 {
+    background: #1c2c42;
+    color: #7fadea;
+}
+.avatar-1 {
+    background: #2a2244;
+    color: #b39cec;
+}
+.avatar-2 {
+    background: #17332f;
+    color: #6fd4c3;
+}
+.avatar-3 {
+    background: #3a2a18;
+    color: #e0b579;
+}
+.avatar-4 {
+    background: #1c2f44;
+    color: #7fb2e0;
+}
+.avatar-5 {
+    background: #33203a;
+    color: #d78fd6;
+}
+.builder-ticker-label {
     font-family: var(--mono);
     font-weight: 700;
     font-size: 13.5px;
@@ -700,21 +784,55 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.builder-qty {
-    width: 72px;
-    box-sizing: border-box;
-    padding: 6px 10px;
-    border-radius: 7px;
+.qty-stepper {
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0;
     border: 1px solid var(--line);
+    border-radius: 7px;
+    overflow: hidden;
     background: var(--paper);
+}
+.qty-stepper button {
+    width: 22px;
+    border: none;
+    background: none;
+    color: var(--ink-2);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background 0.12s,
+        color 0.12s;
+}
+.qty-stepper button:hover:not(:disabled) {
+    background: var(--paper-3);
+    color: var(--ink);
+}
+.qty-stepper button:disabled {
+    color: var(--ink-3);
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.builder-qty {
+    width: 34px;
+    box-sizing: border-box;
+    padding: 6px 0;
+    border: none;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    background: transparent;
     color: var(--ink);
     font: 13px var(--mono);
-    text-align: right;
+    text-align: center;
     outline: none;
-    transition: border-color 0.12s;
+    -moz-appearance: textfield;
 }
-.builder-qty:focus {
-    border-color: var(--accent);
+.builder-qty::-webkit-outer-spin-button,
+.builder-qty::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 .builder-qty:disabled {
     color: var(--ink-3);

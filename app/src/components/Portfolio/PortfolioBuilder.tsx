@@ -21,6 +21,20 @@ interface PortfolioBuilderProps {
     onSaved: () => void;
 }
 
+const AVATAR_CLASSES = [
+    'avatar-0',
+    'avatar-1',
+    'avatar-2',
+    'avatar-3',
+    'avatar-4',
+    'avatar-5',
+];
+
+function avatarClass(ticker: string): string {
+    const code = ticker.charCodeAt(0) + ticker.charCodeAt(ticker.length - 1);
+    return AVATAR_CLASSES[code % AVATAR_CLASSES.length];
+}
+
 function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
     const [allShares, setAllShares] = useState<Share[]>([]);
     const [owned, setOwned] = useState<Record<string, OwnedShare>>({});
@@ -125,6 +139,69 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
     const filtered = allShares.filter((s) =>
         s.ticker.toLowerCase().includes(search.toLowerCase()),
     );
+    const filteredSelected = filtered.filter((s) => s.ticker in selected);
+    const filteredRest = filtered.filter((s) => !(s.ticker in selected));
+    const selectedCount = Object.keys(selected).length;
+
+    const renderRow = (share: Share) => {
+        const isSelected = share.ticker in selected;
+        const qty = selected[share.ticker];
+        return (
+            <div
+                key={share.id}
+                className={`builder-row${isSelected ? ' is-checked' : ''}`}
+            >
+                <label className="builder-check">
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleShare(share.ticker)}
+                    />
+                    <span
+                        className={`builder-avatar ${avatarClass(share.ticker)}`}
+                    >
+                        {share.ticker.slice(0, 2)}
+                    </span>
+                    <span className="builder-ticker-label">{share.ticker}</span>
+                </label>
+                <div className="qty-stepper">
+                    <button
+                        type="button"
+                        disabled={!isSelected || (qty ?? 0) <= 1}
+                        onClick={() =>
+                            setQuantity(
+                                share.ticker,
+                                Math.max(1, (qty ?? 1) - 1),
+                            )
+                        }
+                        aria-label={`Restar una unidad de ${share.ticker}`}
+                    >
+                        −
+                    </button>
+                    <input
+                        type="number"
+                        className="builder-qty"
+                        min={1}
+                        disabled={!isSelected}
+                        value={qty ?? ''}
+                        onChange={(e) =>
+                            setQuantity(share.ticker, Number(e.target.value))
+                        }
+                    />
+                    <button
+                        type="button"
+                        disabled={!isSelected}
+                        onClick={() =>
+                            setQuantity(share.ticker, (qty ?? 0) + 1)
+                        }
+                        aria-label={`Sumar una unidad de ${share.ticker}`}
+                    >
+                        +
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <>
@@ -149,55 +226,63 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                             Marcá las acciones que tenés y cuántas comprate.
                             Desmarcá una para sacarla de tu cartera.
                         </p>
-                        <input
-                            type="text"
-                            className="builder-search"
-                            placeholder="Buscar ticker..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                        <div className="builder-search-row">
+                            <svg
+                                className="builder-search-icon"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                            >
+                                <circle
+                                    cx="9"
+                                    cy="9"
+                                    r="6.5"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                />
+                                <path
+                                    d="M14 14L18 18"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <input
+                                type="text"
+                                className="builder-search"
+                                placeholder="Buscar ticker..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                            {selectedCount > 0 && (
+                                <span className="chip builder-count">
+                                    {selectedCount}{' '}
+                                    {selectedCount === 1
+                                        ? 'seleccionada'
+                                        : 'seleccionadas'}
+                                </span>
+                            )}
+                        </div>
                         {error && <p className="builder-error mb-0">{error}</p>}
                         {loading ? (
                             <p className="builder-empty mb-0">Cargando…</p>
                         ) : (
                             <div className="builder-list">
-                                {filtered.map((share) => {
-                                    const isSelected = share.ticker in selected;
-                                    return (
-                                        <div
-                                            key={share.id}
-                                            className={`builder-row${isSelected ? ' is-checked' : ''}`}
-                                        >
-                                            <label className="builder-check">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={() =>
-                                                        toggleShare(
-                                                            share.ticker,
-                                                        )
-                                                    }
-                                                />
-                                                <span>{share.ticker}</span>
-                                            </label>
-                                            <input
-                                                type="number"
-                                                className="builder-qty"
-                                                min={1}
-                                                disabled={!isSelected}
-                                                value={
-                                                    selected[share.ticker] ?? ''
-                                                }
-                                                onChange={(e) =>
-                                                    setQuantity(
-                                                        share.ticker,
-                                                        Number(e.target.value),
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    );
-                                })}
+                                {filteredSelected.length > 0 && (
+                                    <div className="builder-section">
+                                        Tu cartera
+                                    </div>
+                                )}
+                                {filteredSelected.map(renderRow)}
+                                {filteredRest.length > 0 && (
+                                    <div className="builder-section">
+                                        {filteredSelected.length > 0
+                                            ? 'Todas las acciones'
+                                            : 'Acciones disponibles'}
+                                    </div>
+                                )}
+                                {filteredRest.map(renderRow)}
                                 {filtered.length === 0 && (
                                     <p className="builder-empty mb-0">
                                         No hay tickers que coincidan.
