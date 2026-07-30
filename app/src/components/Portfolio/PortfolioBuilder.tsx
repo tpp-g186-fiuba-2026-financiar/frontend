@@ -128,119 +128,99 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
 
     return (
         <>
-            <div className="modal-backdrop fade show" onClick={closePopUp} />
-            <div className="modal d-block fade show" role="dialog">
+            <div className="builder-backdrop" onClick={closePopUp} />
+            <div className="builder-modal-wrap" role="dialog" aria-modal="true">
                 <div
-                    className="modal-dialog modal-dialog-centered modal-lg"
+                    className="builder-modal"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h5 className="modal-title">Mi cartera</h5>
-                            <button
-                                className="btn-close"
-                                onClick={closePopUp}
-                                aria-label="Close"
-                            />
-                        </div>
-                        <div className="modal-body">
-                            <p className="text-secondary small">
-                                Marcá las acciones que tenés y cuántas comprate.
-                                Desmarcá una para sacarla de tu cartera.
-                            </p>
-                            <input
-                                type="text"
-                                className="form-control mb-3"
-                                placeholder="Buscar ticker..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                            {loading && <p>Cargando...</p>}
-                            {error && (
-                                <p className="text-danger small">{error}</p>
-                            )}
-                            {!loading && (
-                                <div
-                                    className="list-group"
-                                    style={{
-                                        maxHeight: '360px',
-                                        overflowY: 'auto',
-                                    }}
-                                >
-                                    {filtered.map((share) => {
-                                        const isSelected =
-                                            share.ticker in selected;
-                                        return (
-                                            <div
-                                                key={share.id}
-                                                className="list-group-item d-flex align-items-center gap-3"
-                                            >
-                                                <div className="form-check flex-grow-1 mb-0">
-                                                    <input
-                                                        className="form-check-input"
-                                                        type="checkbox"
-                                                        id={`share-${share.id}`}
-                                                        checked={isSelected}
-                                                        onChange={() =>
-                                                            toggleShare(
-                                                                share.ticker,
-                                                            )
-                                                        }
-                                                    />
-                                                    <label
-                                                        className="form-check-label"
-                                                        htmlFor={`share-${share.id}`}
-                                                    >
-                                                        {share.ticker}
-                                                    </label>
-                                                </div>
+                    <div className="builder-header">
+                        <h2 className="mb-0">Mi cartera</h2>
+                        <button
+                            className="builder-close"
+                            onClick={closePopUp}
+                            aria-label="Cerrar"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="builder-body">
+                        <p className="builder-hint mb-0">
+                            Marcá las acciones que tenés y cuántas comprate.
+                            Desmarcá una para sacarla de tu cartera.
+                        </p>
+                        <input
+                            type="text"
+                            className="builder-search"
+                            placeholder="Buscar ticker..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                        {error && <p className="builder-error mb-0">{error}</p>}
+                        {loading ? (
+                            <p className="builder-empty mb-0">Cargando…</p>
+                        ) : (
+                            <div className="builder-list">
+                                {filtered.map((share) => {
+                                    const isSelected = share.ticker in selected;
+                                    return (
+                                        <div
+                                            key={share.id}
+                                            className={`builder-row${isSelected ? ' is-checked' : ''}`}
+                                        >
+                                            <label className="builder-check">
                                                 <input
-                                                    type="number"
-                                                    className="form-control"
-                                                    style={{ width: '110px' }}
-                                                    min={1}
-                                                    disabled={!isSelected}
-                                                    value={
-                                                        selected[
-                                                            share.ticker
-                                                        ] ?? ''
-                                                    }
-                                                    onChange={(e) =>
-                                                        setQuantity(
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() =>
+                                                        toggleShare(
                                                             share.ticker,
-                                                            Number(
-                                                                e.target.value,
-                                                            ),
                                                         )
                                                     }
                                                 />
-                                            </div>
-                                        );
-                                    })}
-                                    {filtered.length === 0 && (
-                                        <p className="text-secondary small mt-2">
-                                            No hay tickers que coincidan.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <div className="modal-footer">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={closePopUp}
-                                disabled={saving}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleSave}
-                                disabled={saving || loading}
-                            >
-                                {saving ? 'Guardando...' : 'Guardar cartera'}
-                            </button>
-                        </div>
+                                                <span>{share.ticker}</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                className="builder-qty"
+                                                min={1}
+                                                disabled={!isSelected}
+                                                value={
+                                                    selected[share.ticker] ?? ''
+                                                }
+                                                onChange={(e) =>
+                                                    setQuantity(
+                                                        share.ticker,
+                                                        Number(e.target.value),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    );
+                                })}
+                                {filtered.length === 0 && (
+                                    <p className="builder-empty mb-0">
+                                        No hay tickers que coincidan.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <div className="builder-footer">
+                        <button
+                            className="btn-ghost"
+                            onClick={closePopUp}
+                            disabled={saving}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleSave}
+                            disabled={saving || loading}
+                        >
+                            {saving ? 'Guardando...' : 'Guardar cartera'}
+                        </button>
                     </div>
                 </div>
             </div>

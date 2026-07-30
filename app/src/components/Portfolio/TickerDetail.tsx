@@ -5,6 +5,7 @@ import {
     type CompareTrendsResponse,
     type ModelPrediction,
 } from '../../api/userShares/getShareTrendCompareEndpoint';
+import InfoTip from '../Layout/InfoTip';
 
 interface PortfolioRow {
     ticker: string;
@@ -247,9 +248,28 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
                 <thead>
                     <tr>
                         <th>Modelo</th>
-                        <th>Señal</th>
-                        <th>RSI</th>
-                        <th>Condición</th>
+                        <th>
+                            Señal
+                            <InfoTip label="Señal">
+                                Alza o baja si el modelo proyecta un retorno
+                                mayor a ±1% al horizonte indicado; si no,
+                                neutral.
+                            </InfoTip>
+                        </th>
+                        <th>
+                            RSI
+                            <InfoTip label="RSI (14)">
+                                Índice de fuerza relativa a 14 ruedas. Arriba de
+                                70 sugiere sobrecompra, abajo de 30 sobreventa.
+                            </InfoTip>
+                        </th>
+                        <th>
+                            Condición
+                            <InfoTip label="Condición">
+                                Lectura del RSI: sobrecompra (≥70), sobreventa
+                                (≤30) o neutral.
+                            </InfoTip>
+                        </th>
                         <th>Último cierre</th>
                         <th>Proyectado</th>
                         <th>Δ%</th>
@@ -400,11 +420,24 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                         />
                         <div className="indicator-row mt-3">
                             <div className="indicator">
-                                <span>RSI (14)</span>
+                                <span>
+                                    RSI (14)
+                                    <InfoTip label="RSI (14)">
+                                        Índice de fuerza relativa a 14 ruedas.
+                                        Arriba de 70 sugiere sobrecompra, abajo
+                                        de 30 sobreventa.
+                                    </InfoTip>
+                                </span>
                                 <b className="num">{trend.rsi ?? '—'}</b>
                             </div>
                             <div className="indicator">
-                                <span>Condición</span>
+                                <span>
+                                    Condición
+                                    <InfoTip label="Condición">
+                                        Lectura del RSI: sobrecompra (≥70),
+                                        sobreventa (≤30) o neutral.
+                                    </InfoTip>
+                                </span>
                                 <b>{trend.condition ?? '—'}</b>
                             </div>
                         </div>

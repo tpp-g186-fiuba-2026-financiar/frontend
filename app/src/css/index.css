@@ -241,7 +241,6 @@ table.watchlist td {
 }
 table.watchlist tbody tr {
     cursor: pointer;
-    position: relative;
     transition: background 0.12s;
 }
 table.watchlist tbody tr:hover {
@@ -250,7 +249,19 @@ table.watchlist tbody tr:hover {
 table.watchlist tbody tr:last-child td {
     border-bottom: none;
 }
-table.watchlist tbody tr::before {
+/*
+ * La barra de color va en un ::before del primer <td>, no del <tr>: un
+ * ::before position:absolute colgado directo de un <tr> (display:table-row)
+ * lo trata como una columna fantasma en algunos motores de render, y corre
+ * TODAS las celdas del body una columna a la derecha respecto del thead
+ * (que no tiene esta regla). Colgarlo de un <td> real evita el problema
+ * porque un pseudo-elemento adentro de un table-cell no puede generar una
+ * columna nueva.
+ */
+table.watchlist tbody td:first-child {
+    position: relative;
+}
+table.watchlist tbody td:first-child::before {
     content: '';
     position: absolute;
     left: 0;
@@ -259,13 +270,13 @@ table.watchlist tbody tr::before {
     width: 3px;
     background: var(--line);
 }
-table.watchlist tbody tr.is-up::before {
+table.watchlist tbody tr.is-up td:first-child::before {
     background: var(--up);
 }
-table.watchlist tbody tr.is-down::before {
+table.watchlist tbody tr.is-down td:first-child::before {
     background: var(--down);
 }
-table.watchlist tbody tr.is-flat::before {
+table.watchlist tbody tr.is-flat td:first-child::before {
     background: var(--neutral-sig);
 }
 .t-ticker {
@@ -466,6 +477,286 @@ table.watchlist tbody tr.is-flat::before {
     padding: 24px;
     background: var(--paper-2);
     box-shadow: var(--shadow-sm);
+}
+
+/* tooltip de info: explica como se calcula una metrica (RSI, señal, etc) */
+.info-tip {
+    position: relative;
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 5px;
+}
+.info-tip-trigger {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--paper-3);
+    color: var(--ink-3);
+    font-family: var(--sans);
+    font-size: 9.5px;
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0;
+    cursor: help;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        color 0.12s,
+        border-color 0.12s;
+}
+.info-tip:hover .info-tip-trigger,
+.info-tip:focus-within .info-tip-trigger {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.info-tip-card {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translate(-50%, -4px);
+    width: max-content;
+    max-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--paper-3);
+    box-shadow: var(--shadow);
+    font-size: 11.5px;
+    line-height: 1.4;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--ink-2);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 0.12s,
+        transform 0.12s;
+}
+.info-tip-card b {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+}
+.info-tip:hover .info-tip-card,
+.info-tip:focus-within .info-tip-card {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+/* headers de tabla estan pegados al borde derecho: evita que el cartel se corte */
+table.watchlist th:last-child .info-tip-card,
+table.watchlist th:nth-last-child(2) .info-tip-card {
+    left: auto;
+    right: -8px;
+    transform: translateY(-4px);
+}
+table.watchlist th:last-child .info-tip:hover .info-tip-card,
+table.watchlist th:last-child .info-tip:focus-within .info-tip-card,
+table.watchlist th:nth-last-child(2) .info-tip:hover .info-tip-card,
+table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
+    transform: translateY(0);
+}
+
+/* modal "Mi cartera": overlay + panel propios, sin depender del look de bootstrap */
+.builder-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 9, 10, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 40;
+}
+.builder-modal-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 41;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.builder-modal {
+    width: 100%;
+    max-width: 560px;
+    max-height: min(680px, 100%);
+    display: flex;
+    flex-direction: column;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+.builder-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+}
+.builder-header h2 {
+    font-size: 17px;
+}
+.builder-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: none;
+    color: var(--ink-3);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background 0.12s,
+        color 0.12s;
+}
+.builder-close:hover {
+    background: var(--paper-3);
+    color: var(--ink);
+    border-color: var(--line);
+}
+.builder-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.builder-hint {
+    font-size: 12.5px;
+    color: var(--ink-3);
+}
+.builder-search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    font: 13.5px var(--sans);
+    outline: none;
+    transition: border-color 0.12s;
+}
+.builder-search::placeholder {
+    color: var(--ink-3);
+}
+.builder-search:focus {
+    border-color: var(--accent);
+}
+.builder-list {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.builder-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    transition: background 0.12s;
+}
+.builder-row:last-child {
+    border-bottom: none;
+}
+.builder-row:hover {
+    background: var(--paper-3);
+}
+.builder-row.is-checked {
+    background: var(--accent-soft);
+}
+.builder-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: pointer;
+    min-width: 0;
+}
+.builder-check input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.builder-check span {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.builder-qty {
+    width: 72px;
+    box-sizing: border-box;
+    padding: 6px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    font: 13px var(--mono);
+    text-align: right;
+    outline: none;
+    transition: border-color 0.12s;
+}
+.builder-qty:focus {
+    border-color: var(--accent);
+}
+.builder-qty:disabled {
+    color: var(--ink-3);
+    opacity: 0.6;
+}
+.builder-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 13px;
+}
+.builder-error {
+    font-size: 12.5px;
+    color: var(--down);
+}
+.builder-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--line);
+}
+.btn-ghost {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition:
+        background 0.12s,
+        color 0.12s;
+}
+.btn-ghost:hover {
+    background: var(--paper-3);
+    color: var(--ink);
+}
+.btn-ghost:disabled,
+.builder-footer .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 /* feature blurbs de la landing */

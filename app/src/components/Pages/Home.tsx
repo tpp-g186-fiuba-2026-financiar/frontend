@@ -12,6 +12,7 @@ import {
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
 import TickerDetail from '../Portfolio/TickerDetail';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
+import InfoTip from '../Layout/InfoTip';
 
 interface PortfolioRow {
     ticker: string;
@@ -180,16 +181,20 @@ function Home() {
     const withTrend = rows.filter((r) => r.trend?.available);
     const upCount = withTrend.filter((r) => r.trend?.signal === 'alza').length;
 
-    const tapeItems: TapeItem[] = withTrend.map((r) => ({
+    // Todas las acciones declaradas, no solo las que tienen prediccion —
+    // asi la cinta no "pierde" tickers sin cobertura de api-ml.
+    const tapeItems: TapeItem[] = rows.map((r) => ({
         ticker: r.ticker,
-        lastClose: r.trend?.last_close,
+        lastClose: r.trend?.available ? r.trend.last_close : null,
         deltaPct:
-            r.trend?.last_close && r.trend?.predicted_close != null
+            r.trend?.available &&
+            r.trend?.last_close &&
+            r.trend?.predicted_close != null
                 ? ((r.trend.predicted_close - r.trend.last_close) /
                       r.trend.last_close) *
                   100
                 : null,
-        signal: r.trend?.signal,
+        signal: r.trend?.available ? r.trend.signal : null,
     }));
 
     const handleLogout = () => {
@@ -309,9 +314,37 @@ function Home() {
                                                     <th></th>
                                                     <th>Cant.</th>
                                                     <th>Último</th>
-                                                    <th>RSI</th>
-                                                    <th>Señal</th>
-                                                    <th>Modelo · fecha</th>
+                                                    <th>
+                                                        RSI
+                                                        <InfoTip label="RSI (14)">
+                                                            Índice de fuerza
+                                                            relativa a 14
+                                                            ruedas. Arriba de 70
+                                                            sugiere sobrecompra,
+                                                            abajo de 30
+                                                            sobreventa.
+                                                        </InfoTip>
+                                                    </th>
+                                                    <th>
+                                                        Señal
+                                                        <InfoTip label="Señal">
+                                                            Alza o baja si el
+                                                            modelo proyecta un
+                                                            retorno mayor a ±1%
+                                                            al horizonte
+                                                            indicado; si no,
+                                                            neutral.
+                                                        </InfoTip>
+                                                    </th>
+                                                    <th>
+                                                        Modelo · fecha
+                                                        <InfoTip label="Modelo · fecha">
+                                                            Qué modelo de ML
+                                                            generó esta
+                                                            predicción y con qué
+                                                            cierre se calculó.
+                                                        </InfoTip>
+                                                    </th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
