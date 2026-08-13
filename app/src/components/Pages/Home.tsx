@@ -11,6 +11,7 @@ import {
 } from '../../api/userShares/getUserSharesTrendsEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
 import TickerDetail from '../Portfolio/TickerDetail';
+import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
 import InfoTip from '../Layout/InfoTip';
 
@@ -143,6 +144,7 @@ function Home() {
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
     const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+    const [showEstimacion, setShowEstimacion] = useState<boolean>(false);
     const [refreshingTrends, setRefreshingTrends] = useState(false);
     const selectedRow =
         rows.find((row) => row.ticker === selectedTicker) ?? null;
@@ -363,7 +365,12 @@ function Home() {
 
                     {!loadingPortfolio &&
                         !portfolioError &&
-                        rows.length > 0 && (
+                        rows.length > 0 &&
+                        (showEstimacion ? (
+                            <EstimacionBlackLitterman
+                                onBack={() => setShowEstimacion(false)}
+                            />
+                        ) : (
                             <>
                                 {trendsUnavailable && (
                                     <div className="panel mb-4">
@@ -399,14 +406,24 @@ function Home() {
                                                 </p>
                                             )}
                                         </div>
-                                        <button
-                                            className="btn btn-primary"
-                                            onClick={() =>
-                                                setIsBuilderOpen(true)
-                                            }
-                                        >
-                                            Editar mi cartera
-                                        </button>
+                                        <div className="d-flex gap-2">
+                                            <button
+                                                className="btn btn-outline-light"
+                                                onClick={() =>
+                                                    setShowEstimacion(true)
+                                                }
+                                            >
+                                                Estimación Black-Litterman →
+                                            </button>
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={() =>
+                                                    setIsBuilderOpen(true)
+                                                }
+                                            >
+                                                Editar mi cartera
+                                            </button>
+                                        </div>
                                     </div>
                                     <div style={{ overflowX: 'auto' }}>
                                         <table className="watchlist">
@@ -588,7 +605,7 @@ function Home() {
                                     </div>
                                 </div>
                             </>
-                        )}
+                        ))}
                 </>
             )}
 
