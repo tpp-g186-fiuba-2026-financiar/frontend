@@ -15,5 +15,5 @@ WORKDIR /app
 COPY --link --from=builder /app/dist ./dist
 RUN --mount=type=cache,target=/root/.npm npm install serve@^14.2.6 --omit=dev
 USER node
-EXPOSE 3000
-CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
+EXPOSE 3002
+CMD ["npx", "serve", "-s", "dist", "-l", "3002"]
