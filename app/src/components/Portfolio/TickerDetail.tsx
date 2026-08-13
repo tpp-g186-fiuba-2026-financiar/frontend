@@ -51,8 +51,8 @@ function formatMoney(value: number | null | undefined): string {
 
 interface ProjectionChartProps {
     history: HistoricalPricePoint[];
-    lastClose: number;
-    predictedClose: number;
+    lastClose: number | null;
+    predictedClose: number | null;
     horizonDays: number | null;
     signal: string | null | undefined;
 }
@@ -79,25 +79,39 @@ function ProjectionChart({
         ctx.scale(dpr, dpr);
 
         const cs = getComputedStyle(document.documentElement);
-        const color = cs.getPropertyValue(signalColorVar(signal)).trim();
+        const projectionColor = cs
+            .getPropertyValue(signalColorVar(signal))
+            .trim();
+        const historyColor = cs.getPropertyValue('--ink-1').trim();
+        const labelColor = cs.getPropertyValue('--ink-3').trim();
         const line = cs.getPropertyValue('--line').trim();
 
-        const values = [
-            ...history.map((point) => point.close),
-            lastClose,
-            predictedClose,
-        ];
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        const span = max - min || 1;
-        const padX = 46;
-        const padY = 24;
-        const x0 = padX;
-        const x1 = w - padX;
+        const values = history.map((point) => point.close);
+        if (lastClose != null) values.push(lastClose);
+        if (predictedClose != null) values.push(predictedClose);
+        if (values.length === 0) return;
+        const rawMin = Math.min(...values);
+        const rawMax = Math.max(...values);
+        const rawSpan = rawMax - rawMin || Math.max(1, rawMax * 0.05);
+        const min = rawMin - rawSpan * 0.05;
+        const max = rawMax + rawSpan * 0.05;
+        const span = max - min;
+        const padLeft = 72;
+        const padRight = 48;
+        const padTop = 16;
+        const padBottom = 34;
+        const x0 = padLeft;
+        const x1 = w - padRight;
         const historyEndX = x0 + (x1 - x0) * 0.82;
-        const y = (v: number) => h - padY - ((v - min) / span) * (h - padY * 2);
+        const plotBottom = h - padBottom;
+        const plotHeight = plotBottom - padTop;
+        const y = (v: number) => plotBottom - ((v - min) / span) * plotHeight;
         const pointX = (index: number) =>
             x0 + (index / Math.max(1, history.length - 1)) * (historyEndX - x0);
+        const formatAxisPrice = (value: number) =>
+            `$${value.toLocaleString('es-AR', {
+                maximumFractionDigits: value >= 100 ? 0 : 2,
+            })}`;
 
         function render(t: number) {
             if (!ctx) return;
@@ -105,18 +119,26 @@ function ProjectionChart({
 
             ctx.strokeStyle = line;
             ctx.lineWidth = 1;
-            for (let g = 0; g < 3; g++) {
-                const gy = padY + (g / 2) * (h - padY * 2);
+            ctx.font =
+                '10px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+            ctx.fillStyle = labelColor;
+            for (let g = 0; g < 4; g++) {
+                const ratio = g / 3;
+                const gy = padTop + ratio * plotHeight;
                 ctx.beginPath();
-                ctx.moveTo(0, gy);
-                ctx.lineTo(w, gy);
+                ctx.moveTo(x0, gy);
+                ctx.lineTo(x1, gy);
                 ctx.stroke();
+                const price = max - ratio * span;
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(formatAxisPrice(price), x0 - 10, gy);
             }
 
             if (history.length > 0) {
                 const grad = ctx.createLinearGradient(0, 0, 0, h);
-                grad.addColorStop(0, color + '2b');
-                grad.addColorStop(1, color + '00');
+                grad.addColorStop(0, historyColor + '1f');
+                grad.addColorStop(1, historyColor + '00');
                 ctx.beginPath();
                 history.forEach((point, index) => {
                     const px = pointX(index);
@@ -124,8 +146,8 @@ function ProjectionChart({
                     if (index === 0) ctx.moveTo(px, py);
                     else ctx.lineTo(px, py);
                 });
-                ctx.lineTo(historyEndX, h - padY);
-                ctx.lineTo(x0, h - padY);
+                ctx.lineTo(historyEndX, plotBottom);
+                ctx.lineTo(x0, plotBottom);
                 ctx.closePath();
                 ctx.fillStyle = grad;
                 ctx.fill();
@@ -137,60 +159,84 @@ function ProjectionChart({
                     if (index === 0) ctx.moveTo(px, py);
                     else ctx.lineTo(px, py);
                 });
-                ctx.strokeStyle = color;
+                ctx.strokeStyle = historyColor;
                 ctx.lineWidth = 1.8;
                 ctx.stroke();
             }
 
-            const curX = historyEndX + (x1 - historyEndX) * t;
-            const curY = y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
-
             ctx.beginPath();
-            ctx.moveTo(historyEndX, y(lastClose));
-            ctx.lineTo(curX, curY);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2.2;
-            ctx.setLineDash([6, 5]);
-            ctx.lineCap = 'round';
+            ctx.moveTo(historyEndX, padTop);
+            ctx.lineTo(historyEndX, plotBottom);
+            ctx.strokeStyle = line;
+            ctx.setLineDash([3, 4]);
             ctx.stroke();
             ctx.setLineDash([]);
 
-            ctx.beginPath();
-            ctx.arc(historyEndX, y(lastClose), 4, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
+            if (lastClose != null && predictedClose != null) {
+                const curX = historyEndX + (x1 - historyEndX) * t;
+                const curY =
+                    y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
 
-            ctx.beginPath();
-            ctx.arc(curX, curY, 4, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            if (t >= 1) {
                 ctx.beginPath();
-                ctx.arc(curX, curY, 7, 0, Math.PI * 2);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1.2;
+                ctx.moveTo(historyEndX, y(lastClose));
+                ctx.lineTo(curX, curY);
+                ctx.strokeStyle = projectionColor;
+                ctx.lineWidth = 2.2;
+                ctx.setLineDash([6, 5]);
+                ctx.lineCap = 'round';
                 ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.beginPath();
+                ctx.arc(historyEndX, y(lastClose), 4, 0, Math.PI * 2);
+                ctx.fillStyle = projectionColor;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(curX, curY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = projectionColor;
+                ctx.fill();
+                if (t >= 1) {
+                    ctx.beginPath();
+                    ctx.arc(curX, curY, 7, 0, Math.PI * 2);
+                    ctx.strokeStyle = projectionColor;
+                    ctx.lineWidth = 1.2;
+                    ctx.stroke();
+                }
             }
 
             ctx.font =
                 '11px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
-            ctx.fillStyle = cs.getPropertyValue('--ink-3').trim();
-            ctx.textAlign = 'left';
-            const firstDate = history[0]
-                ? new Date(history[0].ts).toLocaleDateString('es-AR', {
-                      month: 'short',
-                      year: '2-digit',
-                  })
-                : '';
-            ctx.fillText(firstDate, x0 - 12, h - 4);
+            ctx.fillStyle = labelColor;
+            ctx.textBaseline = 'alphabetic';
+            const dateIndexes = history.length
+                ? [0, 1 / 3, 2 / 3].map((ratio) =>
+                      Math.round(ratio * (history.length - 1)),
+                  )
+                : [];
+            dateIndexes.forEach((index, labelIndex) => {
+                const date = new Date(history[index].ts).toLocaleDateString(
+                    'es-AR',
+                    { month: 'short', year: '2-digit' },
+                );
+                ctx.textAlign =
+                    labelIndex === 0
+                        ? 'left'
+                        : labelIndex === dateIndexes.length - 1
+                          ? 'right'
+                          : 'center';
+                ctx.fillText(date, pointX(index), h - 5);
+            });
             ctx.textAlign = 'center';
-            ctx.fillText('hoy', historyEndX, h - 4);
+            ctx.fillText('hoy', historyEndX, h - 5);
             ctx.textAlign = 'right';
-            ctx.fillText(
-                horizonDays ? `+${horizonDays} ruedas` : 'proyección',
-                x1 + 12,
-                h - 4,
-            );
+            if (predictedClose != null) {
+                ctx.fillText(
+                    horizonDays ? `+${horizonDays} ruedas` : 'proyección',
+                    x1 + 12,
+                    h - 5,
+                );
+            }
         }
 
         const reduceMotion = window.matchMedia(
@@ -480,9 +526,8 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                 </div>
             </div>
 
-            {available &&
-            trend?.last_close != null &&
-            trend.predicted_close != null ? (
+            {history.length > 0 ||
+            (available && trend?.last_close != null) ? (
                 <div className="detail-grid">
                     <div className="panel chart-panel">
                         <div
@@ -517,10 +562,10 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                         </div>
                         <ProjectionChart
                             history={filteredHistory}
-                            lastClose={trend.last_close}
-                            predictedClose={trend.predicted_close}
-                            horizonDays={trend.horizon_days}
-                            signal={trend.signal}
+                            lastClose={trend?.last_close ?? null}
+                            predictedClose={trend?.predicted_close ?? null}
+                            horizonDays={trend?.horizon_days ?? null}
+                            signal={trend?.signal}
                         />
                         {historyError && (
                             <p style={{ color: 'var(--ink-3)', margin: 0 }}>
@@ -528,7 +573,7 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                                 la proyección.
                             </p>
                         )}
-                        <div className="indicator-row mt-3">
+                        {available && <div className="indicator-row mt-3">
                             <div className="indicator">
                                 <span>
                                     RSI (14)
@@ -538,7 +583,7 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                                         de 30 sobreventa.
                                     </InfoTip>
                                 </span>
-                                <b className="num">{trend.rsi ?? '—'}</b>
+                                <b className="num">{trend?.rsi ?? '—'}</b>
                             </div>
                             <div className="indicator">
                                 <span>
@@ -548,38 +593,49 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                                         sobreventa (≤30) o neutral.
                                     </InfoTip>
                                 </span>
-                                <b>{trend.condition ?? '—'}</b>
+                                <b>{trend?.condition ?? '—'}</b>
                             </div>
-                        </div>
+                        </div>}
                     </div>
                     <div className="panel side-panel">
                         <div>
-                            <h3 className="mb-2">Predicción</h3>
+                            <h3 className="mb-2">
+                                {available ? 'Predicción' : 'Histórico'}
+                            </h3>
+                            {available ? <>
                             <div className="kv">
                                 <span>Modelo</span>
-                                <span>{trend.model ?? '—'}</span>
+                                <span>{trend?.model ?? '—'}</span>
                             </div>
                             <div className="kv">
                                 <span>Versión</span>
                                 <span style={{ fontSize: '11px' }}>
-                                    {trend.model_version ?? '—'}
+                                    {trend?.model_version ?? '—'}
                                 </span>
                             </div>
                             <div className="kv">
                                 <span>Último cierre</span>
-                                <span>{formatMoney(trend.last_close)}</span>
+                                <span>{formatMoney(trend?.last_close)}</span>
                             </div>
                             <div className="kv">
                                 <span>Precio proyectado</span>
                                 <span>
-                                    {formatMoney(trend.predicted_close)}
+                                    {formatMoney(trend?.predicted_close)}
                                 </span>
                             </div>
+                            </> : (
+                                <p style={{ color: 'var(--ink-3)' }}>
+                                    Hay precios históricos, pero todavía no hay
+                                    un modelo entrenado para este ticker.
+                                </p>
+                            )}
                         </div>
                         <div className="roadmap-box">
                             La línea continua muestra los cierres históricos.
-                            La línea punteada muestra la proyección del modelo{' '}
-                            {trend.model ?? 'lstm'}.
+                            {available && (
+                                <> La línea punteada muestra la proyección del modelo{' '}
+                                {trend?.model ?? 'lstm'}.</>
+                            )}
                         </div>
                     </div>
                 </div>

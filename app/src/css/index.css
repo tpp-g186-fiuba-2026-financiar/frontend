@@ -358,7 +358,7 @@ table.watchlist tbody tr.is-flat td:first-child::before {
 }
 .chart-panel canvas {
     width: 100%;
-    height: 170px;
+    height: 210px;
     display: block;
 }
 .chart-panel h3,
