@@ -5,6 +5,10 @@ import {
     type CompareTrendsResponse,
     type ModelPrediction,
 } from '../../api/userShares/getShareTrendCompareEndpoint';
+import {
+    getShareHistoryEndpoint,
+    type HistoricalPricePoint,
+} from '../../api/userShares/getShareHistoryEndpoint';
 import InfoTip from '../Layout/InfoTip';
 
 interface PortfolioRow {
@@ -46,6 +50,7 @@ function formatMoney(value: number | null | undefined): string {
 }
 
 interface ProjectionChartProps {
+    history: HistoricalPricePoint[];
     lastClose: number;
     predictedClose: number;
     horizonDays: number | null;
@@ -53,6 +58,7 @@ interface ProjectionChartProps {
 }
 
 function ProjectionChart({
+    history,
     lastClose,
     predictedClose,
     horizonDays,
@@ -76,14 +82,22 @@ function ProjectionChart({
         const color = cs.getPropertyValue(signalColorVar(signal)).trim();
         const line = cs.getPropertyValue('--line').trim();
 
-        const min = Math.min(lastClose, predictedClose);
-        const max = Math.max(lastClose, predictedClose);
+        const values = [
+            ...history.map((point) => point.close),
+            lastClose,
+            predictedClose,
+        ];
+        const min = Math.min(...values);
+        const max = Math.max(...values);
         const span = max - min || 1;
         const padX = 46;
         const padY = 24;
         const x0 = padX;
         const x1 = w - padX;
+        const historyEndX = x0 + (x1 - x0) * 0.82;
         const y = (v: number) => h - padY - ((v - min) / span) * (h - padY * 2);
+        const pointX = (index: number) =>
+            x0 + (index / Math.max(1, history.length - 1)) * (historyEndX - x0);
 
         function render(t: number) {
             if (!ctx) return;
@@ -99,31 +113,50 @@ function ProjectionChart({
                 ctx.stroke();
             }
 
-            const curX = x0 + (x1 - x0) * t;
+            if (history.length > 0) {
+                const grad = ctx.createLinearGradient(0, 0, 0, h);
+                grad.addColorStop(0, color + '2b');
+                grad.addColorStop(1, color + '00');
+                ctx.beginPath();
+                history.forEach((point, index) => {
+                    const px = pointX(index);
+                    const py = y(point.close);
+                    if (index === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.lineTo(historyEndX, h - padY);
+                ctx.lineTo(x0, h - padY);
+                ctx.closePath();
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                ctx.beginPath();
+                history.forEach((point, index) => {
+                    const px = pointX(index);
+                    const py = y(point.close);
+                    if (index === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+            }
+
+            const curX = historyEndX + (x1 - historyEndX) * t;
             const curY = y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
 
-            const grad = ctx.createLinearGradient(0, 0, 0, h);
-            grad.addColorStop(0, color + '33');
-            grad.addColorStop(1, color + '00');
             ctx.beginPath();
-            ctx.moveTo(x0, y(lastClose));
-            ctx.lineTo(curX, curY);
-            ctx.lineTo(curX, h);
-            ctx.lineTo(x0, h);
-            ctx.closePath();
-            ctx.fillStyle = grad;
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(x0, y(lastClose));
+            ctx.moveTo(historyEndX, y(lastClose));
             ctx.lineTo(curX, curY);
             ctx.strokeStyle = color;
             ctx.lineWidth = 2.2;
+            ctx.setLineDash([6, 5]);
             ctx.lineCap = 'round';
             ctx.stroke();
+            ctx.setLineDash([]);
 
             ctx.beginPath();
-            ctx.arc(x0, y(lastClose), 4, 0, Math.PI * 2);
+            ctx.arc(historyEndX, y(lastClose), 4, 0, Math.PI * 2);
             ctx.fillStyle = color;
             ctx.fill();
 
@@ -143,7 +176,15 @@ function ProjectionChart({
                 '11px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
             ctx.fillStyle = cs.getPropertyValue('--ink-3').trim();
             ctx.textAlign = 'left';
-            ctx.fillText('hoy', x0 - 12, h - 4);
+            const firstDate = history[0]
+                ? new Date(history[0].ts).toLocaleDateString('es-AR', {
+                      month: 'short',
+                      year: '2-digit',
+                  })
+                : '';
+            ctx.fillText(firstDate, x0 - 12, h - 4);
+            ctx.textAlign = 'center';
+            ctx.fillText('hoy', historyEndX, h - 4);
             ctx.textAlign = 'right';
             ctx.fillText(
                 horizonDays ? `+${horizonDays} ruedas` : 'proyección',
@@ -169,7 +210,7 @@ function ProjectionChart({
         }
         raf = requestAnimationFrame(frame);
         return () => cancelAnimationFrame(raf);
-    }, [lastClose, predictedClose, horizonDays, signal]);
+    }, [history, lastClose, predictedClose, horizonDays, signal]);
 
     return <canvas ref={canvasRef} width={560} height={170} />;
 }
@@ -349,6 +390,11 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
 }
 
 function TickerDetail({ row, onBack }: TickerDetailProps) {
+    const [history, setHistory] = useState<HistoricalPricePoint[]>([]);
+    const [historyError, setHistoryError] = useState(false);
+    const [range, setRange] = useState<'1M' | '3M' | '6M' | '1A' | 'TODO'>(
+        '1A',
+    );
     const trend = row.trend;
     const available = trend?.available ?? false;
     const delta =
@@ -356,6 +402,34 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
             ? ((trend.predicted_close - trend.last_close) / trend.last_close) *
               100
             : null;
+
+    useEffect(() => {
+        let cancelled = false;
+        getShareHistoryEndpoint(row.ticker)
+            .then((response) => {
+                if (!cancelled) {
+                    setHistory(response.prices);
+                    setHistoryError(false);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setHistoryError(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [row.ticker]);
+
+    const rangeDays = { '1M': 31, '3M': 93, '6M': 186, '1A': 366 } as const;
+    const filteredHistory =
+        range === 'TODO' || history.length === 0
+            ? history
+            : history.filter(
+                  (point) =>
+                      point.ts >=
+                      history[history.length - 1].ts -
+                          rangeDays[range] * 24 * 60 * 60 * 1000,
+              );
 
     return (
         <div>
@@ -411,13 +485,49 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
             trend.predicted_close != null ? (
                 <div className="detail-grid">
                     <div className="panel chart-panel">
-                        <h3>Último cierre → precio proyectado</h3>
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '12px',
+                                flexWrap: 'wrap',
+                            }}
+                        >
+                            <h3 className="mb-0">Histórico → precio proyectado</h3>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                {(['1M', '3M', '6M', '1A', 'TODO'] as const).map(
+                                    (option) => (
+                                        <button
+                                            key={option}
+                                            type="button"
+                                            className={
+                                                range === option
+                                                    ? 'pill pill-neutral'
+                                                    : 'back-link'
+                                            }
+                                            onClick={() => setRange(option)}
+                                            style={{ margin: 0 }}
+                                        >
+                                            {option === 'TODO' ? 'Todo' : option}
+                                        </button>
+                                    ),
+                                )}
+                            </div>
+                        </div>
                         <ProjectionChart
+                            history={filteredHistory}
                             lastClose={trend.last_close}
                             predictedClose={trend.predicted_close}
                             horizonDays={trend.horizon_days}
                             signal={trend.signal}
                         />
+                        {historyError && (
+                            <p style={{ color: 'var(--ink-3)', margin: 0 }}>
+                                No se pudo cargar el histórico; se muestra sólo
+                                la proyección.
+                            </p>
+                        )}
                         <div className="indicator-row mt-3">
                             <div className="indicator">
                                 <span>
@@ -467,10 +577,9 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                             </div>
                         </div>
                         <div className="roadmap-box">
-                            <b>Todavía no está conectado:</b> este gráfico marca
-                            hoy y la proyección del modelo{' '}
-                            {trend.model ?? 'lstm'} — no es un histórico de
-                            precios (todavía no hay un endpoint que lo exponga).
+                            La línea continua muestra los cierres históricos.
+                            La línea punteada muestra la proyección del modelo{' '}
+                            {trend.model ?? 'lstm'}.
                         </div>
                     </div>
                 </div>
