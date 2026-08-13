@@ -144,10 +144,22 @@ function Home() {
 
     const loadPortfolio = async () => {
         try {
-            const { rows, trendsUnavailable } = await fetchPortfolio();
-            setRows(rows);
-            setTrendsUnavailable(trendsUnavailable);
+            const sharesRes = await getUserSharesEndpoint();
+            setRows((currentRows) => {
+                const currentTrends = currentRows
+                    .map((row) => row.trend)
+                    .filter((trend): trend is ShareTrend => trend !== null);
+                return buildRows(sharesRes.shares, currentTrends);
+            });
             setPortfolioError(null);
+
+            try {
+                const trendsRes = await getUserSharesTrendsEndpoint();
+                setRows(buildRows(sharesRes.shares, trendsRes.trends));
+                setTrendsUnavailable(false);
+            } catch {
+                setTrendsUnavailable(true);
+            }
         } catch {
             setPortfolioError('No se pudo cargar tu cartera.');
         }
