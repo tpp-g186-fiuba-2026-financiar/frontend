@@ -125,7 +125,7 @@ async function fetchPortfolio(): Promise<{
         };
     } catch {
         // Las acciones se guardaron igual: mostrarlas sin señal en vez de
-        // vaciar toda la pantalla si api-ml no responde.
+        // vaciar toda la pantalla si los modelos no responden.
         return {
             rows: buildRows(sharesRes.shares, null),
             trendsUnavailable: true,
@@ -136,29 +136,61 @@ async function fetchPortfolio(): Promise<{
 function Home() {
     const navigate = useNavigate();
     const [user, setUser] = useState<UserResponse | null>(null);
+    const [userError, setUserError] = useState(false);
+    const [userAttempt, setUserAttempt] = useState(0);
     const [rows, setRows] = useState<PortfolioRow[]>([]);
     const [loadingPortfolio, setLoadingPortfolio] = useState<boolean>(true);
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
-    const [selectedRow, setSelectedRow] = useState<PortfolioRow | null>(null);
+    const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
     const [showEstimacion, setShowEstimacion] = useState<boolean>(false);
+    const [refreshingTrends, setRefreshingTrends] = useState(false);
+    const selectedRow =
+        rows.find((row) => row.ticker === selectedTicker) ?? null;
 
     const loadPortfolio = async () => {
         try {
-            const { rows, trendsUnavailable } = await fetchPortfolio();
-            setRows(rows);
-            setTrendsUnavailable(trendsUnavailable);
+            const sharesRes = await getUserSharesEndpoint();
+            setRows((currentRows) => {
+                const currentTrends = currentRows
+                    .map((row) => row.trend)
+                    .filter((trend): trend is ShareTrend => trend !== null);
+                return buildRows(sharesRes.shares, currentTrends);
+            });
             setPortfolioError(null);
+
+            try {
+                const trendsRes = await getUserSharesTrendsEndpoint();
+                setRows(buildRows(sharesRes.shares, trendsRes.trends));
+                setTrendsUnavailable(false);
+            } catch {
+                setTrendsUnavailable(true);
+            }
         } catch {
             setPortfolioError('No se pudo cargar tu cartera.');
         }
     };
 
     useEffect(() => {
+        let cancelled = false;
+        let retryTimer: number | undefined;
         const fetchUser = async () => {
-            const u = await getUserEndpoint();
-            setUser(u);
+            try {
+                const u = await getUserEndpoint();
+                if (!cancelled) {
+                    setUser(u);
+                    setUserError(false);
+                }
+            } catch {
+                if (!cancelled) {
+                    setUserError(true);
+                    retryTimer = window.setTimeout(
+                        () => setUserAttempt((attempt) => attempt + 1),
+                        10_000,
+                    );
+                }
+            }
         };
         const fetchInitialPortfolio = async () => {
             try {
@@ -174,17 +206,74 @@ function Home() {
         };
         fetchUser();
         fetchInitialPortfolio();
-    }, []);
+        return () => {
+            cancelled = true;
+            if (retryTimer) window.clearTimeout(retryTimer);
+        };
+    }, [userAttempt]);
+
+    // Un ticker nuevo puede estar preparando su primer artefacto en Modal.
+    // Reconsulta en segundo plano para que la señal aparezca sin recargar la web.
+    useEffect(() => {
+        if (!rows.some((row) => !row.trend?.available)) return;
+        const timer = window.setTimeout(async () => {
+            setRefreshingTrends(true);
+            try {
+                const response = await getUserSharesTrendsEndpoint();
+                const byTicker = new Map(
+                    response.trends.map((trend) => [trend.ticker, trend]),
+                );
+                setRows((current) =>
+                    current.map((row) => ({
+                        ...row,
+                        trend: byTicker.get(row.ticker) ?? row.trend,
+                    })),
+                );
+                setTrendsUnavailable(false);
+            } catch {
+                setTrendsUnavailable(true);
+            } finally {
+                setRefreshingTrends(false);
+            }
+        }, 30_000);
+        return () => window.clearTimeout(timer);
+    }, [rows]);
 
     if (!user) {
-        return <p>Loading...</p>;
+        return (
+            <div className="container py-4">
+                <div className="panel connection-state">
+                    <h2 className="mb-2">
+                        {userError
+                            ? 'No pudimos conectar con el servidor'
+                            : 'Cargando tu cuenta…'}
+                    </h2>
+                    <p className="mb-3" style={{ color: 'var(--ink-3)' }}>
+                        {userError
+                            ? 'Puede estar reiniciándose. Volveremos a intentar automáticamente.'
+                            : 'Esto puede demorar unos segundos.'}
+                    </p>
+                    {userError && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                                setUserError(false);
+                                setUserAttempt((attempt) => attempt + 1);
+                            }}
+                        >
+                            Reintentar ahora
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
     }
 
     const withTrend = rows.filter((r) => r.trend?.available);
     const upCount = withTrend.filter((r) => r.trend?.signal === 'alza').length;
 
     // Todas las acciones declaradas, no solo las que tienen prediccion —
-    // asi la cinta no "pierde" tickers sin cobertura de api-ml.
+    // asi la cinta no "pierde" tickers sin cobertura de los modelos.
     const tapeItems: TapeItem[] = rows.map((r) => ({
         ticker: r.ticker,
         lastClose: r.trend?.available ? r.trend.last_close : null,
@@ -228,7 +317,7 @@ function Home() {
             {selectedRow ? (
                 <TickerDetail
                     row={selectedRow}
-                    onBack={() => setSelectedRow(null)}
+                    onBack={() => setSelectedTicker(null)}
                 />
             ) : (
                 <>
@@ -236,7 +325,17 @@ function Home() {
 
                     {portfolioError && (
                         <div className="panel">
-                            <p className="text-danger mb-0">{portfolioError}</p>
+                            <p className="text-danger mb-3">{portfolioError}</p>
+                            <button
+                                className="btn btn-primary"
+                                onClick={async () => {
+                                    setLoadingPortfolio(true);
+                                    await loadPortfolio();
+                                    setLoadingPortfolio(false);
+                                }}
+                            >
+                                Reintentar
+                            </button>
                         </div>
                     )}
 
@@ -276,10 +375,10 @@ function Home() {
                                 {trendsUnavailable && (
                                     <div className="panel mb-4">
                                         <p className="mb-0 text-warning">
-                                            No se pudo conectar con api-ml, así
-                                            que por ahora no hay señal de
-                                            tendencia. Tu cartera se guardó
-                                            igual.
+                                            Los modelos están demorando más de
+                                            lo esperado. Tu cartera está
+                                            guardada y las predicciones se
+                                            actualizarán automáticamente.
                                         </p>
                                     </div>
                                 )}
@@ -301,6 +400,9 @@ function Home() {
                                                         ?.horizon_days ??
                                                         5}{' '}
                                                     ruedas
+                                                    {refreshingTrends
+                                                        ? ' · actualizando…'
+                                                        : ''}
                                                 </p>
                                             )}
                                         </div>
@@ -383,8 +485,8 @@ function Home() {
                                                                     : ''
                                                             }
                                                             onClick={() =>
-                                                                setSelectedRow(
-                                                                    row,
+                                                                setSelectedTicker(
+                                                                    row.ticker,
                                                                 )
                                                             }
                                                         >
@@ -483,8 +585,7 @@ function Home() {
                                                                             ''
                                                                         }
                                                                     >
-                                                                        Sin
-                                                                        datos
+                                                                        Preparando
                                                                     </span>
                                                                 )}
                                                             </td>

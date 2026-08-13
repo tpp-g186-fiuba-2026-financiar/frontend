@@ -13,6 +13,16 @@ export interface ModelPrediction {
     as_of: string | null;
     model: string | null;
     model_version: string | null;
+    backtest: {
+        directional_accuracy?: number;
+        mae?: number;
+        observations?: number;
+        series?: Array<{
+            date: string;
+            predicted: number;
+            actual: number;
+        }>;
+    } | null;
     reason: string | null;
 }
 

@@ -5,6 +5,10 @@ import {
     type CompareTrendsResponse,
     type ModelPrediction,
 } from '../../api/userShares/getShareTrendCompareEndpoint';
+import {
+    getShareHistoryEndpoint,
+    type HistoricalPricePoint,
+} from '../../api/userShares/getShareHistoryEndpoint';
 import InfoTip from '../Layout/InfoTip';
 
 interface PortfolioRow {
@@ -46,13 +50,15 @@ function formatMoney(value: number | null | undefined): string {
 }
 
 interface ProjectionChartProps {
-    lastClose: number;
-    predictedClose: number;
+    history: HistoricalPricePoint[];
+    lastClose: number | null;
+    predictedClose: number | null;
     horizonDays: number | null;
     signal: string | null | undefined;
 }
 
 function ProjectionChart({
+    history,
     lastClose,
     predictedClose,
     horizonDays,
@@ -73,17 +79,39 @@ function ProjectionChart({
         ctx.scale(dpr, dpr);
 
         const cs = getComputedStyle(document.documentElement);
-        const color = cs.getPropertyValue(signalColorVar(signal)).trim();
+        const projectionColor = cs
+            .getPropertyValue(signalColorVar(signal))
+            .trim();
+        const historyColor = cs.getPropertyValue('--ink').trim();
+        const labelColor = cs.getPropertyValue('--ink-3').trim();
         const line = cs.getPropertyValue('--line').trim();
 
-        const min = Math.min(lastClose, predictedClose);
-        const max = Math.max(lastClose, predictedClose);
-        const span = max - min || 1;
-        const padX = 46;
-        const padY = 24;
-        const x0 = padX;
-        const x1 = w - padX;
-        const y = (v: number) => h - padY - ((v - min) / span) * (h - padY * 2);
+        const values = history.map((point) => point.close);
+        if (lastClose != null) values.push(lastClose);
+        if (predictedClose != null) values.push(predictedClose);
+        if (values.length === 0) return;
+        const rawMin = Math.min(...values);
+        const rawMax = Math.max(...values);
+        const rawSpan = rawMax - rawMin || Math.max(1, rawMax * 0.05);
+        const min = rawMin - rawSpan * 0.05;
+        const max = rawMax + rawSpan * 0.05;
+        const span = max - min;
+        const padLeft = 72;
+        const padRight = 48;
+        const padTop = 16;
+        const padBottom = 34;
+        const x0 = padLeft;
+        const x1 = w - padRight;
+        const historyEndX = x0 + (x1 - x0) * 0.82;
+        const plotBottom = h - padBottom;
+        const plotHeight = plotBottom - padTop;
+        const y = (v: number) => plotBottom - ((v - min) / span) * plotHeight;
+        const pointX = (index: number) =>
+            x0 + (index / Math.max(1, history.length - 1)) * (historyEndX - x0);
+        const formatAxisPrice = (value: number) =>
+            `$${value.toLocaleString('es-AR', {
+                maximumFractionDigits: value >= 100 ? 0 : 2,
+            })}`;
 
         function render(t: number) {
             if (!ctx) return;
@@ -91,65 +119,124 @@ function ProjectionChart({
 
             ctx.strokeStyle = line;
             ctx.lineWidth = 1;
-            for (let g = 0; g < 3; g++) {
-                const gy = padY + (g / 2) * (h - padY * 2);
+            ctx.font =
+                '10px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+            ctx.fillStyle = labelColor;
+            for (let g = 0; g < 4; g++) {
+                const ratio = g / 3;
+                const gy = padTop + ratio * plotHeight;
                 ctx.beginPath();
-                ctx.moveTo(0, gy);
-                ctx.lineTo(w, gy);
+                ctx.moveTo(x0, gy);
+                ctx.lineTo(x1, gy);
+                ctx.stroke();
+                const price = max - ratio * span;
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(formatAxisPrice(price), x0 - 10, gy);
+            }
+
+            if (history.length > 0) {
+                const grad = ctx.createLinearGradient(0, 0, 0, h);
+                grad.addColorStop(0, historyColor + '1f');
+                grad.addColorStop(1, historyColor + '00');
+                ctx.beginPath();
+                history.forEach((point, index) => {
+                    const px = pointX(index);
+                    const py = y(point.close);
+                    if (index === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.lineTo(historyEndX, plotBottom);
+                ctx.lineTo(x0, plotBottom);
+                ctx.closePath();
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                ctx.beginPath();
+                history.forEach((point, index) => {
+                    const px = pointX(index);
+                    const py = y(point.close);
+                    if (index === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.strokeStyle = historyColor;
+                ctx.lineWidth = 1.8;
                 ctx.stroke();
             }
 
-            const curX = x0 + (x1 - x0) * t;
-            const curY = y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
-
-            const grad = ctx.createLinearGradient(0, 0, 0, h);
-            grad.addColorStop(0, color + '33');
-            grad.addColorStop(1, color + '00');
             ctx.beginPath();
-            ctx.moveTo(x0, y(lastClose));
-            ctx.lineTo(curX, curY);
-            ctx.lineTo(curX, h);
-            ctx.lineTo(x0, h);
-            ctx.closePath();
-            ctx.fillStyle = grad;
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(x0, y(lastClose));
-            ctx.lineTo(curX, curY);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2.2;
-            ctx.lineCap = 'round';
+            ctx.moveTo(historyEndX, padTop);
+            ctx.lineTo(historyEndX, plotBottom);
+            ctx.strokeStyle = line;
+            ctx.setLineDash([3, 4]);
             ctx.stroke();
+            ctx.setLineDash([]);
 
-            ctx.beginPath();
-            ctx.arc(x0, y(lastClose), 4, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
+            if (lastClose != null && predictedClose != null) {
+                const curX = historyEndX + (x1 - historyEndX) * t;
+                const curY =
+                    y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
 
-            ctx.beginPath();
-            ctx.arc(curX, curY, 4, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            if (t >= 1) {
                 ctx.beginPath();
-                ctx.arc(curX, curY, 7, 0, Math.PI * 2);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1.2;
+                ctx.moveTo(historyEndX, y(lastClose));
+                ctx.lineTo(curX, curY);
+                ctx.strokeStyle = projectionColor;
+                ctx.lineWidth = 2.2;
+                ctx.setLineDash([6, 5]);
+                ctx.lineCap = 'round';
                 ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.beginPath();
+                ctx.arc(historyEndX, y(lastClose), 4, 0, Math.PI * 2);
+                ctx.fillStyle = projectionColor;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(curX, curY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = projectionColor;
+                ctx.fill();
+                if (t >= 1) {
+                    ctx.beginPath();
+                    ctx.arc(curX, curY, 7, 0, Math.PI * 2);
+                    ctx.strokeStyle = projectionColor;
+                    ctx.lineWidth = 1.2;
+                    ctx.stroke();
+                }
             }
 
             ctx.font =
                 '11px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
-            ctx.fillStyle = cs.getPropertyValue('--ink-3').trim();
-            ctx.textAlign = 'left';
-            ctx.fillText('hoy', x0 - 12, h - 4);
+            ctx.fillStyle = labelColor;
+            ctx.textBaseline = 'alphabetic';
+            const dateIndexes = history.length
+                ? [0, 1 / 3, 2 / 3].map((ratio) =>
+                      Math.round(ratio * (history.length - 1)),
+                  )
+                : [];
+            dateIndexes.forEach((index, labelIndex) => {
+                const date = new Date(history[index].ts).toLocaleDateString(
+                    'es-AR',
+                    { month: 'short', year: '2-digit' },
+                );
+                ctx.textAlign =
+                    labelIndex === 0
+                        ? 'left'
+                        : labelIndex === dateIndexes.length - 1
+                          ? 'right'
+                          : 'center';
+                ctx.fillText(date, pointX(index), h - 5);
+            });
+            ctx.textAlign = 'center';
+            ctx.fillText('hoy', historyEndX, h - 5);
             ctx.textAlign = 'right';
-            ctx.fillText(
-                horizonDays ? `+${horizonDays} ruedas` : 'proyección',
-                x1 + 12,
-                h - 4,
-            );
+            if (predictedClose != null) {
+                ctx.fillText(
+                    horizonDays ? `+${horizonDays} ruedas` : 'proyección',
+                    x1 + 12,
+                    h - 5,
+                );
+            }
         }
 
         const reduceMotion = window.matchMedia(
@@ -169,7 +256,7 @@ function ProjectionChart({
         }
         raf = requestAnimationFrame(frame);
         return () => cancelAnimationFrame(raf);
-    }, [lastClose, predictedClose, horizonDays, signal]);
+    }, [history, lastClose, predictedClose, horizonDays, signal]);
 
     return <canvas ref={canvasRef} width={560} height={170} />;
 }
@@ -187,9 +274,98 @@ function rowClass(signal: string | null | undefined): string {
 
 interface ModelComparisonTableProps {
     ticker: string;
+    view: 'prediction' | 'results';
 }
 
-function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
+function ResultsChart({
+    series,
+}: {
+    series: Array<{ date: string; predicted: number; actual: number }>;
+}) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas || series.length < 2) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const dpr = window.devicePixelRatio || 1;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.scale(dpr, dpr);
+
+        const styles = getComputedStyle(document.documentElement);
+        const predictedColor = styles.getPropertyValue('--accent').trim();
+        const actualColor = styles.getPropertyValue('--ink').trim();
+        const gridColor = styles.getPropertyValue('--line').trim();
+        const labelColor = styles.getPropertyValue('--ink-3').trim();
+        const values = series.flatMap((point) => [
+            point.predicted,
+            point.actual,
+        ]);
+        const rawMin = Math.min(...values);
+        const rawMax = Math.max(...values);
+        const rawSpan = rawMax - rawMin || 1;
+        const min = rawMin - rawSpan * 0.08;
+        const max = rawMax + rawSpan * 0.08;
+        const left = 64;
+        const right = width - 18;
+        const top = 14;
+        const bottom = height - 30;
+        const x = (index: number) =>
+            left + (index / (series.length - 1)) * (right - left);
+        const y = (value: number) =>
+            bottom - ((value - min) / (max - min)) * (bottom - top);
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.font = '10px ui-monospace, monospace';
+        ctx.fillStyle = labelColor;
+        for (let index = 0; index < 4; index += 1) {
+            const ratio = index / 3;
+            const lineY = top + ratio * (bottom - top);
+            const price = max - ratio * (max - min);
+            ctx.beginPath();
+            ctx.moveTo(left, lineY);
+            ctx.lineTo(right, lineY);
+            ctx.strokeStyle = gridColor;
+            ctx.stroke();
+            ctx.textAlign = 'right';
+            ctx.fillText(
+                `$${price.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`,
+                left - 8,
+                lineY + 3,
+            );
+        }
+
+        const drawLine = (key: 'predicted' | 'actual', color: string) => {
+            ctx.beginPath();
+            series.forEach((point, index) => {
+                const px = x(index);
+                const py = y(point[key]);
+                if (index === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        };
+        drawLine('predicted', predictedColor);
+        drawLine('actual', actualColor);
+
+        ctx.fillStyle = labelColor;
+        ctx.textAlign = 'left';
+        ctx.fillText(series[0].date, left, height - 7);
+        ctx.textAlign = 'right';
+        ctx.fillText(series[series.length - 1].date, right, height - 7);
+    }, [series]);
+
+    return <canvas className="results-chart" ref={canvasRef} />;
+}
+
+function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
     const [compare, setCompare] = useState<CompareTrendsResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -217,7 +393,7 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
     if (error) {
         return (
             <div className="panel mt-3">
-                <h3>Comparación de modelos</h3>
+                <h3>{view === 'results' ? 'Resultados' : 'Predicción'}</h3>
                 <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
                     {error}
                 </p>
@@ -228,7 +404,7 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
     if (!compare) {
         return (
             <div className="panel mt-3">
-                <h3>Comparación de modelos</h3>
+                <h3>{view === 'results' ? 'Resultados' : 'Predicción'}</h3>
                 <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
                     Cargando…
                 </p>
@@ -240,10 +416,119 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
         string,
         ModelPrediction,
     ][];
+    const ranked = entries
+        .filter(
+            ([, prediction]) =>
+                prediction.available &&
+                prediction.backtest?.directional_accuracy != null,
+        )
+        .sort(
+            ([, left], [, right]) =>
+                (right.backtest?.directional_accuracy ?? 0) -
+                (left.backtest?.directional_accuracy ?? 0),
+        );
+    const bestModel = ranked[0]?.[0] ?? null;
+    const bestSeries = bestModel
+        ? compare.predictions[bestModel]?.backtest?.series
+        : null;
+
+    if (view === 'results') {
+        return (
+            <div className="panel mt-3">
+                <div className="performance-head">
+                    <div>
+                        <h3 className="mb-1">Qué tan bien predijeron</h3>
+                        <p className="mb-0 performance-help">
+                            Comparamos lo que predijo cada modelo con lo que
+                            pasó después.
+                        </p>
+                    </div>
+                    {bestModel && (
+                        <span className="performance-winner">
+                            Mejor modelo: {bestModel}
+                        </span>
+                    )}
+                </div>
+                <div className="performance-grid mt-3">
+                    {entries.map(([name, prediction]) => {
+                        const accuracy =
+                            prediction.backtest?.directional_accuracy;
+                        const mae = prediction.backtest?.mae;
+                        const comparableError =
+                            mae == null
+                                ? null
+                                : name === 'arima-modal' &&
+                                    prediction.last_close
+                                  ? (mae / prediction.last_close) * 100
+                                  : mae * 100;
+                        return (
+                            <div
+                                className={`performance-card${name === bestModel ? ' is-best' : ''}`}
+                                key={name}
+                            >
+                                <div className="performance-model">
+                                    <b>{name}</b>
+                                    {name === bestModel && <span>★</span>}
+                                </div>
+                                {accuracy != null ? (
+                                    <>
+                                        <strong className="performance-score num">
+                                            {(accuracy * 100).toFixed(0)}%
+                                        </strong>
+                                        <span>
+                                            acertó la dirección en{' '}
+                                            {(accuracy * 100).toFixed(0)} de
+                                            cada 100 casos
+                                        </span>
+                                        <div className="performance-bar">
+                                            <i
+                                                style={{
+                                                    width: `${accuracy * 100}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <strong className="performance-score">
+                                        Todavía sin resultados
+                                    </strong>
+                                )}
+                                <small>
+                                    {comparableError != null
+                                        ? `Se equivocó en promedio ${comparableError.toFixed(2)}%`
+                                        : 'Todavía no se puede medir'}
+                                    {prediction.backtest?.observations
+                                        ? ` · ${prediction.backtest.observations} casos`
+                                        : ''}
+                                </small>
+                            </div>
+                        );
+                    })}
+                </div>
+                {bestSeries && bestSeries.length > 1 ? (
+                    <div className="results-chart-wrap mt-3">
+                        <div className="results-chart-title">
+                            <b>{bestModel}</b>
+                            <span className="results-legend predicted">
+                                Predijo
+                            </span>
+                            <span className="results-legend actual">Pasó</span>
+                        </div>
+                        <ResultsChart series={bestSeries} />
+                    </div>
+                ) : (
+                    <p className="performance-help mt-3 mb-0">
+                        El gráfico aparecerá después de la próxima actualización
+                        del modelo.
+                    </p>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="panel mt-3">
-            <h3>Comparación de modelos</h3>
+            <h3>Qué predice cada modelo</h3>
             <table className="watchlist">
                 <thead>
                     <tr>
@@ -349,13 +634,65 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
 }
 
 function TickerDetail({ row, onBack }: TickerDetailProps) {
+    const [historyResult, setHistoryResult] = useState<{
+        ticker: string;
+        prices: HistoricalPricePoint[];
+        error: boolean;
+    } | null>(null);
+    const [range, setRange] = useState<'1M' | '3M' | '6M' | '1A' | 'TODO'>(
+        '1A',
+    );
+    const [historyAttempt, setHistoryAttempt] = useState(0);
+    const [insightsTab, setInsightsTab] = useState<'prediction' | 'results'>(
+        'prediction',
+    );
     const trend = row.trend;
+    const historyLoaded = historyResult?.ticker === row.ticker;
+    const history = historyLoaded ? historyResult.prices : [];
+    const historyError = historyLoaded && historyResult.error;
     const available = trend?.available ?? false;
     const delta =
         available && trend?.last_close && trend.predicted_close != null
             ? ((trend.predicted_close - trend.last_close) / trend.last_close) *
               100
             : null;
+
+    useEffect(() => {
+        let cancelled = false;
+        getShareHistoryEndpoint(row.ticker)
+            .then((response) => {
+                if (!cancelled) {
+                    setHistoryResult({
+                        ticker: row.ticker,
+                        prices: response.prices,
+                        error: false,
+                    });
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setHistoryResult({
+                        ticker: row.ticker,
+                        prices: [],
+                        error: true,
+                    });
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [row.ticker, historyAttempt]);
+
+    const rangeDays = { '1M': 31, '3M': 93, '6M': 186, '1A': 366 } as const;
+    const filteredHistory =
+        range === 'TODO' || history.length === 0
+            ? history
+            : history.filter(
+                  (point) =>
+                      point.ts >=
+                      history[history.length - 1].ts -
+                          rangeDays[range] * 24 * 60 * 60 * 1000,
+              );
 
     return (
         <div>
@@ -406,71 +743,149 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                 </div>
             </div>
 
-            {available &&
-            trend?.last_close != null &&
-            trend.predicted_close != null ? (
+            {!historyLoaded ? (
+                <div className="panel">
+                    <h3 className="mb-0">Histórico → precio proyectado</h3>
+                    <p className="mb-0 mt-3" style={{ color: 'var(--ink-3)' }}>
+                        Cargando histórico…
+                    </p>
+                </div>
+            ) : history.length > 0 ||
+              (available && trend?.last_close != null) ? (
                 <div className="detail-grid">
                     <div className="panel chart-panel">
-                        <h3>Último cierre → precio proyectado</h3>
-                        <ProjectionChart
-                            lastClose={trend.last_close}
-                            predictedClose={trend.predicted_close}
-                            horizonDays={trend.horizon_days}
-                            signal={trend.signal}
-                        />
-                        <div className="indicator-row mt-3">
-                            <div className="indicator">
-                                <span>
-                                    RSI (14)
-                                    <InfoTip label="RSI (14)">
-                                        Índice de fuerza relativa a 14 ruedas.
-                                        Arriba de 70 sugiere sobrecompra, abajo
-                                        de 30 sobreventa.
-                                    </InfoTip>
-                                </span>
-                                <b className="num">{trend.rsi ?? '—'}</b>
-                            </div>
-                            <div className="indicator">
-                                <span>
-                                    Condición
-                                    <InfoTip label="Condición">
-                                        Lectura del RSI: sobrecompra (≥70),
-                                        sobreventa (≤30) o neutral.
-                                    </InfoTip>
-                                </span>
-                                <b>{trend.condition ?? '—'}</b>
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '12px',
+                                flexWrap: 'wrap',
+                            }}
+                        >
+                            <h3 className="mb-0">
+                                Histórico → precio proyectado
+                            </h3>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                {(
+                                    ['1M', '3M', '6M', '1A', 'TODO'] as const
+                                ).map((option) => (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        className={
+                                            range === option
+                                                ? 'pill pill-neutral'
+                                                : 'back-link'
+                                        }
+                                        onClick={() => setRange(option)}
+                                        style={{ margin: 0 }}
+                                    >
+                                        {option === 'TODO' ? 'Todo' : option}
+                                    </button>
+                                ))}
                             </div>
                         </div>
+                        <ProjectionChart
+                            history={filteredHistory}
+                            lastClose={trend?.last_close ?? null}
+                            predictedClose={trend?.predicted_close ?? null}
+                            horizonDays={trend?.horizon_days ?? null}
+                            signal={trend?.signal}
+                        />
+                        {historyError && (
+                            <p style={{ color: 'var(--ink-3)', margin: 0 }}>
+                                No se pudo cargar el histórico; se muestra sólo
+                                la proyección.{' '}
+                                <button
+                                    type="button"
+                                    className="back-link"
+                                    style={{ margin: 0 }}
+                                    onClick={() => {
+                                        setHistoryResult(null);
+                                        setHistoryAttempt(
+                                            (attempt) => attempt + 1,
+                                        );
+                                    }}
+                                >
+                                    Reintentar
+                                </button>
+                            </p>
+                        )}
+                        {available && (
+                            <div className="indicator-row mt-3">
+                                <div className="indicator">
+                                    <span>
+                                        RSI (14)
+                                        <InfoTip label="RSI (14)">
+                                            Índice de fuerza relativa a 14
+                                            ruedas. Arriba de 70 sugiere
+                                            sobrecompra, abajo de 30 sobreventa.
+                                        </InfoTip>
+                                    </span>
+                                    <b className="num">{trend?.rsi ?? '—'}</b>
+                                </div>
+                                <div className="indicator">
+                                    <span>
+                                        Condición
+                                        <InfoTip label="Condición">
+                                            Lectura del RSI: sobrecompra (≥70),
+                                            sobreventa (≤30) o neutral.
+                                        </InfoTip>
+                                    </span>
+                                    <b>{trend?.condition ?? '—'}</b>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="panel side-panel">
                         <div>
-                            <h3 className="mb-2">Predicción</h3>
-                            <div className="kv">
-                                <span>Modelo</span>
-                                <span>{trend.model ?? '—'}</span>
-                            </div>
-                            <div className="kv">
-                                <span>Versión</span>
-                                <span style={{ fontSize: '11px' }}>
-                                    {trend.model_version ?? '—'}
-                                </span>
-                            </div>
-                            <div className="kv">
-                                <span>Último cierre</span>
-                                <span>{formatMoney(trend.last_close)}</span>
-                            </div>
-                            <div className="kv">
-                                <span>Precio proyectado</span>
-                                <span>
-                                    {formatMoney(trend.predicted_close)}
-                                </span>
-                            </div>
+                            <h3 className="mb-2">
+                                {available ? 'Predicción' : 'Histórico'}
+                            </h3>
+                            {available ? (
+                                <>
+                                    <div className="kv">
+                                        <span>Modelo</span>
+                                        <span>{trend?.model ?? '—'}</span>
+                                    </div>
+                                    <div className="kv">
+                                        <span>Versión</span>
+                                        <span style={{ fontSize: '11px' }}>
+                                            {trend?.model_version ?? '—'}
+                                        </span>
+                                    </div>
+                                    <div className="kv">
+                                        <span>Último cierre</span>
+                                        <span>
+                                            {formatMoney(trend?.last_close)}
+                                        </span>
+                                    </div>
+                                    <div className="kv">
+                                        <span>Precio proyectado</span>
+                                        <span>
+                                            {formatMoney(
+                                                trend?.predicted_close,
+                                            )}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <p style={{ color: 'var(--ink-3)' }}>
+                                    Hay precios históricos, pero todavía no hay
+                                    un modelo entrenado para este ticker.
+                                </p>
+                            )}
                         </div>
                         <div className="roadmap-box">
-                            <b>Todavía no está conectado:</b> este gráfico marca
-                            hoy y la proyección del modelo{' '}
-                            {trend.model ?? 'lstm'} — no es un histórico de
-                            precios (todavía no hay un endpoint que lo exponga).
+                            La línea continua muestra los cierres históricos.
+                            {available && (
+                                <>
+                                    {' '}
+                                    La línea punteada muestra la proyección del
+                                    modelo {trend?.model ?? 'lstm'}.
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -482,7 +897,27 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                 </div>
             )}
 
-            <ModelComparisonTable ticker={row.ticker} />
+            <div className="model-tabs mt-3" role="tablist">
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={insightsTab === 'prediction'}
+                    className={insightsTab === 'prediction' ? 'is-active' : ''}
+                    onClick={() => setInsightsTab('prediction')}
+                >
+                    Predicción
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={insightsTab === 'results'}
+                    className={insightsTab === 'results' ? 'is-active' : ''}
+                    onClick={() => setInsightsTab('results')}
+                >
+                    Resultados
+                </button>
+            </div>
+            <ModelComparisonTable ticker={row.ticker} view={insightsTab} />
         </div>
     );
 }
