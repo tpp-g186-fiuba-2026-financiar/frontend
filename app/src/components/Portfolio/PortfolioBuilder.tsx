@@ -137,6 +137,36 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
         }
     };
 
+    const handleClearPortfolio = async () => {
+        const positions = Object.values(owned);
+        if (positions.length === 0) return;
+        if (
+            !window.confirm(
+                '¿Querés eliminar todas las acciones de tu cartera? Esta acción no se puede deshacer.',
+            )
+        ) {
+            return;
+        }
+
+        setSaving(true);
+        setError(null);
+        try {
+            await Promise.all(
+                positions.map((position) =>
+                    deleteUserShareEndpoint(position.id),
+                ),
+            );
+            setOwned({});
+            setSelected({});
+            onSaved();
+            closePopUp();
+        } catch {
+            setError('No se pudo vaciar la cartera. Probá de nuevo.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     const filtered = allShares.filter((s) =>
@@ -302,6 +332,17 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                         )}
                     </div>
                     <div className="builder-footer">
+                        <button
+                            className="btn-ghost"
+                            onClick={handleClearPortfolio}
+                            disabled={saving || Object.keys(owned).length === 0}
+                            style={{
+                                color: 'var(--down)',
+                                marginRight: 'auto',
+                            }}
+                        >
+                            Vaciar cartera
+                        </button>
                         <button
                             className="btn-ghost"
                             onClick={closePopUp}
