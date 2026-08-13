@@ -5,6 +5,7 @@ const apiURL = import.meta.env.VITE_SERVER_API + ENDPOINT;
 interface Share {
     id: number;
     ticker: string;
+    predictable: boolean;
 }
 
 export interface SharesResponse {

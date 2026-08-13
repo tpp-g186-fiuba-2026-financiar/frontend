@@ -8,6 +8,7 @@ import { deleteUserShareEndpoint } from '../../api/userShares/deleteUserShare';
 interface Share {
     id: number;
     ticker: string;
+    predictable: boolean;
 }
 
 interface OwnedShare {
@@ -64,6 +65,8 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
     }, [isOpen]);
 
     const toggleShare = (ticker: string) => {
+        const share = allShares.find((item) => item.ticker === ticker);
+        if (share && !share.predictable && !(ticker in owned)) return;
         setSelected((prev) => {
             const next = { ...prev };
             if (ticker in next) {
@@ -145,6 +148,7 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
 
     const renderRow = (share: Share) => {
         const isSelected = share.ticker in selected;
+        const disabled = !share.predictable && !(share.ticker in owned);
         const qty = selected[share.ticker];
         return (
             <div
@@ -155,6 +159,7 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                     <input
                         type="checkbox"
                         checked={isSelected}
+                        disabled={disabled}
                         onChange={() => toggleShare(share.ticker)}
                     />
                     <span
@@ -163,11 +168,16 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                         {share.ticker.slice(0, 2)}
                     </span>
                     <span className="builder-ticker-label">{share.ticker}</span>
+                    {!share.predictable && (
+                        <span className="builder-hint">
+                            Sin histórico suficiente
+                        </span>
+                    )}
                 </label>
                 <div className="qty-stepper">
                     <button
                         type="button"
-                        disabled={!isSelected || (qty ?? 0) <= 1}
+                        disabled={disabled || !isSelected || (qty ?? 0) <= 1}
                         onClick={() =>
                             setQuantity(
                                 share.ticker,
@@ -182,7 +192,7 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                         type="number"
                         className="builder-qty"
                         min={1}
-                        disabled={!isSelected}
+                        disabled={disabled || !isSelected}
                         value={qty ?? ''}
                         onChange={(e) =>
                             setQuantity(share.ticker, Number(e.target.value))
@@ -190,7 +200,7 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                     />
                     <button
                         type="button"
-                        disabled={!isSelected}
+                        disabled={disabled || !isSelected}
                         onClick={() =>
                             setQuantity(share.ticker, (qty ?? 0) + 1)
                         }
