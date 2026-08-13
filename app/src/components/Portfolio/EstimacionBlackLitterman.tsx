@@ -75,12 +75,19 @@ function EstimacionBlackLitterman({ onBack }: EstimacionBlackLittermanProps) {
                         </p>
                     )}
                 </div>
-                <button className="btn btn-outline-light" onClick={onBack}>
+                <button
+                    className="btn btn-outline-light btn-outline-theme"
+                    onClick={onBack}
+                >
                     ← Volver a mi cartera
                 </button>
             </div>
 
-            {loading && <p className="px-3">Calculando estimación...</p>}
+            {loading && (
+                <p className="px-3 estimacion-loading">
+                    Calculando estimación...
+                </p>
+            )}
 
             {!loading && error && (
                 <div className="px-3">

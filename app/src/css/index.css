@@ -32,6 +32,14 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --grid-line: rgba(255, 255, 255, 0.035);
 
+    /* cinta s&p/merval: antes estaba hardcodeada en oscuro, ahora sigue el tema */
+    --tape-bg: #070d0e;
+    --tape-border: rgba(255, 255, 255, 0.07);
+    --tape-separator: rgba(255, 255, 255, 0.14);
+    --tape-fade: rgba(7, 13, 14, 0);
+    --tape-label: #7fe0be;
+    --tape-item: #cfefe0;
+
     font: 16px/145% var(--sans);
     letter-spacing: 0.15px;
     color: var(--ink-2);
@@ -39,6 +47,44 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+/* tema claro: toggle en Ajustes. Se aplica via data-theme="light" en <html>.
+   Sin este atributo (o con data-theme="dark") se usa la paleta oscura de
+   arriba, que es la que tenia la app originalmente. */
+[data-theme='light'] {
+    --paper: #e4eae8;
+    --paper-2: #ffffff;
+    --paper-3: #eef2f0;
+    --ink: #10201d;
+    --ink-2: #3d534d;
+    --ink-3: #6d8a83;
+    --line: #cfd9d6;
+
+    --accent: #2f6fb0;
+    --accent-2: #24578c;
+    --accent-soft: #e1ecf7;
+
+    --up: #1f9d63;
+    --up-soft: #dcf2e5;
+    --down: #c8402c;
+    --down-soft: #fbe1dc;
+    --warn: #b4842a;
+    --warn-soft: #f6e8ce;
+    --neutral-sig: #5f746f;
+    --neutral-soft: #e7ede9;
+
+    --shadow:
+        0 1px 2px rgba(16, 32, 29, 0.08), 0 10px 26px rgba(16, 32, 29, 0.08);
+    --shadow-sm: 0 1px 2px rgba(16, 32, 29, 0.06);
+    --grid-line: rgba(16, 32, 29, 0.05);
+
+    --tape-bg: #eef6f2;
+    --tape-border: #d9e2df;
+    --tape-separator: #d9e2df;
+    --tape-fade: rgba(238, 246, 242, 0);
+    --tape-label: #1f8a5c;
+    --tape-item: #29453d;
 }
 
 body {
@@ -102,6 +148,18 @@ p {
 .wordmark .accent {
     color: var(--accent);
 }
+/* wordmark como boton (vuelve al home) sin que parezca un boton */
+.wordmark-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.12s ease;
+}
+.wordmark-link:hover {
+    opacity: 0.8;
+}
 
 .btn {
     box-shadow: var(--shadow-sm);
@@ -125,6 +183,19 @@ p {
     box-shadow:
         var(--shadow-sm),
         0 0 0 3px var(--accent-soft);
+}
+
+/* alternativa a btn-outline-light de bootstrap, que da texto/borde blancos
+   y por eso desaparecia sobre fondo claro */
+.btn-outline-theme {
+    background: transparent;
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+}
+.btn-outline-theme:hover {
+    color: var(--ink);
+    border-color: var(--accent);
+    background: var(--accent-soft);
 }
 
 /* pills used for signal / condition badges: la unica zona con color semantico */
@@ -185,6 +256,66 @@ p {
     border-radius: 999px;
     padding: 5px 12px;
     white-space: nowrap;
+}
+
+/* chip clickeable que abre el menu de usuario (ajustes / cerrar sesion) */
+.user-menu-wrap {
+    position: relative;
+}
+.chip-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--sans);
+    cursor: pointer;
+    transition:
+        border-color 0.12s,
+        color 0.12s;
+}
+.chip-trigger:hover {
+    color: var(--ink);
+    border-color: var(--accent);
+}
+.chip-caret {
+    font-size: 9px;
+    color: var(--ink-3);
+    transition: transform 0.15s ease;
+}
+.chip-trigger[aria-expanded='true'] .chip-caret {
+    transform: rotate(180deg);
+}
+.user-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 180px;
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    z-index: 50;
+}
+.user-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    color: var(--ink-2);
+    font: 13.5px var(--sans);
+    cursor: pointer;
+    transition:
+        background 0.12s,
+        color 0.12s;
+}
+.user-menu-item:hover {
+    background: var(--paper-3);
+    color: var(--ink);
+}
+.user-menu-item + .user-menu-item {
+    border-top: 1px solid var(--line);
 }
 
 /* watchlist: tabla densa de la cartera, estilo pantalla de broker */
@@ -598,6 +729,15 @@ table.watchlist tbody tr.is-flat td:first-child::before {
     box-shadow: var(--shadow-sm);
 }
 
+/* pagina de ajustes (/ajustes) */
+.settings-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
 /* panel generico: estado vacio, avisos, secciones sueltas */
 .panel {
     border: 1px solid var(--line);
@@ -696,6 +836,44 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     transform: translateY(0);
 }
 
+/* popups de Login / Crear cuenta: a diferencia del modal de "Mi cartera",
+   estos usan las clases crudas de bootstrap (.modal-content, .btn-close,
+   etc.), que traen sus propios colores fijos e ignoran el tema de la app.
+   Los enganchamos a las mismas variables para que sigan el tema claro/oscuro. */
+.modal-content {
+    background: var(--paper-2);
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+}
+.modal-header,
+.modal-footer {
+    border-color: var(--line);
+}
+.modal-title {
+    color: var(--ink);
+    font-family: var(--heading);
+}
+/* el icono de cerrar de bootstrap es un X negra: invisible sobre fondo
+   oscuro. En dark mode la invertimos a blanca; en light mode queda como
+   viene por defecto. */
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+[data-theme='light'] .btn-close {
+    filter: none;
+}
+.btn-secondary {
+    --bs-btn-bg: var(--paper-3);
+    --bs-btn-border-color: var(--line);
+    --bs-btn-color: var(--ink-2);
+    --bs-btn-hover-bg: var(--line);
+    --bs-btn-hover-border-color: var(--line);
+    --bs-btn-hover-color: var(--ink);
+    --bs-btn-active-bg: var(--line);
+    --bs-btn-active-border-color: var(--line);
+}
+
 /* modal "Mi cartera": overlay + panel propios, sin depender del look de bootstrap */
 .builder-backdrop {
     position: fixed;
@@ -753,6 +931,60 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     color: var(--ink);
     border-color: var(--line);
 }
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.settings-row-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.settings-row-label b {
+    font-size: 13.5px;
+    color: var(--ink);
+}
+.settings-row-label span {
+    font-size: 12px;
+    color: var(--ink-3);
+}
+.theme-toggle {
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+.theme-toggle.is-on {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+}
+.theme-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ink-3);
+    transition:
+        left 0.15s ease,
+        background 0.15s ease;
+}
+.theme-toggle.is-on .theme-toggle-thumb {
+    left: 22px;
+    background: var(--accent);
+}
+
 .builder-body {
     padding: 16px 20px;
     overflow-y: auto;
@@ -1065,13 +1297,18 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     gap: 6px;
 }
 
-/* cinta de tickers en vivo */
+/* cinta de tickers en vivo: usa sus propias variables (--tape-*) en vez de
+   colores fijos, asi tiene una alternativa real en modo claro y no queda
+   siempre oscura */
 .marquee-wrap {
     position: relative;
-    background: #070d0e;
+    background: var(--tape-bg);
     overflow: hidden;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--tape-border);
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
 }
 .marquee-wrap::after {
     content: '';
@@ -1080,10 +1317,10 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     pointer-events: none;
     background: linear-gradient(
         90deg,
-        #070d0e 0%,
-        rgba(7, 13, 14, 0) 7%,
-        rgba(7, 13, 14, 0) 93%,
-        #070d0e 100%
+        var(--tape-bg) 0%,
+        var(--tape-fade) 7%,
+        var(--tape-fade) 93%,
+        var(--tape-bg) 100%
     );
 }
 .marquee-track {
@@ -1102,15 +1339,15 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     gap: 7px;
     font-size: 11px;
     letter-spacing: 0.09em;
-    color: #7fe0be;
+    color: var(--tape-label);
     padding-right: 16px;
-    border-right: 1px solid rgba(255, 255, 255, 0.14);
+    border-right: 1px solid var(--tape-separator);
     text-transform: uppercase;
     flex: none;
 }
 .marquee-item {
     font-size: 12.5px;
-    color: #cfefe0;
+    color: var(--tape-item);
     white-space: nowrap;
 }
 @keyframes marquee {
@@ -1153,4 +1390,37 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     .livedot::after {
         animation: none;
     }
+}
+.form-control {
+    background-color: var(--paper-2);
+    color: var(--ink);
+    border-color: var(--line);
+}
+
+.form-control:focus {
+    background-color: var(--paper-2);
+    color: var(--ink);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.2rem var(--accent-soft);
+}
+
+.form-control::placeholder {
+    color: var(--ink-3);
+    opacity: 1;
+}
+
+.form-label {
+    color: var(--ink);
+}
+.rsi-cell {
+    text-align: right;
+    color: var(--ink);
+}
+
+.rsi-cell .num {
+    color: var(--ink);
+}
+
+.estimacion-loading {
+    color: var(--ink-2);
 }
