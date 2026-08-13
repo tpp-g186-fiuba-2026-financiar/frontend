@@ -140,7 +140,10 @@ function Home() {
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
-    const [selectedRow, setSelectedRow] = useState<PortfolioRow | null>(null);
+    const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+    const [refreshingTrends, setRefreshingTrends] = useState(false);
+    const selectedRow =
+        rows.find((row) => row.ticker === selectedTicker) ?? null;
 
     const loadPortfolio = async () => {
         try {
@@ -185,6 +188,33 @@ function Home() {
         fetchUser();
         fetchInitialPortfolio();
     }, []);
+
+    // Un ticker nuevo puede estar preparando su primer artefacto en Modal.
+    // Reconsulta en segundo plano para que la señal aparezca sin recargar la web.
+    useEffect(() => {
+        if (!rows.some((row) => !row.trend?.available)) return;
+        const timer = window.setTimeout(async () => {
+            setRefreshingTrends(true);
+            try {
+                const response = await getUserSharesTrendsEndpoint();
+                const byTicker = new Map(
+                    response.trends.map((trend) => [trend.ticker, trend]),
+                );
+                setRows((current) =>
+                    current.map((row) => ({
+                        ...row,
+                        trend: byTicker.get(row.ticker) ?? row.trend,
+                    })),
+                );
+                setTrendsUnavailable(false);
+            } catch {
+                setTrendsUnavailable(true);
+            } finally {
+                setRefreshingTrends(false);
+            }
+        }, 30_000);
+        return () => window.clearTimeout(timer);
+    }, [rows]);
 
     if (!user) {
         return <p>Loading...</p>;
@@ -238,7 +268,7 @@ function Home() {
             {selectedRow ? (
                 <TickerDetail
                     row={selectedRow}
-                    onBack={() => setSelectedRow(null)}
+                    onBack={() => setSelectedTicker(null)}
                 />
             ) : (
                 <>
@@ -306,6 +336,9 @@ function Home() {
                                                         ?.horizon_days ??
                                                         5}{' '}
                                                     ruedas
+                                                    {refreshingTrends
+                                                        ? ' · actualizando…'
+                                                        : ''}
                                                 </p>
                                             )}
                                         </div>
@@ -378,8 +411,8 @@ function Home() {
                                                                     : ''
                                                             }
                                                             onClick={() =>
-                                                                setSelectedRow(
-                                                                    row,
+                                                                setSelectedTicker(
+                                                                    row.ticker,
                                                                 )
                                                             }
                                                         >
@@ -478,8 +511,7 @@ function Home() {
                                                                             ''
                                                                         }
                                                                     >
-                                                                        Sin
-                                                                        datos
+                                                                        Preparando
                                                                     </span>
                                                                 )}
                                                             </td>

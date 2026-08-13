@@ -444,6 +444,7 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
     const [range, setRange] = useState<'1M' | '3M' | '6M' | '1A' | 'TODO'>(
         '1A',
     );
+    const [historyAttempt, setHistoryAttempt] = useState(0);
     const trend = row.trend;
     const historyLoaded = historyResult?.ticker === row.ticker;
     const history = historyLoaded ? historyResult.prices : [];
@@ -479,7 +480,7 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
         return () => {
             cancelled = true;
         };
-    }, [row.ticker]);
+    }, [row.ticker, historyAttempt]);
 
     const rangeDays = { '1M': 31, '3M': 93, '6M': 186, '1A': 366 } as const;
     const filteredHistory =
@@ -594,7 +595,20 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                         {historyError && (
                             <p style={{ color: 'var(--ink-3)', margin: 0 }}>
                                 No se pudo cargar el histórico; se muestra sólo
-                                la proyección.
+                                la proyección.{' '}
+                                <button
+                                    type="button"
+                                    className="back-link"
+                                    style={{ margin: 0 }}
+                                    onClick={() => {
+                                        setHistoryResult(null);
+                                        setHistoryAttempt(
+                                            (attempt) => attempt + 1,
+                                        );
+                                    }}
+                                >
+                                    Reintentar
+                                </button>
                             </p>
                         )}
                         {available && (
