@@ -124,7 +124,7 @@ async function fetchPortfolio(): Promise<{
         };
     } catch {
         // Las acciones se guardaron igual: mostrarlas sin señal en vez de
-        // vaciar toda la pantalla si api-ml no responde.
+        // vaciar toda la pantalla si los modelos no responden.
         return {
             rows: buildRows(sharesRes.shares, null),
             trendsUnavailable: true,
@@ -135,6 +135,8 @@ async function fetchPortfolio(): Promise<{
 function Home() {
     const navigate = useNavigate();
     const [user, setUser] = useState<UserResponse | null>(null);
+    const [userError, setUserError] = useState(false);
+    const [userAttempt, setUserAttempt] = useState(0);
     const [rows, setRows] = useState<PortfolioRow[]>([]);
     const [loadingPortfolio, setLoadingPortfolio] = useState<boolean>(true);
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
@@ -169,9 +171,24 @@ function Home() {
     };
 
     useEffect(() => {
+        let cancelled = false;
+        let retryTimer: number | undefined;
         const fetchUser = async () => {
-            const u = await getUserEndpoint();
-            setUser(u);
+            try {
+                const u = await getUserEndpoint();
+                if (!cancelled) {
+                    setUser(u);
+                    setUserError(false);
+                }
+            } catch {
+                if (!cancelled) {
+                    setUserError(true);
+                    retryTimer = window.setTimeout(
+                        () => setUserAttempt((attempt) => attempt + 1),
+                        10_000,
+                    );
+                }
+            }
         };
         const fetchInitialPortfolio = async () => {
             try {
@@ -187,7 +204,11 @@ function Home() {
         };
         fetchUser();
         fetchInitialPortfolio();
-    }, []);
+        return () => {
+            cancelled = true;
+            if (retryTimer) window.clearTimeout(retryTimer);
+        };
+    }, [userAttempt]);
 
     // Un ticker nuevo puede estar preparando su primer artefacto en Modal.
     // Reconsulta en segundo plano para que la señal aparezca sin recargar la web.
@@ -217,14 +238,40 @@ function Home() {
     }, [rows]);
 
     if (!user) {
-        return <p>Loading...</p>;
+        return (
+            <div className="container py-4">
+                <div className="panel connection-state">
+                    <h2 className="mb-2">
+                        {userError
+                            ? 'No pudimos conectar con el servidor'
+                            : 'Cargando tu cuenta…'}
+                    </h2>
+                    <p className="mb-3" style={{ color: 'var(--ink-3)' }}>
+                        {userError
+                            ? 'Puede estar reiniciándose. Volveremos a intentar automáticamente.'
+                            : 'Esto puede demorar unos segundos.'}
+                    </p>
+                    {userError && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                                setUserError(false);
+                                setUserAttempt((attempt) => attempt + 1);
+                            }}
+                        >
+                            Reintentar ahora
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
     }
 
     const withTrend = rows.filter((r) => r.trend?.available);
     const upCount = withTrend.filter((r) => r.trend?.signal === 'alza').length;
 
     // Todas las acciones declaradas, no solo las que tienen prediccion —
-    // asi la cinta no "pierde" tickers sin cobertura de api-ml.
+    // asi la cinta no "pierde" tickers sin cobertura de los modelos.
     const tapeItems: TapeItem[] = rows.map((r) => ({
         ticker: r.ticker,
         lastClose: r.trend?.available ? r.trend.last_close : null,
@@ -276,7 +323,17 @@ function Home() {
 
                     {portfolioError && (
                         <div className="panel">
-                            <p className="text-danger mb-0">{portfolioError}</p>
+                            <p className="text-danger mb-3">{portfolioError}</p>
+                            <button
+                                className="btn btn-primary"
+                                onClick={async () => {
+                                    setLoadingPortfolio(true);
+                                    await loadPortfolio();
+                                    setLoadingPortfolio(false);
+                                }}
+                            >
+                                Reintentar
+                            </button>
                         </div>
                     )}
 
@@ -311,10 +368,10 @@ function Home() {
                                 {trendsUnavailable && (
                                     <div className="panel mb-4">
                                         <p className="mb-0 text-warning">
-                                            No se pudo conectar con api-ml, así
-                                            que por ahora no hay señal de
-                                            tendencia. Tu cartera se guardó
-                                            igual.
+                                            Los modelos están demorando más de
+                                            lo esperado. Tu cartera está
+                                            guardada y las predicciones se
+                                            actualizarán automáticamente.
                                         </p>
                                     </div>
                                 )}
