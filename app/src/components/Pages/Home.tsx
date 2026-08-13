@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserEndpoint, type UserResponse } from '../../api/user/getUser';
 import {
@@ -14,6 +14,7 @@ import TickerDetail from '../Portfolio/TickerDetail';
 import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
 import InfoTip from '../Layout/InfoTip';
+import { useTheme } from '../../hooks/useTheme';
 
 interface PortfolioRow {
     ticker: string;
@@ -146,6 +147,11 @@ function Home() {
     const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
     const [showEstimacion, setShowEstimacion] = useState<boolean>(false);
     const [refreshingTrends, setRefreshingTrends] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    // Solo para aplicar el tema guardado al cargar Home; cambiarlo se hace
+    // desde /ajustes.
+    useTheme();
+    const userMenuRef = useRef<HTMLDivElement>(null);
     const selectedRow =
         rows.find((row) => row.ticker === selectedTicker) ?? null;
 
@@ -239,6 +245,21 @@ function Home() {
         return () => window.clearTimeout(timer);
     }, [rows]);
 
+    useEffect(() => {
+        if (!isUserMenuOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (
+                userMenuRef.current &&
+                !userMenuRef.current.contains(e.target as Node)
+            ) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () =>
+            document.removeEventListener('mousedown', handleClickOutside);
+    }, [isUserMenuOpen]);
+
     if (!user) {
         return (
             <div className="container py-4">
@@ -296,19 +317,51 @@ function Home() {
     return (
         <div className="container py-4">
             <div className="topbar">
-                <span className="wordmark">
+                <button
+                    type="button"
+                    className="wordmark wordmark-link"
+                    onClick={() => navigate('/home')}
+                >
                     Financi<span className="accent">Ar</span>
-                </span>
+                </button>
                 <div className="userzone">
-                    <span className="chip">
-                        {user.full_name} · {riskProfileLabel(user.risk_profile)}
-                    </span>
-                    <button
-                        className="btn btn-outline-light"
-                        onClick={handleLogout}
-                    >
-                        Cerrar sesión
-                    </button>
+                    <div className="user-menu-wrap" ref={userMenuRef}>
+                        <button
+                            type="button"
+                            className="chip chip-trigger"
+                            onClick={() => setIsUserMenuOpen((open) => !open)}
+                            aria-haspopup="menu"
+                            aria-expanded={isUserMenuOpen}
+                        >
+                            {user.full_name} ·{' '}
+                            {riskProfileLabel(user.risk_profile)}
+                            <span className="chip-caret">▾</span>
+                        </button>
+
+                        {isUserMenuOpen && (
+                            <div className="user-menu" role="menu">
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="user-menu-item"
+                                    onClick={() => {
+                                        setIsUserMenuOpen(false);
+                                        navigate('/ajustes');
+                                    }}
+                                >
+                                    Ajustes
+                                </button>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="user-menu-item"
+                                    onClick={handleLogout}
+                                >
+                                    Cerrar sesión
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -408,7 +461,7 @@ function Home() {
                                         </div>
                                         <div className="d-flex gap-2">
                                             <button
-                                                className="btn btn-outline-light"
+                                                className="btn btn-outline-theme"
                                                 onClick={() =>
                                                     setShowEstimacion(true)
                                                 }

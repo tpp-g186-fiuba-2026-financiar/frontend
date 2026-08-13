@@ -32,7 +32,7 @@ function App() {
                         Crear cuenta
                     </button>
                     <button
-                        className="btn btn-outline-light"
+                        className="btn btn-outline-theme"
                         onClick={() => setIsLoginOpen(true)}
                     >
                         Ingresar
