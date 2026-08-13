@@ -561,25 +561,27 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                                 flexWrap: 'wrap',
                             }}
                         >
-                            <h3 className="mb-0">Histórico → precio proyectado</h3>
+                            <h3 className="mb-0">
+                                Histórico → precio proyectado
+                            </h3>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                                {(['1M', '3M', '6M', '1A', 'TODO'] as const).map(
-                                    (option) => (
-                                        <button
-                                            key={option}
-                                            type="button"
-                                            className={
-                                                range === option
-                                                    ? 'pill pill-neutral'
-                                                    : 'back-link'
-                                            }
-                                            onClick={() => setRange(option)}
-                                            style={{ margin: 0 }}
-                                        >
-                                            {option === 'TODO' ? 'Todo' : option}
-                                        </button>
-                                    ),
-                                )}
+                                {(
+                                    ['1M', '3M', '6M', '1A', 'TODO'] as const
+                                ).map((option) => (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        className={
+                                            range === option
+                                                ? 'pill pill-neutral'
+                                                : 'back-link'
+                                        }
+                                        onClick={() => setRange(option)}
+                                        style={{ margin: 0 }}
+                                    >
+                                        {option === 'TODO' ? 'Todo' : option}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                         <ProjectionChart
@@ -595,57 +597,65 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                                 la proyección.
                             </p>
                         )}
-                        {available && <div className="indicator-row mt-3">
-                            <div className="indicator">
-                                <span>
-                                    RSI (14)
-                                    <InfoTip label="RSI (14)">
-                                        Índice de fuerza relativa a 14 ruedas.
-                                        Arriba de 70 sugiere sobrecompra, abajo
-                                        de 30 sobreventa.
-                                    </InfoTip>
-                                </span>
-                                <b className="num">{trend?.rsi ?? '—'}</b>
+                        {available && (
+                            <div className="indicator-row mt-3">
+                                <div className="indicator">
+                                    <span>
+                                        RSI (14)
+                                        <InfoTip label="RSI (14)">
+                                            Índice de fuerza relativa a 14
+                                            ruedas. Arriba de 70 sugiere
+                                            sobrecompra, abajo de 30 sobreventa.
+                                        </InfoTip>
+                                    </span>
+                                    <b className="num">{trend?.rsi ?? '—'}</b>
+                                </div>
+                                <div className="indicator">
+                                    <span>
+                                        Condición
+                                        <InfoTip label="Condición">
+                                            Lectura del RSI: sobrecompra (≥70),
+                                            sobreventa (≤30) o neutral.
+                                        </InfoTip>
+                                    </span>
+                                    <b>{trend?.condition ?? '—'}</b>
+                                </div>
                             </div>
-                            <div className="indicator">
-                                <span>
-                                    Condición
-                                    <InfoTip label="Condición">
-                                        Lectura del RSI: sobrecompra (≥70),
-                                        sobreventa (≤30) o neutral.
-                                    </InfoTip>
-                                </span>
-                                <b>{trend?.condition ?? '—'}</b>
-                            </div>
-                        </div>}
+                        )}
                     </div>
                     <div className="panel side-panel">
                         <div>
                             <h3 className="mb-2">
                                 {available ? 'Predicción' : 'Histórico'}
                             </h3>
-                            {available ? <>
-                            <div className="kv">
-                                <span>Modelo</span>
-                                <span>{trend?.model ?? '—'}</span>
-                            </div>
-                            <div className="kv">
-                                <span>Versión</span>
-                                <span style={{ fontSize: '11px' }}>
-                                    {trend?.model_version ?? '—'}
-                                </span>
-                            </div>
-                            <div className="kv">
-                                <span>Último cierre</span>
-                                <span>{formatMoney(trend?.last_close)}</span>
-                            </div>
-                            <div className="kv">
-                                <span>Precio proyectado</span>
-                                <span>
-                                    {formatMoney(trend?.predicted_close)}
-                                </span>
-                            </div>
-                            </> : (
+                            {available ? (
+                                <>
+                                    <div className="kv">
+                                        <span>Modelo</span>
+                                        <span>{trend?.model ?? '—'}</span>
+                                    </div>
+                                    <div className="kv">
+                                        <span>Versión</span>
+                                        <span style={{ fontSize: '11px' }}>
+                                            {trend?.model_version ?? '—'}
+                                        </span>
+                                    </div>
+                                    <div className="kv">
+                                        <span>Último cierre</span>
+                                        <span>
+                                            {formatMoney(trend?.last_close)}
+                                        </span>
+                                    </div>
+                                    <div className="kv">
+                                        <span>Precio proyectado</span>
+                                        <span>
+                                            {formatMoney(
+                                                trend?.predicted_close,
+                                            )}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
                                 <p style={{ color: 'var(--ink-3)' }}>
                                     Hay precios históricos, pero todavía no hay
                                     un modelo entrenado para este ticker.
@@ -655,8 +665,11 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                         <div className="roadmap-box">
                             La línea continua muestra los cierres históricos.
                             {available && (
-                                <> La línea punteada muestra la proyección del modelo{' '}
-                                {trend?.model ?? 'lstm'}.</>
+                                <>
+                                    {' '}
+                                    La línea punteada muestra la proyección del
+                                    modelo {trend?.model ?? 'lstm'}.
+                                </>
                             )}
                         </div>
                     </div>
