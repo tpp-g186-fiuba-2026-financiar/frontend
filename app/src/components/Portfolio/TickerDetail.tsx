@@ -82,7 +82,7 @@ function ProjectionChart({
         const projectionColor = cs
             .getPropertyValue(signalColorVar(signal))
             .trim();
-        const historyColor = cs.getPropertyValue('--ink-1').trim();
+        const historyColor = cs.getPropertyValue('--ink').trim();
         const labelColor = cs.getPropertyValue('--ink-3').trim();
         const line = cs.getPropertyValue('--line').trim();
 
@@ -436,12 +436,18 @@ function ModelComparisonTable({ ticker }: ModelComparisonTableProps) {
 }
 
 function TickerDetail({ row, onBack }: TickerDetailProps) {
-    const [history, setHistory] = useState<HistoricalPricePoint[]>([]);
-    const [historyError, setHistoryError] = useState(false);
+    const [historyResult, setHistoryResult] = useState<{
+        ticker: string;
+        prices: HistoricalPricePoint[];
+        error: boolean;
+    } | null>(null);
     const [range, setRange] = useState<'1M' | '3M' | '6M' | '1A' | 'TODO'>(
         '1A',
     );
     const trend = row.trend;
+    const historyLoaded = historyResult?.ticker === row.ticker;
+    const history = historyLoaded ? historyResult.prices : [];
+    const historyError = historyLoaded && historyResult.error;
     const available = trend?.available ?? false;
     const delta =
         available && trend?.last_close && trend.predicted_close != null
@@ -454,12 +460,21 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
         getShareHistoryEndpoint(row.ticker)
             .then((response) => {
                 if (!cancelled) {
-                    setHistory(response.prices);
-                    setHistoryError(false);
+                    setHistoryResult({
+                        ticker: row.ticker,
+                        prices: response.prices,
+                        error: false,
+                    });
                 }
             })
             .catch(() => {
-                if (!cancelled) setHistoryError(true);
+                if (!cancelled) {
+                    setHistoryResult({
+                        ticker: row.ticker,
+                        prices: [],
+                        error: true,
+                    });
+                }
             });
         return () => {
             cancelled = true;
@@ -526,8 +541,15 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                 </div>
             </div>
 
-            {history.length > 0 ||
-            (available && trend?.last_close != null) ? (
+            {!historyLoaded ? (
+                <div className="panel">
+                    <h3 className="mb-0">Histórico → precio proyectado</h3>
+                    <p className="mb-0 mt-3" style={{ color: 'var(--ink-3)' }}>
+                        Cargando histórico…
+                    </p>
+                </div>
+            ) : history.length > 0 ||
+              (available && trend?.last_close != null) ? (
                 <div className="detail-grid">
                     <div className="panel chart-panel">
                         <div
