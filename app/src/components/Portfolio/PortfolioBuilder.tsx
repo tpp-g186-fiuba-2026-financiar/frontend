@@ -14,6 +14,7 @@ interface Share {
 interface OwnedShare {
     id: number;
     quantity: number;
+    entryPrice: number | null;
 }
 
 interface PortfolioBuilderProps {
@@ -40,6 +41,7 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
     const [allShares, setAllShares] = useState<Share[]>([]);
     const [owned, setOwned] = useState<Record<string, OwnedShare>>({});
     const [selected, setSelected] = useState<Record<string, number>>({});
+    const [entryPrices, setEntryPrices] = useState<Record<string, string>>({});
     const [search, setSearch] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(true);
     const [saving, setSaving] = useState<boolean>(false);
@@ -52,12 +54,20 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                 setAllShares(shares.shares);
                 const ownedMap: Record<string, OwnedShare> = {};
                 const selectedMap: Record<string, number> = {};
+                const entryPriceMap: Record<string, string> = {};
                 userShares.shares.forEach((s) => {
-                    ownedMap[s.ticker] = { id: s.id, quantity: s.quantity };
+                    ownedMap[s.ticker] = {
+                        id: s.id,
+                        quantity: s.quantity,
+                        entryPrice: s.entry_price,
+                    };
                     selectedMap[s.ticker] = s.quantity;
+                    entryPriceMap[s.ticker] =
+                        s.entry_price != null ? String(s.entry_price) : '';
                 });
                 setOwned(ownedMap);
                 setSelected(selectedMap);
+                setEntryPrices(entryPriceMap);
                 setError(null);
             })
             .catch(() => setError('No se pudo cargar la lista de acciones.'))
@@ -82,6 +92,10 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
         setSelected((prev) => ({ ...prev, [ticker]: quantity }));
     };
 
+    const setEntryPrice = (ticker: string, value: string) => {
+        setEntryPrices((prev) => ({ ...prev, [ticker]: value }));
+    };
+
     const closePopUp = () => {
         setSearch('');
         setError(null);
@@ -92,10 +106,30 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
         (q) => !q || q <= 0,
     );
 
+    const parseEntryPrice = (ticker: string): number | undefined => {
+        const raw = entryPrices[ticker]?.trim();
+        if (!raw) return undefined;
+        const value = Number(raw);
+        return Number.isNaN(value) ? undefined : value;
+    };
+
+    const hasInvalidEntryPrice = Object.keys(selected).some((ticker) => {
+        const raw = entryPrices[ticker]?.trim();
+        if (!raw) return false;
+        const value = Number(raw);
+        return Number.isNaN(value) || value <= 0;
+    });
+
     const handleSave = async () => {
         if (hasInvalidQuantity) {
             setError(
                 'La cantidad tiene que ser mayor a 0 en cada acción marcada.',
+            );
+            return;
+        }
+        if (hasInvalidEntryPrice) {
+            setError(
+                'El precio de entrada tiene que ser mayor a 0 en cada acción marcada.',
             );
             return;
         }
@@ -106,20 +140,26 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
             allShares.forEach((share) => {
                 const wasOwned = share.ticker in owned;
                 const isSelected = share.ticker in selected;
+                const entryPrice = parseEntryPrice(share.ticker);
                 if (isSelected && !wasOwned) {
                     ops.push(
                         addUserShareEndpoint({
                             ticker: share.ticker,
                             quantity: selected[share.ticker],
+                            entry_price: entryPrice,
                         }),
                     );
                 } else if (isSelected && wasOwned) {
-                    if (
-                        selected[share.ticker] !== owned[share.ticker].quantity
-                    ) {
+                    const quantityChanged =
+                        selected[share.ticker] !== owned[share.ticker].quantity;
+                    const entryPriceChanged =
+                        entryPrice !== undefined &&
+                        entryPrice !== owned[share.ticker].entryPrice;
+                    if (quantityChanged || entryPriceChanged) {
                         ops.push(
                             updateUserShareEndpoint(owned[share.ticker].id, {
                                 quantity: selected[share.ticker],
+                                entry_price: entryPrice,
                             }),
                         );
                     }
@@ -238,6 +278,21 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                     >
                         +
                     </button>
+                </div>
+                <div className="entry-price-field">
+                    <span className="entry-price-prefix">$</span>
+                    <input
+                        type="number"
+                        className="builder-entry-price"
+                        placeholder="Precio de entrada"
+                        min={0}
+                        step="0.01"
+                        disabled={disabled || !isSelected}
+                        value={entryPrices[share.ticker] ?? ''}
+                        onChange={(e) =>
+                            setEntryPrice(share.ticker, e.target.value)
+                        }
+                    />
                 </div>
             </div>
         );

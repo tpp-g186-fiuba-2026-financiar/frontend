@@ -15,6 +15,7 @@ export interface ShareTrend {
     model: string | null;
     model_version: string | null;
     reason: string | null;
+    retryable?: boolean;
 }
 
 export interface TrendsResponse {

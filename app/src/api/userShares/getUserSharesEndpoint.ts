@@ -7,6 +7,7 @@ export interface UserShareItem {
     user_id: number;
     ticker: string;
     quantity: number;
+    entry_price: number | null;
     created_at: string;
 }
 

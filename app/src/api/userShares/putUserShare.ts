@@ -4,6 +4,7 @@ const apiURL = import.meta.env.VITE_SERVER_API + ENDPOINT;
 
 export interface UpdateUserShareRequest {
     quantity: number;
+    entry_price?: number;
 }
 
 export interface UpdateUserShareResponse {
@@ -11,6 +12,7 @@ export interface UpdateUserShareResponse {
     user_id: number;
     ticker: string;
     quantity: number;
+    entry_price: number | null;
     created_at: string;
 }
 

@@ -434,6 +434,14 @@ table.watchlist tbody tr.is-flat td:first-child::before {
     color: var(--ink-3);
     font-family: var(--sans);
 }
+.t-pnl {
+    text-align: right;
+    font-family: var(--mono);
+}
+.t-pnl .dash {
+    color: var(--ink-3);
+    font-family: var(--sans);
+}
 .rsi-cell {
     text-align: right;
 }
@@ -1190,6 +1198,41 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     margin: 0;
 }
 .builder-qty:disabled {
+    color: var(--ink-3);
+    opacity: 0.6;
+}
+.entry-price-field {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 0 8px;
+    background: var(--paper);
+}
+.entry-price-prefix {
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 12px;
+}
+.builder-entry-price {
+    width: 84px;
+    box-sizing: border-box;
+    padding: 6px 0;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    font: 13px var(--mono);
+    outline: none;
+    -moz-appearance: textfield;
+}
+.builder-entry-price::-webkit-outer-spin-button,
+.builder-entry-price::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.builder-entry-price:disabled {
     color: var(--ink-3);
     opacity: 0.6;
 }

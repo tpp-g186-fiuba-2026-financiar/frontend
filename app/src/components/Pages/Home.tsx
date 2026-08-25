@@ -9,6 +9,11 @@ import {
     getUserSharesTrendsEndpoint,
     type ShareTrend,
 } from '../../api/userShares/getUserSharesTrendsEndpoint';
+import {
+    getUserSharesPnlEndpoint,
+    type SharePnlItem,
+    type PortfolioPnlSummary,
+} from '../../api/userShares/getUserSharesPnlEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
 import TickerDetail from '../Portfolio/TickerDetail';
 import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
@@ -20,6 +25,19 @@ interface PortfolioRow {
     ticker: string;
     quantity: number;
     trend: ShareTrend | null;
+    entryPrice: number | null;
+    currentPrice: number | null;
+    pnlAmount: number | null;
+    pnlPercentage: number | null;
+}
+
+function formatPnl(amount: number, percentage: number | null): string {
+    const sign = amount >= 0 ? '+' : '−';
+    const formattedAmount = Math.abs(amount).toLocaleString('es-AR', {
+        maximumFractionDigits: 0,
+    });
+    if (percentage == null) return `${sign}$${formattedAmount}`;
+    return `${sign}$${formattedAmount} (${sign}${Math.abs(percentage).toFixed(1)}%)`;
 }
 
 const RISK_PROFILE_LABEL: Record<string, string> = {
@@ -101,35 +119,67 @@ function MiniProjection({
 function buildRows(
     shares: UserShareItem[],
     trends: ShareTrend[] | null,
+    pnlByTicker: Record<string, SharePnlItem> | null,
 ): PortfolioRow[] {
     const trendByTicker: Record<string, ShareTrend> = {};
     (trends ?? []).forEach((t) => {
         trendByTicker[t.ticker] = t;
     });
-    return shares.map((s) => ({
-        ticker: s.ticker,
-        quantity: s.quantity,
-        trend: trendByTicker[s.ticker] ?? null,
-    }));
+    return shares.map((s) => {
+        const pnl = pnlByTicker?.[s.ticker];
+        return {
+            ticker: s.ticker,
+            quantity: s.quantity,
+            trend: trendByTicker[s.ticker] ?? null,
+            entryPrice: s.entry_price,
+            currentPrice: pnl?.current_price ?? null,
+            pnlAmount: pnl?.pnl_amount ?? null,
+            pnlPercentage: pnl?.pnl_percentage ?? null,
+        };
+    });
+}
+
+// El P&L depende de data-colector (mismo backend que las tendencias) asi que
+// puede fallar igual: si no responde, se muestra la cartera sin esa columna
+// en vez de cortar toda la pantalla.
+async function fetchPnl(): Promise<{
+    byTicker: Record<string, SharePnlItem> | null;
+    portfolio: PortfolioPnlSummary | null;
+}> {
+    try {
+        const res = await getUserSharesPnlEndpoint();
+        const byTicker: Record<string, SharePnlItem> = {};
+        res.shares.forEach((item) => {
+            byTicker[item.ticker] = item;
+        });
+        return { byTicker, portfolio: res.portfolio };
+    } catch {
+        return { byTicker: null, portfolio: null };
+    }
 }
 
 async function fetchPortfolio(): Promise<{
     rows: PortfolioRow[];
     trendsUnavailable: boolean;
+    portfolioPnl: PortfolioPnlSummary | null;
 }> {
     const sharesRes = await getUserSharesEndpoint();
+    const { byTicker: pnlByTicker, portfolio: portfolioPnl } =
+        await fetchPnl();
     try {
         const trendsRes = await getUserSharesTrendsEndpoint();
         return {
-            rows: buildRows(sharesRes.shares, trendsRes.trends),
+            rows: buildRows(sharesRes.shares, trendsRes.trends, pnlByTicker),
             trendsUnavailable: false,
+            portfolioPnl,
         };
     } catch {
         // Las acciones se guardaron igual: mostrarlas sin señal en vez de
         // vaciar toda la pantalla si los modelos no responden.
         return {
-            rows: buildRows(sharesRes.shares, null),
+            rows: buildRows(sharesRes.shares, null, pnlByTicker),
             trendsUnavailable: true,
+            portfolioPnl,
         };
     }
 }
@@ -140,6 +190,8 @@ function Home() {
     const [userError, setUserError] = useState(false);
     const [userAttempt, setUserAttempt] = useState(0);
     const [rows, setRows] = useState<PortfolioRow[]>([]);
+    const [portfolioPnl, setPortfolioPnl] =
+        useState<PortfolioPnlSummary | null>(null);
     const [loadingPortfolio, setLoadingPortfolio] = useState<boolean>(true);
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
@@ -158,17 +210,22 @@ function Home() {
     const loadPortfolio = async () => {
         try {
             const sharesRes = await getUserSharesEndpoint();
+            const { byTicker: pnlByTicker, portfolio: pnlSummary } =
+                await fetchPnl();
+            setPortfolioPnl(pnlSummary);
             setRows((currentRows) => {
                 const currentTrends = currentRows
                     .map((row) => row.trend)
                     .filter((trend): trend is ShareTrend => trend !== null);
-                return buildRows(sharesRes.shares, currentTrends);
+                return buildRows(sharesRes.shares, currentTrends, pnlByTicker);
             });
             setPortfolioError(null);
 
             try {
                 const trendsRes = await getUserSharesTrendsEndpoint();
-                setRows(buildRows(sharesRes.shares, trendsRes.trends));
+                setRows(
+                    buildRows(sharesRes.shares, trendsRes.trends, pnlByTicker),
+                );
                 setTrendsUnavailable(false);
             } catch {
                 setTrendsUnavailable(true);
@@ -200,9 +257,11 @@ function Home() {
         };
         const fetchInitialPortfolio = async () => {
             try {
-                const { rows, trendsUnavailable } = await fetchPortfolio();
+                const { rows, trendsUnavailable, portfolioPnl } =
+                    await fetchPortfolio();
                 setRows(rows);
                 setTrendsUnavailable(trendsUnavailable);
+                setPortfolioPnl(portfolioPnl);
                 setPortfolioError(null);
             } catch {
                 setPortfolioError('No se pudo cargar tu cartera.');
@@ -221,7 +280,14 @@ function Home() {
     // Un ticker nuevo puede estar preparando su primer artefacto en Modal.
     // Reconsulta en segundo plano para que la señal aparezca sin recargar la web.
     useEffect(() => {
-        if (!rows.some((row) => !row.trend?.available)) return;
+        if (
+            !rows.some(
+                (row) =>
+                    row.trend == null ||
+                    (!row.trend.available && row.trend.retryable !== false),
+            )
+        )
+            return;
         const timer = window.setTimeout(async () => {
             setRefreshingTrends(true);
             try {
@@ -458,6 +524,27 @@ function Home() {
                                                         : ''}
                                                 </p>
                                             )}
+                                            {portfolioPnl &&
+                                                portfolioPnl.total_invested >
+                                                    0 && (
+                                                    <p className="summary mb-0">
+                                                        P&L de la cartera:{' '}
+                                                        <b
+                                                            style={{
+                                                                color:
+                                                                    portfolioPnl.total_pnl_amount >=
+                                                                    0
+                                                                        ? 'var(--up)'
+                                                                        : 'var(--down)',
+                                                            }}
+                                                        >
+                                                            {formatPnl(
+                                                                portfolioPnl.total_pnl_amount,
+                                                                portfolioPnl.total_pnl_percentage,
+                                                            )}
+                                                        </b>
+                                                    </p>
+                                                )}
                                         </div>
                                         <div className="d-flex gap-2">
                                             <button
@@ -485,6 +572,17 @@ function Home() {
                                                     <th>Ticker</th>
                                                     <th></th>
                                                     <th>Cant.</th>
+                                                    <th>
+                                                        P&L
+                                                        <InfoTip label="P&L">
+                                                            Ganancia o pérdida
+                                                            frente al precio de
+                                                            entrada cargado.
+                                                            Necesita el precio
+                                                            de entrada para
+                                                            calcularse.
+                                                        </InfoTip>
+                                                    </th>
                                                     <th>Último</th>
                                                     <th>
                                                         RSI
@@ -575,6 +673,33 @@ function Home() {
                                                             </td>
                                                             <td className="t-qty">
                                                                 {row.quantity}
+                                                            </td>
+                                                            <td className="t-pnl">
+                                                                {row.pnlAmount !=
+                                                                null ? (
+                                                                    <span
+                                                                        className="num"
+                                                                        style={{
+                                                                            color:
+                                                                                row.pnlAmount >=
+                                                                                0
+                                                                                    ? 'var(--up)'
+                                                                                    : 'var(--down)',
+                                                                        }}
+                                                                    >
+                                                                        {formatPnl(
+                                                                            row.pnlAmount,
+                                                                            row.pnlPercentage,
+                                                                        )}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span
+                                                                        className="dash"
+                                                                        title="Cargá el precio de entrada en 'Editar mi cartera' para ver el P&L"
+                                                                    >
+                                                                        —
+                                                                    </span>
+                                                                )}
                                                             </td>
                                                             <td className="t-price">
                                                                 {available &&
