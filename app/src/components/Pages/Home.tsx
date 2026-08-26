@@ -164,8 +164,7 @@ async function fetchPortfolio(): Promise<{
     portfolioPnl: PortfolioPnlSummary | null;
 }> {
     const sharesRes = await getUserSharesEndpoint();
-    const { byTicker: pnlByTicker, portfolio: portfolioPnl } =
-        await fetchPnl();
+    const { byTicker: pnlByTicker, portfolio: portfolioPnl } = await fetchPnl();
     try {
         const trendsRes = await getUserSharesTrendsEndpoint();
         return {

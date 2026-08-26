@@ -457,7 +457,8 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                         const comparableError =
                             mae == null
                                 ? null
-                                : (name === 'arima-modal' || name === 'arima') &&
+                                : (name === 'arima-modal' ||
+                                        name === 'arima') &&
                                     prediction.last_close
                                   ? (mae / prediction.last_close) * 100
                                   : mae * 100;
