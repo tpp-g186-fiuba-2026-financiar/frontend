@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../../hooks/useTheme';
+import ColorModeSetting from '../settings/ColorModeSetting';
+import RetakeRiskQuizSetting from '../settings/RetakeRiskQuizSetting';
 
 // Pagina de ajustes con ruta propia (/ajustes) en vez de modal. La idea es
 // poder ir sumando mas secciones de configuracion aca adentro sin que Home
 // termine cargando con toda esa logica.
 function Settings() {
     const navigate = useNavigate();
-    const { theme, toggleTheme } = useTheme();
 
     return (
         <div className="container py-4">
@@ -32,24 +32,8 @@ function Settings() {
                     </button>
                 </div>
 
-                <div className="settings-row">
-                    <div className="settings-row-label">
-                        <b>Apariencia</b>
-                        <span>
-                            {theme === 'dark' ? 'Modo oscuro' : 'Modo claro'}
-                        </span>
-                    </div>
-                    <button
-                        type="button"
-                        className={`theme-toggle${theme === 'dark' ? ' is-on' : ''}`}
-                        onClick={toggleTheme}
-                        role="switch"
-                        aria-checked={theme === 'dark'}
-                        aria-label="Cambiar entre modo claro y oscuro"
-                    >
-                        <span className="theme-toggle-thumb" />
-                    </button>
-                </div>
+                <ColorModeSetting />
+                <RetakeRiskQuizSetting />
             </div>
         </div>
     );
