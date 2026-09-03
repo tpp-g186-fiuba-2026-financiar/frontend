@@ -20,6 +20,7 @@ import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
 import InfoTip from '../Layout/InfoTip';
 import { useTheme } from '../../hooks/useTheme';
+import LayoutDisclaimer from '../Layout/LayoutDisclaimer';
 
 interface PortfolioRow {
     ticker: string;
@@ -431,7 +432,7 @@ function Home() {
             </div>
 
             <TickerTape items={tapeItems.length > 0 ? tapeItems : undefined} />
-
+            <LayoutDisclaimer />
             {selectedRow ? (
                 <TickerDetail
                     row={selectedRow}

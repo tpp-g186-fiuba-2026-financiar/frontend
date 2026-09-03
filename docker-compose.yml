@@ -1,15 +1,4 @@
 services:
-  prod:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
-    ports:
-      - "3002:3002"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - financiar_shared_network
-
   dev:
     build:
       context: ./app
