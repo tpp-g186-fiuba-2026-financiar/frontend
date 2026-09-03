@@ -7,6 +7,7 @@ import {
 import SignUpForm, { type SignUpFormFields } from './SignUpForm';
 import Questionnaire from './InversionQuestionarie';
 import { questions } from './questions';
+import TermsAndConditions from './TermsAndConditions';
 
 interface SignUpProps {
     isOpen: boolean;
@@ -28,6 +29,8 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
         name != '' &&
         riskType != '';
     const [response, setResponse] = useState<RegisterResponse | null>(null);
+    const [step, setStep] = useState<string>('questionarie');
+
     const closePopUp = () => {
         setName('');
         setRiskType('');
@@ -35,6 +38,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
         setPassword('');
         setPasswordConfirmation('');
         setResponse(null);
+        setStep('questionarie');
         onClose();
     };
     const getRiskType = (answers: Record<number, number>): string => {
@@ -67,9 +71,11 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
             }
         }
     };
-    const [step, setStep] = useState<string>('questionarie');
     const finishQuestionarie = (answers: Record<number, number>) => {
         setRiskType(getRiskType(answers));
+        setStep('terms');
+    };
+    const finishTerms = () => {
         setStep('form');
     };
 
@@ -110,14 +116,20 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
                                 aria-label="Close"
                             />
                         </div>
-                        {step === 'form' && (
-                            <SignUpForm formFields={signUpFormFields} />
-                        )}
                         {step === 'questionarie' && (
                             <Questionnaire
                                 questions={questions}
                                 finishQuestionarie={finishQuestionarie}
                             />
+                        )}
+                        {step === 'terms' && (
+                            <TermsAndConditions
+                                onAccept={finishTerms}
+                                onBack={() => setStep('questionarie')}
+                            />
+                        )}
+                        {step === 'form' && (
+                            <SignUpForm formFields={signUpFormFields} />
                         )}
                     </div>
                 </div>
