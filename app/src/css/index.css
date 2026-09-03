@@ -1467,3 +1467,21 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
 .estimacion-loading {
     color: var(--ink-2);
 }
+
+.notifications-settings-sublist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-left: 1.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+
+.settings-row-sub {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.settings-row-sub .settings-row-label b {
+    font-size: 0.95em;
+}
