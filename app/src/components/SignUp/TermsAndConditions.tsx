@@ -1,4 +1,5 @@
 import { useRef, useState, type UIEvent } from 'react';
+import { TERMS_TEXT } from './TermsAndConditons';
 
 interface TermsAndConditionsProps {
     onAccept: () => void;
@@ -6,8 +7,6 @@ interface TermsAndConditionsProps {
 }
 
 // Placeholder: reemplazar por el texto real de términos y condiciones.
-const TERMS_TEXT =
-    'Este es un texto de ejemplo de los términos y condiciones. Reemplazar por el contenido real.';
 
 function TermsAndConditions({ onAccept, onBack }: TermsAndConditionsProps) {
     const [hasReachedBottom, setHasReachedBottom] = useState<boolean>(false);
