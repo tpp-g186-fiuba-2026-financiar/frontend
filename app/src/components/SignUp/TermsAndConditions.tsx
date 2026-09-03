@@ -38,8 +38,7 @@ function TermsAndConditions({ onAccept, onBack }: TermsAndConditionsProps) {
     return (
         <div className="modal-body">
             <p className="mb-2">
-                Para continuar, leé los términos y condiciones hasta el
-                final.
+                Para continuar, leé los términos y condiciones hasta el final.
             </p>
             <div
                 ref={scrollRef}
