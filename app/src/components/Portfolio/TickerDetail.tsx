@@ -9,6 +9,10 @@ import {
     getShareHistoryEndpoint,
     type HistoricalPricePoint,
 } from '../../api/userShares/getShareHistoryEndpoint';
+import {
+    shareInfoEndpoint,
+    type TickerInfo,
+} from '../../api/shares/getShareInfo';
 import InfoTip from '../Layout/InfoTip';
 
 interface PortfolioRow {
@@ -663,10 +667,18 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
     const [insightsTab, setInsightsTab] = useState<'prediction' | 'results'>(
         'prediction',
     );
+    const [tickerInfoResult, setTickerInfoResult] = useState<{
+        ticker: string;
+        info: TickerInfo | null;
+        error: boolean;
+    } | null>(null);
     const trend = row.trend;
     const historyLoaded = historyResult?.ticker === row.ticker;
     const history = historyLoaded ? historyResult.prices : [];
     const historyError = historyLoaded && historyResult.error;
+    const tickerInfoLoaded = tickerInfoResult?.ticker === row.ticker;
+    const tickerInfo = tickerInfoLoaded ? tickerInfoResult.info : null;
+    const tickerInfoError = tickerInfoLoaded && tickerInfoResult.error;
     const available = trend?.available ?? false;
     const delta =
         available && trend?.last_close && trend.predicted_close != null
@@ -699,6 +711,32 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
             cancelled = true;
         };
     }, [row.ticker, historyAttempt]);
+
+    useEffect(() => {
+        let cancelled = false;
+        shareInfoEndpoint({ share: row.ticker })
+            .then((response) => {
+                if (!cancelled) {
+                    setTickerInfoResult({
+                        ticker: row.ticker,
+                        info: response.ticker_info,
+                        error: false,
+                    });
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setTickerInfoResult({
+                        ticker: row.ticker,
+                        info: null,
+                        error: true,
+                    });
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [row.ticker]);
 
     const rangeDays = { '1M': 31, '3M': 93, '6M': 186, '1A': 366 } as const;
     const filteredHistory =
@@ -935,6 +973,17 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                 </button>
             </div>
             <ModelComparisonTable ticker={row.ticker} view={insightsTab} />
+
+            {tickerInfo && !tickerInfoError && (
+                <div className="panel mt-3">
+                    <h3 className="mb-2">
+                        {tickerInfo.nombre_largo || tickerInfo.nombre_corto}
+                    </h3>
+                    <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
+                        {tickerInfo.descripcion}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
