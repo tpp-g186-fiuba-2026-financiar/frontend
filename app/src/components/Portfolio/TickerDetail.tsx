@@ -617,6 +617,22 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                                 : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`}
                                         </td>
                                     </>
+                                ) : name === 'garch-modal' &&
+                                  pred.volatility_forecast &&
+                                  pred.volatility_forecast.length > 0 ? (
+                                    <td
+                                        colSpan={6}
+                                        style={{ color: 'var(--ink-3)' }}
+                                    >
+                                        No predice dirección, proyecta
+                                        volatilidad:{' '}
+                                        {pred.volatility_forecast
+                                            .map(
+                                                (point) =>
+                                                    `${point.volatility_pct}% a ${point.horizon_days}d`,
+                                            )
+                                            .join(' · ')}
+                                    </td>
                                 ) : (
                                     <td
                                         colSpan={6}

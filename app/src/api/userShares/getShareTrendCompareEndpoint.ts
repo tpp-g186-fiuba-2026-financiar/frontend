@@ -23,6 +23,10 @@ export interface ModelPrediction {
             actual: number;
         }>;
     } | null;
+    volatility_forecast: Array<{
+        horizon_days: number;
+        volatility_pct: number;
+    }> | null;
     reason: string | null;
 }
 
