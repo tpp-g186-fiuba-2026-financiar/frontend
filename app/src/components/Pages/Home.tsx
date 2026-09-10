@@ -5,6 +5,7 @@ import {
     getUserSharesEndpoint,
     type UserShareItem,
 } from '../../api/userShares/getUserSharesEndpoint';
+import AccountBalance from '../Layout/AccountBalance';
 import {
     getUserSharesTrendsEndpoint,
     type ShareTrend,
@@ -505,7 +506,9 @@ function Home() {
                                 <div className="watchlist-panel mb-4">
                                     <div className="toolbar">
                                         <div>
-                                            <h2 className="mb-0">Mi cartera</h2>
+                                            <h2 className="mb-0">
+                                                Mi cartera: $<AccountBalance />
+                                            </h2>
                                             {!trendsUnavailable && (
                                                 <p className="summary mb-0">
                                                     {rows.length}{' '}
