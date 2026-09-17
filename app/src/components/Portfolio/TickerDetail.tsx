@@ -506,6 +506,20 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                         ? ` · ${prediction.backtest.observations} casos`
                                         : ''}
                                 </small>
+                                {prediction.backtest?.avg_strategy_return_pct != null &&
+                                    prediction.backtest?.avg_buy_hold_return_pct != null && (
+                                        <small className="performance-track-record">
+                                            Siguiendo la señal:{' '}
+                                            {prediction.backtest.avg_strategy_return_pct.toFixed(
+                                                2,
+                                            )}
+                                            % vs. comprar y mantener:{' '}
+                                            {prediction.backtest.avg_buy_hold_return_pct.toFixed(
+                                                2,
+                                            )}
+                                            % (promedio por señal)
+                                        </small>
+                                    )}
                             </div>
                         );
                     })}

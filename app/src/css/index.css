@@ -597,6 +597,9 @@ table.watchlist tbody tr.is-flat td:first-child::before {
     border-radius: inherit;
     background: var(--up);
 }
+.performance-track-record {
+    color: var(--ink-2);
+}
 .results-chart-wrap {
     border: 1px solid var(--line);
     border-radius: 10px;

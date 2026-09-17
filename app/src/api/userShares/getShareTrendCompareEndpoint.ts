@@ -22,6 +22,8 @@ export interface ModelPrediction {
             predicted: number;
             actual: number;
         }>;
+        avg_strategy_return_pct?: number;
+        avg_buy_hold_return_pct?: number;
     } | null;
     volatility_forecast: Array<{
         horizon_days: number;
