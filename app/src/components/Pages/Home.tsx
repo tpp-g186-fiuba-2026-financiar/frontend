@@ -5,7 +5,6 @@ import {
     getUserSharesEndpoint,
     type UserShareItem,
 } from '../../api/userShares/getUserSharesEndpoint';
-import AccountBalance from '../Layout/AccountBalance';
 import {
     getUserSharesTrendsEndpoint,
     type ShareTrend,
@@ -19,9 +18,10 @@ import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
 import TickerDetail from '../Portfolio/TickerDetail';
 import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
-import InfoTip from '../Layout/InfoTip';
 import { useTheme } from '../../hooks/useTheme';
 import LayoutDisclaimer from '../Layout/LayoutDisclaimer';
+import TopBar from '../Layout/Topbar';
+import SharesTable from '../SharesTable/SharesTable';
 
 interface PortfolioRow {
     ticker: string;
@@ -33,15 +33,6 @@ interface PortfolioRow {
     pnlPercentage: number | null;
 }
 
-function formatPnl(amount: number, percentage: number | null): string {
-    const sign = amount >= 0 ? '+' : '−';
-    const formattedAmount = Math.abs(amount).toLocaleString('es-AR', {
-        maximumFractionDigits: 0,
-    });
-    if (percentage == null) return `${sign}$${formattedAmount}`;
-    return `${sign}$${formattedAmount} (${sign}${Math.abs(percentage).toFixed(1)}%)`;
-}
-
 const RISK_PROFILE_LABEL: Record<string, string> = {
     conservative: 'Conservador',
     moderate: 'Moderado',
@@ -50,72 +41,6 @@ const RISK_PROFILE_LABEL: Record<string, string> = {
 
 function riskProfileLabel(value: string): string {
     return RISK_PROFILE_LABEL[value] ?? value;
-}
-
-function pillClass(signal: string | null | undefined): string {
-    switch (signal) {
-        case 'alza':
-            return 'pill-up';
-        case 'baja':
-            return 'pill-down';
-        default:
-            return 'pill-neutral';
-    }
-}
-
-function rowStateClass(signal: string | null | undefined): string {
-    switch (signal) {
-        case 'alza':
-            return 'is-up';
-        case 'baja':
-            return 'is-down';
-        default:
-            return 'is-flat';
-    }
-}
-
-function signalStrokeVar(signal: string | null | undefined): string {
-    switch (signal) {
-        case 'alza':
-            return 'var(--up)';
-        case 'baja':
-            return 'var(--down)';
-        default:
-            return 'var(--neutral-sig)';
-    }
-}
-
-// Linea de 2 puntos (ultimo cierre -> precio proyectado): son los unicos
-// datos reales que tenemos por fila, no hay historico de precios todavia.
-function MiniProjection({
-    lastClose,
-    predictedClose,
-    signal,
-}: {
-    lastClose: number;
-    predictedClose: number;
-    signal: string | null | undefined;
-}) {
-    const min = Math.min(lastClose, predictedClose);
-    const max = Math.max(lastClose, predictedClose);
-    const span = max - min || 1;
-    const y0 = 14 - ((lastClose - min) / span) * 12;
-    const y1 = 14 - ((predictedClose - min) / span) * 12;
-    const color = signalStrokeVar(signal);
-    return (
-        <svg width="34" height="18" viewBox="0 0 34 18">
-            <line
-                x1="1"
-                y1={y0}
-                x2="33"
-                y2={y1}
-                stroke={color}
-                strokeWidth="1.6"
-                strokeLinecap="round"
-            />
-            <circle cx="33" cy={y1} r="2" fill={color} />
-        </svg>
-    );
 }
 
 function buildRows(
@@ -504,286 +429,20 @@ function Home() {
                                 )}
 
                                 <div className="watchlist-panel mb-4">
-                                    <div className="toolbar">
-                                        <div>
-                                            <h2 className="mb-0">
-                                                Mi cartera: $<AccountBalance />
-                                            </h2>
-                                            {!trendsUnavailable && (
-                                                <p className="summary mb-0">
-                                                    {rows.length}{' '}
-                                                    {rows.length === 1
-                                                        ? 'acción'
-                                                        : 'acciones'}{' '}
-                                                    · <b>{upCount} en alza</b>{' '}
-                                                    de {withTrend.length} con
-                                                    datos disponibles, a{' '}
-                                                    {withTrend[0]?.trend
-                                                        ?.horizon_days ??
-                                                        5}{' '}
-                                                    ruedas
-                                                    {refreshingTrends
-                                                        ? ' · actualizando…'
-                                                        : ''}
-                                                </p>
-                                            )}
-                                            {portfolioPnl &&
-                                                portfolioPnl.total_invested >
-                                                    0 && (
-                                                    <p className="summary mb-0">
-                                                        P&L de la cartera:{' '}
-                                                        <b
-                                                            style={{
-                                                                color:
-                                                                    portfolioPnl.total_pnl_amount >=
-                                                                    0
-                                                                        ? 'var(--up)'
-                                                                        : 'var(--down)',
-                                                            }}
-                                                        >
-                                                            {formatPnl(
-                                                                portfolioPnl.total_pnl_amount,
-                                                                portfolioPnl.total_pnl_percentage,
-                                                            )}
-                                                        </b>
-                                                    </p>
-                                                )}
-                                        </div>
-                                        <div className="d-flex gap-2">
-                                            <button
-                                                className="btn btn-outline-theme"
-                                                onClick={() =>
-                                                    setShowEstimacion(true)
-                                                }
-                                            >
-                                                Estimación Black-Litterman →
-                                            </button>
-                                            <button
-                                                className="btn btn-primary"
-                                                onClick={() =>
-                                                    setIsBuilderOpen(true)
-                                                }
-                                            >
-                                                Editar mi cartera
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div style={{ overflowX: 'auto' }}>
-                                        <table className="watchlist">
-                                            <thead>
-                                                <tr>
-                                                    <th>Ticker</th>
-                                                    <th></th>
-                                                    <th>Cant.</th>
-                                                    <th>
-                                                        P&L
-                                                        <InfoTip label="P&L">
-                                                            Ganancia o pérdida
-                                                            frente al precio de
-                                                            entrada cargado.
-                                                            Necesita el precio
-                                                            de entrada para
-                                                            calcularse.
-                                                        </InfoTip>
-                                                    </th>
-                                                    <th>Último</th>
-                                                    <th>
-                                                        RSI
-                                                        <InfoTip label="RSI (14)">
-                                                            Índice de fuerza
-                                                            relativa a 14
-                                                            ruedas. Arriba de 70
-                                                            sugiere sobrecompra,
-                                                            abajo de 30
-                                                            sobreventa.
-                                                        </InfoTip>
-                                                    </th>
-                                                    <th>
-                                                        Señal
-                                                        <InfoTip label="Señal">
-                                                            Alza o baja si el
-                                                            modelo proyecta un
-                                                            retorno mayor a ±1%
-                                                            al horizonte
-                                                            indicado; si no,
-                                                            neutral.
-                                                        </InfoTip>
-                                                    </th>
-                                                    <th>
-                                                        Modelo · fecha
-                                                        <InfoTip label="Modelo · fecha">
-                                                            Qué modelo de ML
-                                                            generó esta
-                                                            predicción y con qué
-                                                            cierre se calculó.
-                                                        </InfoTip>
-                                                    </th>
-                                                    <th></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {rows.map((row) => {
-                                                    const available =
-                                                        row.trend?.available ??
-                                                        false;
-                                                    return (
-                                                        <tr
-                                                            key={row.ticker}
-                                                            className={
-                                                                available
-                                                                    ? rowStateClass(
-                                                                          row
-                                                                              .trend
-                                                                              ?.signal,
-                                                                      )
-                                                                    : ''
-                                                            }
-                                                            onClick={() =>
-                                                                setSelectedTicker(
-                                                                    row.ticker,
-                                                                )
-                                                            }
-                                                        >
-                                                            <td className="t-ticker">
-                                                                {row.ticker}
-                                                            </td>
-                                                            <td>
-                                                                {available &&
-                                                                    row.trend
-                                                                        ?.last_close !=
-                                                                        null &&
-                                                                    row.trend
-                                                                        ?.predicted_close !=
-                                                                        null && (
-                                                                        <MiniProjection
-                                                                            lastClose={
-                                                                                row
-                                                                                    .trend
-                                                                                    .last_close
-                                                                            }
-                                                                            predictedClose={
-                                                                                row
-                                                                                    .trend
-                                                                                    .predicted_close
-                                                                            }
-                                                                            signal={
-                                                                                row
-                                                                                    .trend
-                                                                                    .signal
-                                                                            }
-                                                                        />
-                                                                    )}
-                                                            </td>
-                                                            <td className="t-qty">
-                                                                {row.quantity}
-                                                            </td>
-                                                            <td className="t-pnl">
-                                                                {row.pnlAmount !=
-                                                                null ? (
-                                                                    <span
-                                                                        className="num"
-                                                                        style={{
-                                                                            color:
-                                                                                row.pnlAmount >=
-                                                                                0
-                                                                                    ? 'var(--up)'
-                                                                                    : 'var(--down)',
-                                                                        }}
-                                                                    >
-                                                                        {formatPnl(
-                                                                            row.pnlAmount,
-                                                                            row.pnlPercentage,
-                                                                        )}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span
-                                                                        className="dash"
-                                                                        title="Cargá el precio de entrada en 'Editar mi cartera' para ver el P&L"
-                                                                    >
-                                                                        —
-                                                                    </span>
-                                                                )}
-                                                            </td>
-                                                            <td className="t-price">
-                                                                {available &&
-                                                                row.trend
-                                                                    ?.last_close !=
-                                                                    null ? (
-                                                                    <span className="num">
-                                                                        $
-                                                                        {row.trend.last_close.toLocaleString(
-                                                                            'es-AR',
-                                                                        )}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="dash">
-                                                                        —
-                                                                    </span>
-                                                                )}
-                                                            </td>
-                                                            <td className="rsi-cell">
-                                                                {available &&
-                                                                row.trend
-                                                                    ?.rsi !=
-                                                                    null ? (
-                                                                    <>
-                                                                        <span className="rsi-bar">
-                                                                            <i
-                                                                                style={{
-                                                                                    width: `${row.trend.rsi}%`,
-                                                                                }}
-                                                                            />
-                                                                        </span>
-                                                                        <span className="num">
-                                                                            {row.trend.rsi.toFixed(
-                                                                                0,
-                                                                            )}
-                                                                        </span>
-                                                                    </>
-                                                                ) : (
-                                                                    <span className="dash">
-                                                                        —
-                                                                    </span>
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                {available ? (
-                                                                    <span
-                                                                        className={`pill ${pillClass(row.trend?.signal)}`}
-                                                                    >
-                                                                        {row
-                                                                            .trend
-                                                                            ?.signal ??
-                                                                            'neutral'}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span
-                                                                        className="pill pill-neutral"
-                                                                        title={
-                                                                            row
-                                                                                .trend
-                                                                                ?.reason ??
-                                                                            ''
-                                                                        }
-                                                                    >
-                                                                        Preparando
-                                                                    </span>
-                                                                )}
-                                                            </td>
-                                                            <td className="t-model">
-                                                                {available
-                                                                    ? `${row.trend?.model ?? '—'} · ${row.trend?.as_of ?? ''}`
-                                                                    : 'sin cobertura'}
-                                                            </td>
-                                                            <td className="chev">
-                                                                ›
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    <TopBar
+                                        trendsUnavailable={trendsUnavailable}
+                                        rows={rows}
+                                        upCount={upCount}
+                                        withTrend={withTrend}
+                                        refreshingTrends={refreshingTrends}
+                                        portfolioPnl={portfolioPnl}
+                                        setShowEstimacion={setShowEstimacion}
+                                        setIsBuilderOpen={setIsBuilderOpen}
+                                    />
+                                    <SharesTable
+                                        rows={rows}
+                                        setSelectedTicker={setSelectedTicker}
+                                    />
                                 </div>
                             </>
                         ))}
