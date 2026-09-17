@@ -239,6 +239,8 @@ function setupHappyApis() {
                         { date: '2026-09-15', predicted: 119, actual: 121 },
                         { date: '2026-09-16', predicted: 125, actual: 124 },
                     ],
+                    avg_strategy_return_pct: 4.5,
+                    avg_buy_hold_return_pct: 1.2,
                 },
                 volatility_forecast: null,
                 reason: null,
@@ -397,6 +399,7 @@ test('TickerDetail renders projections, results and range controls', async () =>
     expect(
         await screen.findByText(/Se equivocó en promedio/),
     ).toBeInTheDocument();
+    expect(screen.getByText(/Siguiendo la señal/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Volver/ }));
     expect(onBack).toHaveBeenCalled();
 });
