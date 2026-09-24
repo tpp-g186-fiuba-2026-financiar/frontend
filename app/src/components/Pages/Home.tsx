@@ -5,7 +5,6 @@ import {
     getUserSharesEndpoint,
     type UserShareItem,
 } from '../../api/userShares/getUserSharesEndpoint';
-import AccountBalance from '../Layout/AccountBalance';
 import {
     getUserSharesTrendsEndpoint,
     type ShareTrend,
@@ -16,10 +15,10 @@ import {
     type PortfolioPnlSummary,
 } from '../../api/userShares/getUserSharesPnlEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
+import { buildPortfolioChart } from '../Portfolio/ChartBuilder';
 import TickerDetail from '../Portfolio/TickerDetail';
 import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
-import InfoTip from '../Layout/InfoTip';
 import { useTheme } from '../../hooks/useTheme';
 import LayoutDisclaimer from '../Layout/LayoutDisclaimer';
 import { getTrendsCompareEndpoint } from '../../api/userShares/getShareTrendsCompare';
@@ -28,6 +27,10 @@ import {
     resolveDefaultModel,
     type DefaultModelsConfig,
 } from '../../utils/defaultModels';
+import TopBar from '../Layout/Topbar';
+import SharesTable from '../SharesTable/SharesTable';
+import InfoTip from '../Layout/InfoTip';
+import AccountBalance from '../Layout/AccountBalance';
 
 interface PortfolioRow {
     ticker: string;
@@ -262,6 +265,7 @@ function Home() {
             ),
         [rows, modelConfig, compareByTicker],
     );
+    const portfolioChartRef = useRef<HTMLCanvasElement>(null);
     const selectedRow =
         displayRows.find((row) => row.ticker === selectedTicker) ?? null;
     const tickersKey = rows.map((row) => row.ticker).join(',');
@@ -411,6 +415,21 @@ function Home() {
         return () =>
             document.removeEventListener('mousedown', handleClickOutside);
     }, [isUserMenuOpen]);
+
+    useEffect(() => {
+        if (
+            selectedTicker ||
+            !portfolioChartRef.current ||
+            rows.length === 0
+        ) {
+            return;
+        }
+        const chart = buildPortfolioChart(
+            portfolioChartRef.current,
+            rows.map(({ ticker, quantity }) => ({ ticker, quantity })),
+        );
+        return () => chart.destroy();
+    }, [rows, selectedTicker]);
 
     if (!user) {
         return (
@@ -587,6 +606,19 @@ function Home() {
                                         </p>
                                     </div>
                                 )}
+
+                                <div className="panel portfolio-chart-panel mb-4">
+                                    <h2 className="portfolio-chart-title">
+                                        Distribución de mi cartera
+                                    </h2>
+                                    <div className="portfolio-chart-wrap">
+                                        <canvas
+                                            ref={portfolioChartRef}
+                                            role="img"
+                                            aria-label="Distribución de acciones de mi cartera por cantidad"
+                                        />
+                                    </div>
+                                </div>
 
                                 <div className="watchlist-panel mb-4">
                                     <div className="toolbar">
@@ -869,12 +901,26 @@ function Home() {
                                             </tbody>
                                         </table>
                                     </div>
+                                    <TopBar
+                                        trendsUnavailable={trendsUnavailable}
+                                        rows={rows}
+                                        upCount={upCount}
+                                        withTrend={withTrend}
+                                        refreshingTrends={refreshingTrends}
+                                        portfolioPnl={portfolioPnl}
+                                        setShowEstimacion={setShowEstimacion}
+                                        setIsBuilderOpen={setIsBuilderOpen}
+                                    />
+                                    <SharesTable
+                                        rows={rows}
+                                        setSelectedTicker={setSelectedTicker}
+                                    />
                                 </div>
                             </>
                         ))}
                 </>
             )}
-
+            
             <p style={{ color: 'var(--ink-3)', fontSize: '13px' }}>
                 Señal generada por modelos de machine learning sobre datos
                 históricos. No es asesoramiento financiero.

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ColorModeSetting from '../settings/ColorModeSetting';
 import RetakeRiskQuizSetting from '../settings/RetakeRiskQuizSetting';
+import TwoFactorSetting from '../settings/TwoFactorSetting';
 import NotificationsSettings from '../settings/NotificationsSettings';
 import DefaultModelsSettings from '../settings/DefaultModelsSettings';
 // import DefaultModelsSettings from '../settings/DefaultModelsSettings';
@@ -75,6 +76,7 @@ function Settings() {
                     <>
                         <ColorModeSetting />
                         <RetakeRiskQuizSetting />
+                        <TwoFactorSetting />
                     </>
                 )}
 
