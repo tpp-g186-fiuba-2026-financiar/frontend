@@ -4,11 +4,13 @@ import ColorModeSetting from '../settings/ColorModeSetting';
 import RetakeRiskQuizSetting from '../settings/RetakeRiskQuizSetting';
 import TwoFactorSetting from '../settings/TwoFactorSetting';
 import NotificationsSettings from '../settings/NotificationsSettings';
+import DefaultModelsSettings from '../settings/DefaultModelsSettings';
+// import DefaultModelsSettings from '../settings/DefaultModelsSettings';
 
 // Pagina de ajustes con ruta propia (/ajustes) en vez de modal. La idea es
 // poder ir sumando mas secciones de configuracion aca adentro sin que Home
 // termine cargando con toda esa logica.
-type SettingsTab = 'general' | 'notificaciones';
+type SettingsTab = 'general' | 'notificaciones' | 'modelos predeterminados';
 
 function Settings() {
     const navigate = useNavigate();
@@ -57,6 +59,17 @@ function Settings() {
                             Notificaciones
                         </button>
                     </li>
+                    <li className="nav-item">
+                        <button
+                            type="button"
+                            className={`nav-link${activeTab === 'modelos predeterminados' ? ' active' : ''}`}
+                            onClick={() =>
+                                setActiveTab('modelos predeterminados')
+                            }
+                        >
+                            Modelos predeterminados
+                        </button>
+                    </li>
                 </ul>
 
                 {activeTab === 'general' && (
@@ -68,6 +81,9 @@ function Settings() {
                 )}
 
                 {activeTab === 'notificaciones' && <NotificationsSettings />}
+                {activeTab === 'modelos predeterminados' && (
+                    <DefaultModelsSettings />
+                )}
             </div>
         </div>
     );

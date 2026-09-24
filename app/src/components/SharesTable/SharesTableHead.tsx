@@ -1,5 +1,11 @@
 import InfoTip from '../Layout/InfoTip';
-import './variablesDescriptions';
+import {
+    pylInfo,
+    rsiInfo,
+    signalInfo,
+    modelInfo,
+} from './variablesDescriptions';
+
 function SharesTableHead() {
     return (
         <tr>
@@ -8,26 +14,20 @@ function SharesTableHead() {
             <th>Cant.</th>
             <th>
                 P&L
-                <InfoTip label="P&L">variablesDescriptions.pylInfo</InfoTip>
+                <InfoTip label="P&L">{pylInfo}</InfoTip>
             </th>
             <th>Último</th>
             <th>
                 RSI
-                <InfoTip label="RSI (14)">
-                    variablesDescriptions.rsiInfo
-                </InfoTip>
+                <InfoTip label="RSI (14)">{rsiInfo}</InfoTip>
             </th>
             <th>
                 Señal
-                <InfoTip label="Señal">
-                    variablesDescriptions.signalInfo
-                </InfoTip>
+                <InfoTip label="Señal">{signalInfo}</InfoTip>
             </th>
             <th>
                 Modelo · fecha
-                <InfoTip label="Modelo · fecha">
-                    variablesDescriptions.modelInfo
-                </InfoTip>
+                <InfoTip label="Modelo · fecha">{modelInfo}</InfoTip>
             </th>
             <th></th>
         </tr>

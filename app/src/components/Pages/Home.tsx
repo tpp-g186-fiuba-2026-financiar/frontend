@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserEndpoint, type UserResponse } from '../../api/user/getUser';
 import {
@@ -21,8 +21,15 @@ import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
 import { useTheme } from '../../hooks/useTheme';
 import LayoutDisclaimer from '../Layout/LayoutDisclaimer';
+import { getTrendsCompareEndpoint } from '../../api/userShares/getShareTrendsCompare';
+import {
+    loadConfig,
+    resolveDefaultModel,
+    type DefaultModelsConfig,
+} from '../../utils/defaultModels';
 import TopBar from '../Layout/Topbar';
 import SharesTable from '../SharesTable/SharesTable';
+import ChartBar from '../Portfolio/ChartBar';
 
 interface PortfolioRow {
     ticker: string;
@@ -34,6 +41,10 @@ interface PortfolioRow {
     pnlPercentage: number | null;
 }
 
+type CompareTrendsResponse = Awaited<
+    ReturnType<typeof getTrendsCompareEndpoint>
+>;
+
 const RISK_PROFILE_LABEL: Record<string, string> = {
     conservative: 'Conservador',
     moderate: 'Moderado',
@@ -42,6 +53,38 @@ const RISK_PROFILE_LABEL: Record<string, string> = {
 
 function riskProfileLabel(value: string): string {
     return RISK_PROFILE_LABEL[value] ?? value;
+}
+
+// Reemplaza los datos de la tendencia por los del modelo que el usuario
+// eligió en Ajustes. Si algo falta (config, comparación o el modelo elegido
+// no está disponible) deja la fila tal cual venía del endpoint principal.
+function withPreferredModel(
+    row: PortfolioRow,
+    config: DefaultModelsConfig | null,
+    compareByTicker: Record<string, CompareTrendsResponse>,
+): PortfolioRow {
+    const compare = compareByTicker[row.ticker];
+    if (!config || !compare || !row.trend) return row;
+    const model = resolveDefaultModel(config, row.ticker, compare);
+    const p = model
+        ? compare.predictions[model as keyof typeof compare.predictions]
+        : undefined;
+    if (!model || !p || !p.available) return row;
+    return {
+        ...row,
+        trend: {
+            ...row.trend,
+            available: p.available,
+            signal: p.signal,
+            rsi: p.rsi,
+            horizon_days: p.horizon_days,
+            last_close: p.last_close,
+            predicted_close: p.predicted_close,
+            as_of: p.as_of,
+            model: p.model ?? model,
+            reason: p.reason,
+        } as ShareTrend,
+    };
 }
 
 function buildRows(
@@ -131,9 +174,25 @@ function Home() {
     // desde /ajustes.
     useTheme();
     const userMenuRef = useRef<HTMLDivElement>(null);
+    const [modelConfig, setModelConfig] = useState<DefaultModelsConfig | null>(
+        null,
+    );
+    const [compareByTicker, setCompareByTicker] = useState<
+        Record<string, CompareTrendsResponse>
+    >({});
+    // `rows` guarda lo que devuelve el endpoint principal; `displayRows` es lo
+    // que se muestra, con el modelo preferido del usuario aplicado encima.
+    const displayRows = useMemo(
+        () =>
+            rows.map((row) =>
+                withPreferredModel(row, modelConfig, compareByTicker),
+            ),
+        [rows, modelConfig, compareByTicker],
+    );
     const portfolioChartRef = useRef<HTMLCanvasElement>(null);
     const selectedRow =
-        rows.find((row) => row.ticker === selectedTicker) ?? null;
+        displayRows.find((row) => row.ticker === selectedTicker) ?? null;
+    const tickersKey = rows.map((row) => row.ticker).join(',');
 
     const loadPortfolio = async () => {
         try {
@@ -239,6 +298,33 @@ function Home() {
         return () => window.clearTimeout(timer);
     }, [rows]);
 
+    // Carga en segundo plano la preferencia de modelo y la comparación de
+    // cada acción. La tabla se ve primero con el modelo por defecto del
+    // backend y se actualiza cuando esto llega.
+    useEffect(() => {
+        if (!tickersKey) return;
+        let cancelled = false;
+        const tickers = tickersKey.split(',');
+        (async () => {
+            const [config, results] = await Promise.all([
+                loadConfig(),
+                Promise.allSettled(
+                    tickers.map((t) => getTrendsCompareEndpoint(t)),
+                ),
+            ]);
+            if (cancelled) return;
+            const byTicker: Record<string, CompareTrendsResponse> = {};
+            results.forEach((r, i) => {
+                if (r.status === 'fulfilled') byTicker[tickers[i]] = r.value;
+            });
+            setCompareByTicker(byTicker);
+            setModelConfig(config);
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [tickersKey]);
+
     useEffect(() => {
         if (!isUserMenuOpen) return;
         const handleClickOutside = (e: MouseEvent) => {
@@ -255,11 +341,7 @@ function Home() {
     }, [isUserMenuOpen]);
 
     useEffect(() => {
-        if (
-            selectedTicker ||
-            !portfolioChartRef.current ||
-            rows.length === 0
-        ) {
+        if (selectedTicker || !portfolioChartRef.current || rows.length === 0) {
             return;
         }
         const chart = buildPortfolioChart(
@@ -299,12 +381,12 @@ function Home() {
         );
     }
 
-    const withTrend = rows.filter((r) => r.trend?.available);
+    const withTrend = displayRows.filter((r) => r.trend?.available);
     const upCount = withTrend.filter((r) => r.trend?.signal === 'alza').length;
 
     // Todas las acciones declaradas, no solo las que tienen prediccion —
     // asi la cinta no "pierde" tickers sin cobertura de los modelos.
-    const tapeItems: TapeItem[] = rows.map((r) => ({
+    const tapeItems: TapeItem[] = displayRows.map((r) => ({
         ticker: r.ticker,
         lastClose: r.trend?.available ? r.trend.last_close : null,
         deltaPct:
@@ -445,19 +527,6 @@ function Home() {
                                     </div>
                                 )}
 
-                                <div className="panel portfolio-chart-panel mb-4">
-                                    <h2 className="portfolio-chart-title">
-                                        Distribución de mi cartera
-                                    </h2>
-                                    <div className="portfolio-chart-wrap">
-                                        <canvas
-                                            ref={portfolioChartRef}
-                                            role="img"
-                                            aria-label="Distribución de acciones de mi cartera por cantidad"
-                                        />
-                                    </div>
-                                </div>
-
                                 <div className="watchlist-panel mb-4">
                                     <TopBar
                                         trendsUnavailable={trendsUnavailable}
@@ -474,11 +543,12 @@ function Home() {
                                         setSelectedTicker={setSelectedTicker}
                                     />
                                 </div>
+                                <ChartBar ref={portfolioChartRef} />
                             </>
                         ))}
                 </>
             )}
-            
+
             <p style={{ color: 'var(--ink-3)', fontSize: '13px' }}>
                 Señal generada por modelos de machine learning sobre datos
                 históricos. No es asesoramiento financiero.

@@ -700,7 +700,8 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
     const tickerInfoLoaded = tickerInfoResult?.ticker === row.ticker;
     const tickerInfo = tickerInfoLoaded ? tickerInfoResult.info : null;
     const tickerInfoError = tickerInfoLoaded && tickerInfoResult.error;
-    const sector = sectorResult?.ticker === row.ticker ? sectorResult.sector : null;
+    const sector =
+        sectorResult?.ticker === row.ticker ? sectorResult.sector : null;
     const available = trend?.available ?? false;
     const delta =
         available && trend?.last_close && trend.predicted_close != null

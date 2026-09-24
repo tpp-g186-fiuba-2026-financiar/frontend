@@ -21,6 +21,7 @@ export default defineConfig({
                 'src/**/*.test.{ts,tsx}',
                 'src/setupTests.ts',
                 'src/mocks/**',
+                'src/api/Portfolio.ts', // solo tipos, no hay código ejecutable
             ],
             thresholds: {
                 statements: 80,

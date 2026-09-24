@@ -1501,3 +1501,88 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
 .settings-row-sub .settings-row-label b {
     font-size: 0.95em;
 }
+
+/* ── Ajustes: más aire ─────────────────────────────── */
+.settings-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.settings-page .settings-page-header {
+    margin-bottom: 0;
+}
+
+.settings-page .settings-row {
+    padding: 14px 4px;
+    gap: 20px;
+}
+
+.settings-page .settings-row-label {
+    gap: 4px;
+}
+
+.settings-page .settings-row-label span {
+    line-height: 1.4;
+}
+
+.settings-page .notifications-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.settings-page .notifications-settings-sublist {
+    gap: 10px;
+    margin-left: 1rem;
+    padding-left: 1.25rem;
+    border-left-color: var(
+        --line
+    ); /* --border-color no existe, en oscuro no se veía */
+}
+
+.settings-page .settings-row-sub {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/* ── Tabs: botones, no links ───────────────────────── */
+.settings-page .settings-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 14px;
+}
+
+.settings-page .settings-tabs .nav-link {
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+        background 0.12s,
+        color 0.12s,
+        border-color 0.12s;
+}
+
+.settings-page .settings-tabs .nav-link:hover {
+    background: var(--paper-3);
+    color: var(--ink);
+    border-color: transparent;
+}
+
+.settings-page .settings-tabs .nav-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.settings-page .settings-tabs .nav-link.active {
+    background: var(--paper-3);
+    color: var(--ink);
+    border-color: var(--line);
+}
