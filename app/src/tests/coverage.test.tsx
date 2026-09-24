@@ -153,6 +153,7 @@ function setupHappyApis() {
         full_name: 'Ana Pérez',
         risk_profile: 'moderate',
         is_active: true,
+        two_factor_enabled: false,
         created_at: '2026-01-01',
     });
     mocked(getAllSharesEndpoint).mockResolvedValue({
