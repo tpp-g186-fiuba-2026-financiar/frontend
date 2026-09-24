@@ -514,6 +514,19 @@ table.watchlist tbody tr.is-flat td:first-child::before {
     font-family: var(--sans);
     font-weight: 600;
 }
+.portfolio-chart-title {
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--ink-2);
+}
+.portfolio-chart-wrap {
+    position: relative;
+    height: 220px;
+}
+.portfolio-chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
 .performance-head {
     display: flex;
     justify-content: space-between;
