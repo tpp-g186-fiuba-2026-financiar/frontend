@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getUserSharesEndpoint } from '../../api/userShares/getUserSharesEndpoint';
-import {
-    getTrendsCompareEndpoint,
-} from '../../api/userShares/getShareTrendsCompare';
+import { getTrendsCompareEndpoint } from '../../api/userShares/getShareTrendsCompare';
 import {
     DEFAULT_CONFIG,
     bestModelOf,
@@ -13,8 +11,9 @@ import {
     type DefaultModelsConfig,
 } from '../../utils/defaultModels';
 
-type CompareTrendsResponse = Awaited<ReturnType<typeof getTrendsCompareEndpoint>>;
-
+type CompareTrendsResponse = Awaited<
+    ReturnType<typeof getTrendsCompareEndpoint>
+>;
 
 interface ModelOption {
     key: string;
@@ -31,7 +30,13 @@ interface ModelListProps {
     disabled?: boolean;
 }
 
-function ModelList({ groupName, models, value, onChange, disabled }: ModelListProps) {
+function ModelList({
+    groupName,
+    models,
+    value,
+    onChange,
+    disabled,
+}: ModelListProps) {
     return (
         <div className="notifications-settings-sublist" role="radiogroup">
             {models.map((m) => (
@@ -39,7 +44,8 @@ function ModelList({ groupName, models, value, onChange, disabled }: ModelListPr
                     key={m.key}
                     className="settings-row settings-row-sub"
                     style={{
-                        cursor: disabled || !m.available ? 'default' : 'pointer',
+                        cursor:
+                            disabled || !m.available ? 'default' : 'pointer',
                         opacity: disabled || !m.available ? 0.5 : 1,
                     }}
                 >
@@ -115,7 +121,6 @@ function ExpandableCard({
         </div>
     );
 }
-
 
 const ALL_KEY = '__all__';
 
@@ -195,7 +200,10 @@ function DefaultModelsSettings() {
 
     // Lista de modelos para la card "mismo para todos": promedio entre acciones.
     const sameModels: ModelOption[] = useMemo(() => {
-        const acc: Record<string, { sum: number; n: number; available: boolean }> = {};
+        const acc: Record<
+            string,
+            { sum: number; n: number; available: boolean }
+        > = {};
         Object.values(data).forEach((d) => {
             Object.entries(d.predictions).forEach(([key, p]) => {
                 const entry = (acc[key] ??= { sum: 0, n: 0, available: false });
@@ -310,7 +318,9 @@ function DefaultModelsSettings() {
                                 subtitle={
                                     d
                                         ? `Elegido: ${shown ?? '—'}${
-                                              shown && shown === best ? ' (mejor)' : ''
+                                              shown && shown === best
+                                                  ? ' (mejor)'
+                                                  : ''
                                           }`
                                         : 'No pudimos cargar los modelos'
                                 }
@@ -324,7 +334,10 @@ function DefaultModelsSettings() {
                                     value={shown}
                                     onChange={(m) =>
                                         update({
-                                            perTicker: { ...config.perTicker, [ticker]: m },
+                                            perTicker: {
+                                                ...config.perTicker,
+                                                [ticker]: m,
+                                            },
                                         })
                                     }
                                     disabled={perTickerDisabled}

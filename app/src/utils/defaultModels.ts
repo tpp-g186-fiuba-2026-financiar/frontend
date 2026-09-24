@@ -63,7 +63,9 @@ export function fmtPct(v: number | null): string {
     return `${(v <= 1 ? v * 100 : v).toFixed(1)}%`;
 }
 
-export function bestModelOf(data: CompareTrendsResponse | undefined): string | null {
+export function bestModelOf(
+    data: CompareTrendsResponse | undefined,
+): string | null {
     if (!data) return null;
     let best: string | null = null;
     let bestAcc = -Infinity;

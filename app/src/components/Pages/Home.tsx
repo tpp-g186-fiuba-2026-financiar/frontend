@@ -22,9 +22,7 @@ import TickerTape, { type TapeItem } from '../Layout/TickerTape';
 import InfoTip from '../Layout/InfoTip';
 import { useTheme } from '../../hooks/useTheme';
 import LayoutDisclaimer from '../Layout/LayoutDisclaimer';
-import {
-    getTrendsCompareEndpoint,
-} from '../../api/userShares/getShareTrendsCompare';
+import { getTrendsCompareEndpoint } from '../../api/userShares/getShareTrendsCompare';
 import {
     loadConfig,
     resolveDefaultModel,

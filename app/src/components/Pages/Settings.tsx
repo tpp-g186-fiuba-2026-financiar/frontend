@@ -62,7 +62,9 @@ function Settings() {
                         <button
                             type="button"
                             className={`nav-link${activeTab === 'modelos predeterminados' ? ' active' : ''}`}
-                            onClick={() => setActiveTab('modelos predeterminados')}
+                            onClick={() =>
+                                setActiveTab('modelos predeterminados')
+                            }
                         >
                             Modelos predeterminados
                         </button>
@@ -77,7 +79,9 @@ function Settings() {
                 )}
 
                 {activeTab === 'notificaciones' && <NotificationsSettings />}
-                {activeTab === 'modelos predeterminados' && <DefaultModelsSettings/>}
+                {activeTab === 'modelos predeterminados' && (
+                    <DefaultModelsSettings />
+                )}
             </div>
         </div>
     );

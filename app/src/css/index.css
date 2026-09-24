@@ -1523,7 +1523,9 @@ table.watchlist th:nth-last-child(2) .info-tip:focus-within .info-tip-card {
     gap: 10px;
     margin-left: 1rem;
     padding-left: 1.25rem;
-    border-left-color: var(--line); /* --border-color no existe, en oscuro no se veía */
+    border-left-color: var(
+        --line
+    ); /* --border-color no existe, en oscuro no se veía */
 }
 
 .settings-page .settings-row-sub {
