@@ -417,11 +417,7 @@ function Home() {
     }, [isUserMenuOpen]);
 
     useEffect(() => {
-        if (
-            selectedTicker ||
-            !portfolioChartRef.current ||
-            rows.length === 0
-        ) {
+        if (selectedTicker || !portfolioChartRef.current || rows.length === 0) {
             return;
         }
         const chart = buildPortfolioChart(
@@ -920,7 +916,7 @@ function Home() {
                         ))}
                 </>
             )}
-            
+
             <p style={{ color: 'var(--ink-3)', fontSize: '13px' }}>
                 Señal generada por modelos de machine learning sobre datos
                 históricos. No es asesoramiento financiero.
