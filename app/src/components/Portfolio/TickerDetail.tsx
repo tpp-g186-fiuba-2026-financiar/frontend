@@ -13,6 +13,7 @@ import {
     shareInfoEndpoint,
     type TickerInfo,
 } from '../../api/shares/getShareInfo';
+import { shareSectorEndpoint } from '../../api/shares/getShareSector';
 import InfoTip from '../Layout/InfoTip';
 
 interface PortfolioRow {
@@ -688,6 +689,10 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
         info: TickerInfo | null;
         error: boolean;
     } | null>(null);
+    const [sectorResult, setSectorResult] = useState<{
+        ticker: string;
+        sector: string;
+    } | null>(null);
     const trend = row.trend;
     const historyLoaded = historyResult?.ticker === row.ticker;
     const history = historyLoaded ? historyResult.prices : [];
@@ -695,6 +700,7 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
     const tickerInfoLoaded = tickerInfoResult?.ticker === row.ticker;
     const tickerInfo = tickerInfoLoaded ? tickerInfoResult.info : null;
     const tickerInfoError = tickerInfoLoaded && tickerInfoResult.error;
+    const sector = sectorResult?.ticker === row.ticker ? sectorResult.sector : null;
     const available = trend?.available ?? false;
     const delta =
         available && trend?.last_close && trend.predicted_close != null
@@ -754,6 +760,29 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
         };
     }, [row.ticker]);
 
+    useEffect(() => {
+        let cancelled = false;
+        shareSectorEndpoint({ share_name: row.ticker })
+            .then((response) => {
+                const value =
+                    typeof response === 'string'
+                        ? response
+                        : response && typeof response === 'object'
+                          ? (response as { sector?: unknown }).sector
+                          : null;
+                if (!cancelled && typeof value === 'string' && value.trim()) {
+                    setSectorResult({
+                        ticker: row.ticker,
+                        sector: value,
+                    });
+                }
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, [row.ticker]);
+
     const rangeDays = { '1M': 31, '3M': 93, '6M': 186, '1A': 366 } as const;
     const filteredHistory =
         range === 'TODO' || history.length === 0
@@ -785,6 +814,7 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                             <span className="pill pill-neutral">Sin datos</span>
                         )}
                     </div>
+                    <div className="detail-sub mb-2">{sector}</div>
                     <p className="detail-sub mb-0">
                         {row.quantity} nominales
                         {available && trend?.horizon_days
