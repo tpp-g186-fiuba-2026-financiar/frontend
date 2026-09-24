@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ColorModeSetting from '../settings/ColorModeSetting';
 import RetakeRiskQuizSetting from '../settings/RetakeRiskQuizSetting';
+import TwoFactorSetting from '../settings/TwoFactorSetting';
 import NotificationsSettings from '../settings/NotificationsSettings';
 
 // Pagina de ajustes con ruta propia (/ajustes) en vez de modal. La idea es
@@ -62,6 +63,7 @@ function Settings() {
                     <>
                         <ColorModeSetting />
                         <RetakeRiskQuizSetting />
+                        <TwoFactorSetting />
                     </>
                 )}
 

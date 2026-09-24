@@ -8,6 +8,7 @@ export interface UserResponse {
     full_name: string;
     risk_profile: string;
     is_active: boolean;
+    two_factor_enabled: boolean;
     created_at: string;
 }
 

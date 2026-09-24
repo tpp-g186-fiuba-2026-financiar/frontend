@@ -19,11 +19,15 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
     const navigate = useNavigate();
     const [email, setEmail] = useState<string>('');
     const [password, setPassword] = useState<string>('');
-    const canSubmit = email != '' && password != '';
     const [response, setResponse] = useState<LoginResponse | null>(null);
+    const [totpCode, setTotpCode] = useState<string>('');
+    const twoFactorRequired = response?.two_factor_required === true;
+    const canSubmit =
+        email != '' && password != '' && (!twoFactorRequired || totpCode != '');
     const closePopUp = () => {
         setEmail('');
         setPassword('');
+        setTotpCode('');
         setResponse(null);
         onClose();
     };
@@ -32,6 +36,7 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
         const request: LoginRequest = {
             email: email,
             password: password,
+            ...(twoFactorRequired ? { totp_code: totpCode.trim() } : {}),
         };
         const r = await loginEndpoint(request);
         setResponse(r);
@@ -67,6 +72,33 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
                                 field={password}
                                 setField={setPassword}
                             />
+                            {twoFactorRequired && (
+                                <div className="mb-3">
+                                    <label
+                                        htmlFor="totp-code"
+                                        className="form-label"
+                                    >
+                                        Código de verificación
+                                    </label>
+                                    <input
+                                        id="totp-code"
+                                        className="form-control"
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoComplete="one-time-code"
+                                        maxLength={6}
+                                        placeholder="123456"
+                                        value={totpCode}
+                                        onChange={(e) =>
+                                            setTotpCode(e.target.value)
+                                        }
+                                    />
+                                    <span className="form-text">
+                                        Ingresá el código de 6 dígitos de tu app
+                                        autenticadora.
+                                    </span>
+                                </div>
+                            )}
                             <LoginErrorSpan response={response} />
                         </div>
                         <div className="modal-footer">

@@ -1,9 +1,9 @@
-import type { RegisterResponse } from '../../api/register';
+import type { LoginResponse } from '../../api/login';
 import ErrorSpan from '../SignUp/ErrorSpan';
 
 const SUCESSFUL_REQUEST = 200;
 interface LoginErrorSpanProps {
-    response: RegisterResponse | null;
+    response: LoginResponse | null;
 }
 
 function LoginErrorSpan({ response }: LoginErrorSpanProps) {
