@@ -15,6 +15,7 @@ import {
     type PortfolioPnlSummary,
 } from '../../api/userShares/getUserSharesPnlEndpoint';
 import PortfolioBuilder from '../Portfolio/PortfolioBuilder';
+import { buildPortfolioChart } from '../Portfolio/ChartBuilder';
 import TickerDetail from '../Portfolio/TickerDetail';
 import EstimacionBlackLitterman from '../Portfolio/EstimacionBlackLitterman';
 import TickerTape, { type TapeItem } from '../Layout/TickerTape';
@@ -130,6 +131,7 @@ function Home() {
     // desde /ajustes.
     useTheme();
     const userMenuRef = useRef<HTMLDivElement>(null);
+    const portfolioChartRef = useRef<HTMLCanvasElement>(null);
     const selectedRow =
         rows.find((row) => row.ticker === selectedTicker) ?? null;
 
@@ -251,6 +253,21 @@ function Home() {
         return () =>
             document.removeEventListener('mousedown', handleClickOutside);
     }, [isUserMenuOpen]);
+
+    useEffect(() => {
+        if (
+            selectedTicker ||
+            !portfolioChartRef.current ||
+            rows.length === 0
+        ) {
+            return;
+        }
+        const chart = buildPortfolioChart(
+            portfolioChartRef.current,
+            rows.map(({ ticker, quantity }) => ({ ticker, quantity })),
+        );
+        return () => chart.destroy();
+    }, [rows, selectedTicker]);
 
     if (!user) {
         return (
@@ -428,6 +445,19 @@ function Home() {
                                     </div>
                                 )}
 
+                                <div className="panel portfolio-chart-panel mb-4">
+                                    <h2 className="portfolio-chart-title">
+                                        Distribución de mi cartera
+                                    </h2>
+                                    <div className="portfolio-chart-wrap">
+                                        <canvas
+                                            ref={portfolioChartRef}
+                                            role="img"
+                                            aria-label="Distribución de acciones de mi cartera por cantidad"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="watchlist-panel mb-4">
                                     <TopBar
                                         trendsUnavailable={trendsUnavailable}
@@ -448,7 +478,7 @@ function Home() {
                         ))}
                 </>
             )}
-
+            
             <p style={{ color: 'var(--ink-3)', fontSize: '13px' }}>
                 Señal generada por modelos de machine learning sobre datos
                 históricos. No es asesoramiento financiero.
