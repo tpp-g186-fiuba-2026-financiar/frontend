@@ -86,7 +86,7 @@ test('user can enable 2FA from settings', async () => {
     render(<TwoFactorSetting />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Activar' }));
-    expect(await screen.findByText('JBSWY3DPEHPK3PXP')).toBeInTheDocument();
+    expect(await screen.findByText('JBSWY3DPEHPK3PXP')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Código de verificación'), {
         target: { value: '654321' },
     });
@@ -97,7 +97,7 @@ test('user can enable 2FA from settings', async () => {
     );
     expect(
         await screen.findByRole('button', { name: 'Desactivar' }),
-    ).toBeInTheDocument();
+    ).toBeTruthy();
 });
 
 test('disabling 2FA shows the backend error on a wrong code', async () => {
@@ -114,7 +114,5 @@ test('disabling 2FA shows the backend error on a wrong code', async () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar' }));
 
-    expect(
-        await screen.findByText('Invalid verification code'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Invalid verification code')).toBeTruthy();
 });
