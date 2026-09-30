@@ -22,6 +22,11 @@ export interface TrendBacktestPoint {
 export interface TrendBacktest {
     observations: number;
     directional_accuracy?: number;
+    accuracy_low?: number;
+    accuracy_high?: number;
+    signal_hit_rate?: number | null;
+    neutral_rate?: number;
+    folds?: number;
     mae?: number;
     // Solo en lstm / xgboost
     avg_buy_hold_return_pct?: number;

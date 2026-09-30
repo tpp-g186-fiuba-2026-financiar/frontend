@@ -15,6 +15,11 @@ export interface ModelPrediction {
     model_version: string | null;
     backtest: {
         directional_accuracy?: number;
+        accuracy_low?: number;
+        accuracy_high?: number;
+        signal_hit_rate?: number | null;
+        neutral_rate?: number;
+        folds?: number;
         mae?: number;
         observations?: number;
         series?: Array<{

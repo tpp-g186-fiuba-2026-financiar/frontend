@@ -6,6 +6,12 @@ import {
     type ModelPrediction,
 } from '../../api/userShares/getShareTrendCompareEndpoint';
 import {
+    MIN_RELIABLE_CASES,
+    pickClearWinner,
+    toBacktestAccuracy,
+    type BacktestAccuracy,
+} from '../../utils/backtestConfidence';
+import {
     getShareHistoryEndpoint,
     type HistoricalPricePoint,
 } from '../../api/userShares/getShareHistoryEndpoint';
@@ -421,20 +427,23 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
         string,
         ModelPrediction,
     ][];
-    const ranked = entries
-        .filter(
-            ([, prediction]) =>
-                prediction.available &&
-                prediction.backtest?.directional_accuracy != null,
-        )
-        .sort(
-            ([, left], [, right]) =>
-                (right.backtest?.directional_accuracy ?? 0) -
-                (left.backtest?.directional_accuracy ?? 0),
-        );
-    const bestModel = ranked[0]?.[0] ?? null;
-    const bestSeries = bestModel
-        ? compare.predictions[bestModel]?.backtest?.series
+    const accuracyByModel: Array<[string, BacktestAccuracy]> = [];
+    entries.forEach(([name, prediction]) => {
+        const measured = prediction.available
+            ? toBacktestAccuracy(prediction.backtest)
+            : null;
+        if (measured) accuracyByModel.push([name, measured]);
+    });
+    // Solo se corona un modelo si es claramente mejor que el azar y que el
+    // resto; con pocos casos, el número más alto suele ser suerte.
+    const bestModel = pickClearWinner(accuracyByModel);
+    // El gráfico muestra el de mayor accuracy aunque no haya ganador claro.
+    const chartModel =
+        [...accuracyByModel].sort(
+            (a, b) => b[1].accuracy - a[1].accuracy,
+        )[0]?.[0] ?? null;
+    const bestSeries = chartModel
+        ? compare.predictions[chartModel]?.backtest?.series
         : null;
 
     if (view === 'results') {
@@ -448,10 +457,16 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                             pasó después.
                         </p>
                     </div>
-                    {bestModel && (
+                    {bestModel ? (
                         <span className="performance-winner">
                             Mejor modelo: {bestModel}
                         </span>
+                    ) : (
+                        accuracyByModel.length > 0 && (
+                            <span className="performance-neutral">
+                                Ningún modelo se destaca con claridad
+                            </span>
+                        )
                     )}
                 </div>
                 <div className="performance-grid mt-3">
@@ -459,6 +474,9 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                         const accuracy =
                             prediction.backtest?.directional_accuracy;
                         const mae = prediction.backtest?.mae;
+                        const measured = toBacktestAccuracy(
+                            prediction.backtest,
+                        );
                         const comparableError =
                             mae == null
                                 ? null
@@ -493,6 +511,24 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                                 }}
                                             />
                                         </div>
+                                        {measured && (
+                                            <small className="performance-range">
+                                                Con {measured.observations}{' '}
+                                                casos, entre{' '}
+                                                {(measured.low * 100).toFixed(
+                                                    0,
+                                                )}
+                                                % y{' '}
+                                                {(measured.high * 100).toFixed(
+                                                    0,
+                                                )}
+                                                %
+                                                {measured.observations <
+                                                MIN_RELIABLE_CASES
+                                                    ? ' · pocos casos, orientativo'
+                                                    : ''}
+                                            </small>
+                                        )}
                                     </>
                                 ) : (
                                     <strong className="performance-score">
@@ -530,7 +566,7 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                 {bestSeries && bestSeries.length > 1 ? (
                     <div className="results-chart-wrap mt-3">
                         <div className="results-chart-title">
-                            <b>{bestModel}</b>
+                            <b>{chartModel}</b>
                             <span className="results-legend predicted">
                                 Predijo
                             </span>
