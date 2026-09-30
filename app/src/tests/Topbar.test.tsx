@@ -26,6 +26,7 @@ const row: PortfolioRow = {
     currentPrice: 110,
     pnlAmount: 100,
     pnlPercentage: 10,
+    weightPercentage: 100,
 };
 
 const baseProps = {

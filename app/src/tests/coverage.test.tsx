@@ -177,6 +177,7 @@ function setupHappyApis() {
                 current_price: 120,
                 pnl_amount: 200,
                 pnl_percentage: 20,
+                weight_percentage: 75,
             },
             {
                 id: 2,
@@ -186,6 +187,7 @@ function setupHappyApis() {
                 current_price: 80,
                 pnl_amount: null,
                 pnl_percentage: null,
+                weight_percentage: 25,
             },
         ],
         portfolio: {
@@ -479,6 +481,9 @@ test('recommendation, ticker tape and balance render their successful states', a
     const onBack = vi.fn();
     const { unmount } = render(<EstimacionBlackLitterman onBack={onBack} />);
     expect(await screen.findByText('70.0%')).toBeInTheDocument();
+    // Peso actual (75%) y diferencia contra la recomendación (70% - 75%).
+    expect(screen.getByText('75.0%')).toBeInTheDocument();
+    expect(screen.getByText('-5.0 pp')).toBeInTheDocument();
     fireEvent.click(
         screen.getByRole('button', { name: /Volver a mi cartera/ }),
     );

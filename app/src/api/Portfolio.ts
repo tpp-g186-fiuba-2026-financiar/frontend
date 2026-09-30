@@ -8,4 +8,5 @@ export interface PortfolioRow {
     currentPrice: number | null;
     pnlAmount: number | null;
     pnlPercentage: number | null;
+    weightPercentage: number | null;
 }

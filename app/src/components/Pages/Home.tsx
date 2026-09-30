@@ -39,6 +39,7 @@ interface PortfolioRow {
     currentPrice: number | null;
     pnlAmount: number | null;
     pnlPercentage: number | null;
+    weightPercentage: number | null;
 }
 
 type CompareTrendsResponse = Awaited<
@@ -106,6 +107,7 @@ function buildRows(
             currentPrice: pnl?.current_price ?? null,
             pnlAmount: pnl?.pnl_amount ?? null,
             pnlPercentage: pnl?.pnl_percentage ?? null,
+            weightPercentage: pnl?.weight_percentage ?? null,
         };
     });
 }
@@ -346,7 +348,11 @@ function Home() {
         }
         const chart = buildPortfolioChart(
             portfolioChartRef.current,
-            rows.map(({ ticker, quantity }) => ({ ticker, quantity })),
+            rows.map(({ ticker, quantity, currentPrice }) => ({
+                ticker,
+                quantity,
+                currentPrice,
+            })),
         );
         return () => chart.destroy();
     }, [rows, selectedTicker]);

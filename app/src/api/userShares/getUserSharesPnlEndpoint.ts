@@ -10,6 +10,7 @@ export interface SharePnlItem {
     current_price: number | null;
     pnl_amount: number | null;
     pnl_percentage: number | null;
+    weight_percentage: number | null;
 }
 
 export interface PortfolioPnlSummary {

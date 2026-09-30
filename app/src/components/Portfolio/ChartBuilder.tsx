@@ -5,6 +5,18 @@ Chart.register(ArcElement, Legend, PieController, Tooltip);
 export interface PortfolioChartPosition {
     ticker: string;
     quantity: number;
+    currentPrice?: number | null;
+}
+
+// Pondera por valor de mercado (cantidad x precio actual). Si alguna
+// tenencia no tiene precio, no se pueden mezclar unidades: cae a cantidad.
+function chartValues(positions: PortfolioChartPosition[]): number[] {
+    const allPriced = positions.every(
+        ({ currentPrice }) => currentPrice != null,
+    );
+    return positions.map(({ quantity, currentPrice }) =>
+        allPriced ? quantity * (currentPrice as number) : quantity,
+    );
 }
 
 export function buildPortfolioChart(
@@ -17,7 +29,7 @@ export function buildPortfolioChart(
             labels: positions.map(({ ticker }) => ticker),
             datasets: [
                 {
-                    data: positions.map(({ quantity }) => quantity),
+                    data: chartValues(positions),
                     backgroundColor: [
                         '#0f766e',
                         '#2563eb',

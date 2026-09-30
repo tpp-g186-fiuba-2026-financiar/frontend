@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getPortfolioRecomendacionEndpoint } from '../../api/userShares/getPortfolioRecomendacionEndpoint';
+import { getUserSharesPnlEndpoint } from '../../api/userShares/getUserSharesPnlEndpoint';
 
 interface PesoRow {
     ticker: string;
     peso: number;
+    // Peso actual en cartera (0-1); null si no hay precio actual.
+    actual: number | null;
 }
 
 interface ApiErrorResponse {
@@ -20,9 +23,16 @@ function extractErrorMessage(err: unknown): string {
     );
 }
 
-function sortedRows(pesos: Record<string, number>): PesoRow[] {
+function sortedRows(
+    pesos: Record<string, number>,
+    actuales: Record<string, number | null>,
+): PesoRow[] {
     return Object.entries(pesos)
-        .map(([ticker, peso]) => ({ ticker, peso }))
+        .map(([ticker, peso]) => ({
+            ticker,
+            peso,
+            actual: actuales[ticker] ?? null,
+        }))
         .sort((a, b) => b.peso - a.peso);
 }
 
@@ -43,8 +53,22 @@ function EstimacionBlackLitterman({ onBack }: EstimacionBlackLittermanProps) {
             setError(null);
             try {
                 const res = await getPortfolioRecomendacionEndpoint();
+                // Los pesos actuales son complementarios: si fallan, se
+                // muestra igual la recomendación.
+                const actuales: Record<string, number | null> = {};
+                try {
+                    const pnl = await getUserSharesPnlEndpoint();
+                    pnl.shares.forEach((s) => {
+                        actuales[s.ticker] =
+                            s.weight_percentage != null
+                                ? s.weight_percentage / 100
+                                : null;
+                    });
+                } catch {
+                    // sin pesos actuales
+                }
                 if (!cancelled) {
-                    setRows(sortedRows(res.pesos_recomendados));
+                    setRows(sortedRows(res.pesos_recomendados, actuales));
                 }
             } catch (err) {
                 if (!cancelled) {
@@ -107,13 +131,20 @@ function EstimacionBlackLitterman({ onBack }: EstimacionBlackLittermanProps) {
                         <thead>
                             <tr>
                                 <th>Ticker</th>
-                                <th>Balance</th>
+                                <th>Actual</th>
+                                <th>Recomendado</th>
+                                <th>Diferencia</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rows.map((row) => (
                                 <tr key={row.ticker}>
                                     <td className="t-ticker">{row.ticker}</td>
+                                    <td className="num">
+                                        {row.actual != null
+                                            ? `${(row.actual * 100).toFixed(1)}%`
+                                            : '—'}
+                                    </td>
                                     <td className="rsi-cell">
                                         <span className="rsi-bar">
                                             <i
@@ -125,6 +156,11 @@ function EstimacionBlackLitterman({ onBack }: EstimacionBlackLittermanProps) {
                                         <span className="num">
                                             {(row.peso * 100).toFixed(1)}%
                                         </span>
+                                    </td>
+                                    <td className="num">
+                                        {row.actual != null
+                                            ? `${row.peso - row.actual >= 0 ? '+' : ''}${((row.peso - row.actual) * 100).toFixed(1)} pp`
+                                            : '—'}
                                     </td>
                                 </tr>
                             ))}
