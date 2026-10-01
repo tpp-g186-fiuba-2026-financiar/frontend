@@ -2,9 +2,10 @@ import type { Ref } from 'react';
 
 interface ChartBarProps {
     ref: Ref<HTMLCanvasElement>;
+    tickers: string[];
 }
 
-function ChartBar({ ref }: ChartBarProps) {
+function ChartBar({ ref, tickers }: ChartBarProps) {
     return (
         <div className="panel portfolio-chart-panel mb-4">
             <h2 className="portfolio-chart-title">
@@ -14,7 +15,7 @@ function ChartBar({ ref }: ChartBarProps) {
                 <canvas
                     ref={ref}
                     role="img"
-                    aria-label="Distribución de acciones de mi cartera por cantidad"
+                    aria-label={`Distribución de acciones de mi cartera por cantidad: ${tickers.join(', ')}`}
                 />
             </div>
         </div>

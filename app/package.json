@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:cucumber": "cucumber-js --import tsx --import \"e2e/cucumber/**/*.ts\" \"e2e/features/**/*.feature\""
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -21,6 +22,7 @@
     "react-router-dom": "^6.30.3"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.2.1",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -39,6 +41,7 @@
     "msw": "^2.14.2",
     "prettier": "^3.8.3",
     "sass-embedded": "^1.99.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.10",
