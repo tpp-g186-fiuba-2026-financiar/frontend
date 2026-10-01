@@ -1,5 +1,11 @@
 # React + TypeScript + Vite
 
+## End-to-end tests
+
+Run the Playwright specs with `npm run test:e2e`, or run the Gherkin login
+scenarios with `npm run test:cucumber`. The Cucumber command starts its own Vite
+server. Install the Chromium browser once with `npx playwright install chromium`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

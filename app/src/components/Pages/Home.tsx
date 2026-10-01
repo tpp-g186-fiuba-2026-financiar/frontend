@@ -549,7 +549,10 @@ function Home() {
                                         setSelectedTicker={setSelectedTicker}
                                     />
                                 </div>
-                                <ChartBar ref={portfolioChartRef} />
+                                <ChartBar
+                                    ref={portfolioChartRef}
+                                    tickers={rows.map(({ ticker }) => ticker)}
+                                />
                             </>
                         ))}
                 </>

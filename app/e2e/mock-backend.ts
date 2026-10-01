@@ -5,6 +5,11 @@ const API = 'http://localhost:8000';
 
 export interface MockBackendOptions {
     login?: { code: number; message: string; token: string };
+    availableShares?: Array<{
+        id: number;
+        ticker: string;
+        predictable: boolean;
+    }>;
     user?: {
         id: number;
         email: string;
@@ -22,6 +27,12 @@ export interface MockBackendOptions {
         created_at: string;
     }>;
     trends?: Array<Record<string, unknown>>;
+    comparison?: {
+        symbol: string;
+        as_of: string | null;
+        default_model: string | null;
+        predictions: Record<string, Record<string, unknown>>;
+    };
 }
 
 /**
@@ -32,13 +43,15 @@ export interface MockBackendOptions {
  * servidor -- a proposito, para que un endpoint nuevo sin mockear se note.
  */
 export async function mockBackend(page: Page, opts: MockBackendOptions = {}) {
+    const userShares = [...(opts.shares ?? [])];
+
     await page.route(`${API}/hello`, (route) =>
         route.fulfill({
             json: { status: 'ok', version: 'e2e', message: 'en vivo' },
         }),
     );
     await page.route(`${API}/shares`, (route) =>
-        route.fulfill({ json: { shares: [] } }),
+        route.fulfill({ json: { shares: opts.availableShares ?? [] } }),
     );
 
     if (opts.login) {
@@ -52,13 +65,37 @@ export async function mockBackend(page: Page, opts: MockBackendOptions = {}) {
         );
     }
     if (opts.shares) {
-        await page.route(`${API}/user/shares`, (route) =>
-            route.fulfill({ json: { shares: opts.shares } }),
-        );
+        await page.route(`${API}/user/shares`, async (route) => {
+            if (route.request().method() === 'POST') {
+                const request = route.request().postDataJSON() as {
+                    ticker: string;
+                    quantity: number;
+                    entry_price?: number;
+                };
+                const createdShare = {
+                    id: userShares.length + 1,
+                    user_id: 1,
+                    ticker: request.ticker,
+                    quantity: request.quantity,
+                    entry_price: request.entry_price ?? null,
+                    created_at: '2026-01-01T00:00:00Z',
+                };
+                userShares.push(createdShare);
+                await route.fulfill({ json: createdShare });
+                return;
+            }
+            await route.fulfill({ json: { shares: userShares } });
+        });
     }
     if (opts.trends) {
         await page.route(`${API}/user/shares/trends`, (route) =>
             route.fulfill({ json: { trends: opts.trends } }),
+        );
+    }
+    if (opts.comparison) {
+        await page.route(
+            `${API}/user/shares/${encodeURIComponent(opts.comparison.symbol)}/trends/compare`,
+            (route) => route.fulfill({ json: opts.comparison }),
         );
     }
     // El P&L es best-effort en Home (fetchPnl atrapa el error y sigue sin esa
