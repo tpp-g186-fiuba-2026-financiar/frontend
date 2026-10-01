@@ -21,6 +21,7 @@ import {
 } from '../../api/shares/getShareInfo';
 import { shareSectorEndpoint } from '../../api/shares/getShareSector';
 import InfoTip from '../Layout/InfoTip';
+import { ConsensusCard } from './ConsensusCard';
 
 interface PortfolioRow {
     ticker: string;
@@ -585,125 +586,134 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
     }
 
     return (
-        <div className="panel mt-3">
-            <h3>Qué predice cada modelo</h3>
-            <table className="watchlist">
-                <thead>
-                    <tr>
-                        <th>Modelo</th>
-                        <th>
-                            Señal
-                            <InfoTip label="Señal">
-                                Alza o baja si el modelo proyecta un retorno
-                                mayor a ±1% al horizonte indicado; si no,
-                                neutral.
-                            </InfoTip>
-                        </th>
-                        <th>
-                            RSI
-                            <InfoTip label="RSI (14)">
-                                Índice de fuerza relativa a 14 ruedas. Arriba de
-                                70 sugiere sobrecompra, abajo de 30 sobreventa.
-                            </InfoTip>
-                        </th>
-                        <th>
-                            Condición
-                            <InfoTip label="Condición">
-                                Lectura del RSI: sobrecompra (≥70), sobreventa
-                                (≤30) o neutral.
-                            </InfoTip>
-                        </th>
-                        <th>Último cierre</th>
-                        <th>Proyectado</th>
-                        <th>Δ%</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {entries.map(([name, pred]) => {
-                        const delta =
-                            pred.available &&
-                            pred.last_close != null &&
-                            pred.predicted_close != null
-                                ? ((pred.predicted_close - pred.last_close) /
-                                      pred.last_close) *
-                                  100
-                                : null;
-                        return (
-                            <tr
-                                key={name}
-                                className={
-                                    pred.available
-                                        ? rowClass(pred.signal)
-                                        : 'is-flat'
-                                }
-                                style={{ cursor: 'default' }}
-                            >
-                                <td className="t-ticker">{name}</td>
-                                {pred.available ? (
-                                    <>
-                                        <td>
-                                            <span
-                                                className={`pill ${pillClass(pred.signal)}`}
+        <>
+            {compare.consensus && (
+                <ConsensusCard consensus={compare.consensus} />
+            )}
+            <div className="panel mt-3">
+                <h3>Qué predice cada modelo</h3>
+                <table className="watchlist">
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>
+                                Señal
+                                <InfoTip label="Señal">
+                                    Alza o baja si el modelo proyecta un retorno
+                                    mayor a ±1% al horizonte indicado; si no,
+                                    neutral.
+                                </InfoTip>
+                            </th>
+                            <th>
+                                RSI
+                                <InfoTip label="RSI (14)">
+                                    Índice de fuerza relativa a 14 ruedas.
+                                    Arriba de 70 sugiere sobrecompra, abajo de
+                                    30 sobreventa.
+                                </InfoTip>
+                            </th>
+                            <th>
+                                Condición
+                                <InfoTip label="Condición">
+                                    Lectura del RSI: sobrecompra (≥70),
+                                    sobreventa (≤30) o neutral.
+                                </InfoTip>
+                            </th>
+                            <th>Último cierre</th>
+                            <th>Proyectado</th>
+                            <th>Δ%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {entries.map(([name, pred]) => {
+                            const delta =
+                                pred.available &&
+                                pred.last_close != null &&
+                                pred.predicted_close != null
+                                    ? ((pred.predicted_close -
+                                          pred.last_close) /
+                                          pred.last_close) *
+                                      100
+                                    : null;
+                            return (
+                                <tr
+                                    key={name}
+                                    className={
+                                        pred.available
+                                            ? rowClass(pred.signal)
+                                            : 'is-flat'
+                                    }
+                                    style={{ cursor: 'default' }}
+                                >
+                                    <td className="t-ticker">{name}</td>
+                                    {pred.available ? (
+                                        <>
+                                            <td>
+                                                <span
+                                                    className={`pill ${pillClass(pred.signal)}`}
+                                                >
+                                                    {pred.signal ?? 'neutral'}
+                                                </span>
+                                            </td>
+                                            <td className="num">
+                                                {pred.rsi ?? '—'}
+                                            </td>
+                                            <td>{pred.condition ?? '—'}</td>
+                                            <td className="num">
+                                                {formatMoney(pred.last_close)}
+                                            </td>
+                                            <td className="num">
+                                                {formatMoney(
+                                                    pred.predicted_close,
+                                                )}
+                                            </td>
+                                            <td
+                                                className="num"
+                                                style={{
+                                                    color:
+                                                        delta == null
+                                                            ? undefined
+                                                            : delta >= 0
+                                                              ? 'var(--up)'
+                                                              : 'var(--down)',
+                                                }}
                                             >
-                                                {pred.signal ?? 'neutral'}
-                                            </span>
-                                        </td>
-                                        <td className="num">
-                                            {pred.rsi ?? '—'}
-                                        </td>
-                                        <td>{pred.condition ?? '—'}</td>
-                                        <td className="num">
-                                            {formatMoney(pred.last_close)}
-                                        </td>
-                                        <td className="num">
-                                            {formatMoney(pred.predicted_close)}
-                                        </td>
+                                                {delta == null
+                                                    ? '—'
+                                                    : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`}
+                                            </td>
+                                        </>
+                                    ) : name === 'garch-modal' &&
+                                      pred.volatility_forecast &&
+                                      pred.volatility_forecast.length > 0 ? (
                                         <td
-                                            className="num"
-                                            style={{
-                                                color:
-                                                    delta == null
-                                                        ? undefined
-                                                        : delta >= 0
-                                                          ? 'var(--up)'
-                                                          : 'var(--down)',
-                                            }}
+                                            colSpan={6}
+                                            style={{ color: 'var(--ink-3)' }}
                                         >
-                                            {delta == null
-                                                ? '—'
-                                                : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`}
+                                            No predice dirección, proyecta
+                                            volatilidad:{' '}
+                                            {pred.volatility_forecast
+                                                .map(
+                                                    (point) =>
+                                                        `${point.volatility_pct}% a ${point.horizon_days}d`,
+                                                )
+                                                .join(' · ')}
                                         </td>
-                                    </>
-                                ) : name === 'garch-modal' &&
-                                  pred.volatility_forecast &&
-                                  pred.volatility_forecast.length > 0 ? (
-                                    <td
-                                        colSpan={6}
-                                        style={{ color: 'var(--ink-3)' }}
-                                    >
-                                        No predice dirección, proyecta
-                                        volatilidad:{' '}
-                                        {pred.volatility_forecast
-                                            .map(
-                                                (point) =>
-                                                    `${point.volatility_pct}% a ${point.horizon_days}d`,
-                                            )
-                                            .join(' · ')}
-                                    </td>
-                                ) : (
-                                    <td
-                                        colSpan={6}
-                                        style={{ color: 'var(--ink-3)' }}
-                                    >
-                                        {pred.reason ?? 'No disponible'}
-                                    </td>
-                                )}
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
+                                    ) : (
+                                        <td
+                                            colSpan={6}
+                                            style={{ color: 'var(--ink-3)' }}
+                                        >
+                                            {pred.reason ?? 'No disponible'}
+                                        </td>
+                                    )}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }
 
