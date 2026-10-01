@@ -27,6 +27,12 @@ export interface MockBackendOptions {
         created_at: string;
     }>;
     trends?: Array<Record<string, unknown>>;
+    comparison?: {
+        symbol: string;
+        as_of: string | null;
+        default_model: string | null;
+        predictions: Record<string, Record<string, unknown>>;
+    };
 }
 
 /**
@@ -84,6 +90,12 @@ export async function mockBackend(page: Page, opts: MockBackendOptions = {}) {
     if (opts.trends) {
         await page.route(`${API}/user/shares/trends`, (route) =>
             route.fulfill({ json: { trends: opts.trends } }),
+        );
+    }
+    if (opts.comparison) {
+        await page.route(
+            `${API}/user/shares/${encodeURIComponent(opts.comparison.symbol)}/trends/compare`,
+            (route) => route.fulfill({ json: opts.comparison }),
         );
     }
     // El P&L es best-effort en Home (fetchPnl atrapa el error y sigue sin esa

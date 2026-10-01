@@ -57,6 +57,43 @@ Given(
     },
 );
 
+Given(
+    '{string} has predictions from multiple models',
+    async function (this: AppWorld, ticker: string) {
+        const prediction = (predictedClose: number, model: string) => ({
+            available: true,
+            signal: 'alza',
+            condition: 'neutral',
+            rsi: 55,
+            horizon_days: 5,
+            last_close: 100,
+            predicted_close: predictedClose,
+            as_of: '2026-09-01',
+            model,
+            model_version: `${model}-e2e`,
+            backtest: null,
+            volatility_forecast: null,
+            reason: null,
+        });
+
+        await this.page.route(
+            `http://localhost:8000/user/shares/${ticker}/trends/compare`,
+            (route) =>
+                route.fulfill({
+                    json: {
+                        symbol: ticker,
+                        as_of: '2026-09-01',
+                        default_model: 'xgboost',
+                        predictions: {
+                            xgboost: prediction(110, 'xgboost'),
+                            lstm: prediction(120, 'lstm'),
+                        },
+                    },
+                }),
+        );
+    },
+);
+
 When(
     'I add {int} units of {string} to my portfolio',
     async function (this: AppWorld, quantity: number, ticker: string) {
@@ -69,6 +106,13 @@ When(
         await stockRow.getByRole('checkbox').check();
         await stockRow.locator('.builder-qty').fill(String(quantity));
         await this.page.getByRole('button', { name: 'Guardar cartera' }).click();
+    },
+);
+
+When(
+    'I open stock {string} from my portfolio',
+    async function (this: AppWorld, ticker: string) {
+        await this.page.getByRole('cell', { name: ticker }).click();
     },
 );
 
@@ -96,5 +140,33 @@ Then(
             'aria-label',
             `Distribución de acciones de mi cartera por cantidad: ${tickers.join(', ')}`,
         );
+    },
+);
+
+Then(
+    'I should be on the stock page for {string}',
+    async function (this: AppWorld, ticker: string) {
+        await expect(
+            this.page.getByRole('heading', { name: ticker, level: 1 }),
+        ).toBeVisible();
+    },
+);
+
+Then(
+    'I should see predictions from {int} models',
+    async function (this: AppWorld, count: number) {
+        const comparisonPanel = this.page
+            .locator('.panel')
+            .filter({
+                has: this.page.getByRole('heading', {
+                    name: 'Qué predice cada modelo',
+                }),
+            });
+        const predictionRows = comparisonPanel.locator('tbody tr');
+        await expect(predictionRows).toHaveCount(count);
+        await expect(predictionRows.nth(0)).toContainText('xgboost');
+        await expect(predictionRows.nth(0)).toContainText('$110');
+        await expect(predictionRows.nth(1)).toContainText('lstm');
+        await expect(predictionRows.nth(1)).toContainText('$120');
     },
 );
