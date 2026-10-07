@@ -377,6 +377,34 @@ table.watchlist tbody tr {
 table.watchlist tbody tr:hover {
     background: var(--paper-3);
 }
+table.watchlist tbody tr.model-comparison-selected {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+table.watchlist .model-comparison-select {
+    width: 1%;
+    padding-right: 8px;
+    padding-left: 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+table.watchlist .model-comparison-select input {
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+table.watchlist .model-comparison-select input:disabled {
+    cursor: not-allowed;
+}
+.model-comparison-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.model-comparison-actions p {
+    color: var(--ink-3);
+    font-size: 13px;
+}
 table.watchlist tbody tr:last-child td {
     border-bottom: none;
 }

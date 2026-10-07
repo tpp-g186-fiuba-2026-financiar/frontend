@@ -82,7 +82,7 @@ function withPreferredModel(
             last_close: p.last_close,
             predicted_close: p.predicted_close,
             as_of: p.as_of,
-            model: p.model ?? model,
+            model,
             reason: p.reason,
         } as ShareTrend,
     };
@@ -182,14 +182,25 @@ function Home() {
     const [compareByTicker, setCompareByTicker] = useState<
         Record<string, CompareTrendsResponse>
     >({});
+    const [appliedModels, setAppliedModels] = useState<
+        Record<string, ShareTrend>
+    >({});
     // `rows` guarda lo que devuelve el endpoint principal; `displayRows` es lo
     // que se muestra, con el modelo preferido del usuario aplicado encima.
     const displayRows = useMemo(
         () =>
-            rows.map((row) =>
-                withPreferredModel(row, modelConfig, compareByTicker),
-            ),
-        [rows, modelConfig, compareByTicker],
+            rows.map((row) => {
+                const preferred = withPreferredModel(
+                    row,
+                    modelConfig,
+                    compareByTicker,
+                );
+                const appliedTrend = appliedModels[row.ticker];
+                return appliedTrend
+                    ? { ...preferred, trend: appliedTrend }
+                    : preferred;
+            }),
+        [rows, modelConfig, compareByTicker, appliedModels],
     );
     const portfolioChartRef = useRef<HTMLCanvasElement>(null);
     const selectedRow =
@@ -468,6 +479,12 @@ function Home() {
                 <TickerDetail
                     row={selectedRow}
                     onBack={() => setSelectedTicker(null)}
+                    onModelApplied={(trend) =>
+                        setAppliedModels((current) => ({
+                            ...current,
+                            [trend.ticker]: trend,
+                        }))
+                    }
                 />
             ) : (
                 <>
@@ -536,7 +553,7 @@ function Home() {
                                 <div className="watchlist-panel mb-4">
                                     <TopBar
                                         trendsUnavailable={trendsUnavailable}
-                                        rows={rows}
+                                        rows={displayRows}
                                         upCount={upCount}
                                         withTrend={withTrend}
                                         refreshingTrends={refreshingTrends}
@@ -545,7 +562,7 @@ function Home() {
                                         setIsBuilderOpen={setIsBuilderOpen}
                                     />
                                     <SharesTable
-                                        rows={rows}
+                                        rows={displayRows}
                                         setSelectedTicker={setSelectedTicker}
                                     />
                                 </div>

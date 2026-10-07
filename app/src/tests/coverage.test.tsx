@@ -28,6 +28,9 @@ vi.mock('../api/userShares/getUserSharesBalanceEndpoint', () => ({
 vi.mock('../api/userShares/getShareHistoryEndpoint', () => ({
     getShareHistoryEndpoint: vi.fn(),
 }));
+vi.mock('../api/user/postUserPreference', () => ({
+    postUserPreferenceEndpoint: vi.fn(),
+}));
 vi.mock('../api/userShares/getShareTrendCompareEndpoint', () => ({
     getShareTrendCompareEndpoint: vi.fn(),
 }));
@@ -68,6 +71,7 @@ import { getUserSharesTrendsEndpoint } from '../api/userShares/getUserSharesTren
 import { getUserSharesPnlEndpoint } from '../api/userShares/getUserSharesPnlEndpoint';
 import { getUserSharesBalanceEndpoint } from '../api/userShares/getUserSharesBalanceEndpoint';
 import { getShareHistoryEndpoint } from '../api/userShares/getShareHistoryEndpoint';
+import { postUserPreferenceEndpoint } from '../api/user/postUserPreference';
 import { getShareTrendCompareEndpoint } from '../api/userShares/getShareTrendCompareEndpoint';
 import { getPortfolioRecomendacionEndpoint } from '../api/userShares/getPortfolioRecomendacionEndpoint';
 import { addUserShareEndpoint } from '../api/userShares/postUserShare';
@@ -208,6 +212,7 @@ function setupHappyApis() {
         ticker: 'GGAL',
         prices: history,
     });
+    mocked(postUserPreferenceEndpoint).mockResolvedValue(undefined);
     mocked(shareInfoEndpoint).mockResolvedValue({
         cached: true,
         data: [],
@@ -221,9 +226,9 @@ function setupHappyApis() {
     mocked(getShareTrendCompareEndpoint).mockResolvedValue({
         symbol: 'GGAL',
         as_of: '2026-09-16',
-        default_model: 'lstm',
+        default_model: 'lstm-modal',
         predictions: {
-            lstm: {
+            'lstm-modal': {
                 available: true,
                 signal: 'alza',
                 condition: 'neutral',
@@ -232,7 +237,7 @@ function setupHappyApis() {
                 last_close: 120,
                 predicted_close: 132,
                 as_of: '2026-09-16',
-                model: 'lstm',
+                model: 'svm-modal',
                 model_version: 'v1',
                 backtest: {
                     directional_accuracy: 0.7,
@@ -245,6 +250,21 @@ function setupHappyApis() {
                     avg_strategy_return_pct: 4.5,
                     avg_buy_hold_return_pct: 1.2,
                 },
+                volatility_forecast: null,
+                reason: null,
+            },
+            'transformer-modal': {
+                available: true,
+                signal: 'baja',
+                condition: 'neutral',
+                rsi: 45,
+                horizon_days: 5,
+                last_close: 120,
+                predicted_close: 114,
+                as_of: '2026-09-16',
+                model: 'transformer-modal',
+                model_version: 'v1',
+                backtest: null,
                 volatility_forecast: null,
                 reason: null,
             },
@@ -387,16 +407,51 @@ test('Home exposes fallback states and retry actions', async () => {
 
 test('TickerDetail renders projections, results and range controls', async () => {
     const onBack = vi.fn();
+    const onModelApplied = vi.fn();
     render(
         <TickerDetail
-            row={{ ticker: 'GGAL', quantity: 10, trend }}
+            row={{
+                ticker: 'GGAL',
+                quantity: 10,
+                trend: { ...trend, model: 'transformer-modal' },
+            }}
             onBack={onBack}
+            onModelApplied={onModelApplied}
         />,
     );
     expect(
         await screen.findByText('Grupo Financiero Galicia S.A.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Banco argentino de prueba')).toBeInTheDocument();
+    const defaultModelRadio = screen.getByRole('radio', {
+        name: 'Seleccionar modelo transformer-modal',
+    });
+    const otherModelRadio = screen.getByRole('radio', {
+        name: 'Seleccionar modelo lstm-modal',
+    });
+    expect(
+        screen.queryByRole('radio', { name: 'Seleccionar modelo garch' }),
+    ).not.toBeInTheDocument();
+    expect(defaultModelRadio).toBeChecked();
+    fireEvent.click(otherModelRadio);
+    expect(otherModelRadio).toBeChecked();
+    expect(defaultModelRadio).not.toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Usar este modelo' }));
+    expect(postUserPreferenceEndpoint).toHaveBeenCalledWith({
+        model: 'lstm-modal',
+        stock: 'GGAL',
+    });
+    expect(
+        await screen.findByRole('status'),
+    ).toHaveTextContent('Modelo guardado para este ticker.');
+    expect(screen.getAllByText('lstm-modal')).toHaveLength(2);
+    expect(onModelApplied).toHaveBeenCalledWith(
+        expect.objectContaining({
+            ticker: 'GGAL',
+            model: 'lstm-modal',
+            predicted_close: 132,
+        }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '1M' }));
     fireEvent.click(screen.getByRole('tab', { name: /Resultados/ }));
     expect(
