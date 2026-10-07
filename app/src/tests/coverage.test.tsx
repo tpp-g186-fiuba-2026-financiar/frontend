@@ -358,6 +358,8 @@ test('Home loads a rich portfolio and opens the ticker detail', async () => {
     expect(
         await screen.findByText(/Qué predice cada modelo/),
     ).toBeInTheDocument();
+    expect(screen.getByText('Horizonte')).toBeInTheDocument();
+    expect(screen.getAllByText('5 ruedas').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: /volver/i }));
     await waitFor(() =>
