@@ -8,6 +8,7 @@ export type TrendModelName =
     | 'garch-modal'
     | 'lstm'
     | 'lstm-modal'
+    | 'macro'
     | 'svm-modal'
     | 'transformer'
     | 'xgboost'

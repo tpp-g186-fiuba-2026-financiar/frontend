@@ -599,9 +599,9 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                             <th>
                                 Señal
                                 <InfoTip label="Señal">
-                                    Alza o baja si el modelo proyecta un retorno
-                                    mayor a ±1% al horizonte indicado; si no,
-                                    neutral.
+                                    Alza o baja cuando el modelo tiene
+                                    suficiente convicción; si no, neutral. Cada
+                                    modelo usa su propio criterio y horizonte.
                                 </InfoTip>
                             </th>
                             <th>
@@ -619,6 +619,7 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                     sobreventa (≤30) o neutral.
                                 </InfoTip>
                             </th>
+                            <th>Horizonte</th>
                             <th>Último cierre</th>
                             <th>Proyectado</th>
                             <th>Δ%</th>
@@ -660,6 +661,11 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                             </td>
                                             <td>{pred.condition ?? '—'}</td>
                                             <td className="num">
+                                                {pred.horizon_days != null
+                                                    ? `${pred.horizon_days} ruedas`
+                                                    : '—'}
+                                            </td>
+                                            <td className="num">
                                                 {formatMoney(pred.last_close)}
                                             </td>
                                             <td className="num">
@@ -687,7 +693,7 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                       pred.volatility_forecast &&
                                       pred.volatility_forecast.length > 0 ? (
                                         <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             style={{ color: 'var(--ink-3)' }}
                                         >
                                             No predice dirección, proyecta
@@ -701,7 +707,7 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                         </td>
                                     ) : (
                                         <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             style={{ color: 'var(--ink-3)' }}
                                         >
                                             {pred.reason ?? 'No disponible'}
