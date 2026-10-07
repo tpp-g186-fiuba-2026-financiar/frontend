@@ -5,6 +5,7 @@ const apiURL = import.meta.env.VITE_SERVER_API + ENDPOINT;
 export type TrendModelName =
     | 'arima'
     | 'arima-modal'
+    | 'garch-ann-modal'
     | 'garch-modal'
     | 'lstm'
     | 'lstm-modal'
