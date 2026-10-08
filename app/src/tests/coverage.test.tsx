@@ -25,6 +25,9 @@ vi.mock('../api/userShares/getUserSharesPnlEndpoint', () => ({
 vi.mock('../api/userShares/getUserSharesBalanceEndpoint', () => ({
     getUserSharesBalanceEndpoint: vi.fn(),
 }));
+vi.mock('../api/userShares/getUserSharesBalanceHistoryEndpoint', () => ({
+    getUserSharesBalanceHistoryEndpoint: vi.fn().mockResolvedValue([]),
+}));
 vi.mock('../api/userShares/getShareHistoryEndpoint', () => ({
     getShareHistoryEndpoint: vi.fn(),
 }));

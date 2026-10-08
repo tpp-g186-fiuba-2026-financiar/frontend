@@ -30,6 +30,7 @@ import {
 import TopBar from '../Layout/Topbar';
 import SharesTable from '../SharesTable/SharesTable';
 import ChartBar from '../Portfolio/ChartBar';
+import BalanceHistoryChart from '../Portfolio/BalanceHistoryChart';
 
 interface PortfolioRow {
     ticker: string;
@@ -171,6 +172,9 @@ function Home() {
     const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
     const [showEstimacion, setShowEstimacion] = useState<boolean>(false);
     const [refreshingTrends, setRefreshingTrends] = useState(false);
+    // Se incrementa en cada recarga de la cartera para que el grafico de
+    // evolucion vuelva a pedir el historial.
+    const [portfolioVersion, setPortfolioVersion] = useState(0);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     // Solo para aplicar el tema guardado al cargar Home; cambiarlo se hace
     // desde /ajustes.
@@ -213,6 +217,7 @@ function Home() {
             const { byTicker: pnlByTicker, portfolio: pnlSummary } =
                 await fetchPnl();
             setPortfolioPnl(pnlSummary);
+            setPortfolioVersion((version) => version + 1);
             setRows((currentRows) => {
                 const currentTrends = currentRows
                     .map((row) => row.trend)
@@ -566,6 +571,9 @@ function Home() {
                                         setSelectedTicker={setSelectedTicker}
                                     />
                                 </div>
+                                <BalanceHistoryChart
+                                    reloadKey={portfolioVersion}
+                                />
                                 <ChartBar
                                     ref={portfolioChartRef}
                                     tickers={rows.map(({ ticker }) => ticker)}
