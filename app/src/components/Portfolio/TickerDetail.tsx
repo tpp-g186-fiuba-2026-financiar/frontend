@@ -403,7 +403,10 @@ function ModelComparisonTable({
         error: boolean;
     } | null>(null);
     const activeModelRef = useRef(activeModel);
-    activeModelRef.current = activeModel;
+
+    useEffect(() => {
+        activeModelRef.current = activeModel;
+    }, [activeModel]);
 
     useEffect(() => {
         let cancelled = false;
