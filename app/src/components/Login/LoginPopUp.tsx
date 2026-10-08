@@ -7,6 +7,7 @@ import {
     type LoginResponse,
 } from '../../api/login';
 import LoginErrorSpan from './LoginErrorSpan';
+import { resendVerificationEndpoint } from '../../api/verifyEmail';
 import { useState } from 'react';
 
 interface LoginPopUpProps {
@@ -22,6 +23,11 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
     const [response, setResponse] = useState<LoginResponse | null>(null);
     const [totpCode, setTotpCode] = useState<string>('');
     const twoFactorRequired = response?.two_factor_required === true;
+    const emailVerificationRequired =
+        response?.email_verification_required === true;
+    const [resendStatus, setResendStatus] = useState<'idle' | 'sent' | 'error'>(
+        'idle',
+    );
     const canSubmit =
         email != '' && password != '' && (!twoFactorRequired || totpCode != '');
     const closePopUp = () => {
@@ -29,7 +35,13 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
         setPassword('');
         setTotpCode('');
         setResponse(null);
+        setResendStatus('idle');
         onClose();
+    };
+
+    const handleResend = async () => {
+        const ok = await resendVerificationEndpoint(email.trim());
+        setResendStatus(ok ? 'sent' : 'error');
     };
 
     const handleSubmit = async () => {
@@ -99,7 +111,37 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
                                     </span>
                                 </div>
                             )}
-                            <LoginErrorSpan response={response} />
+                            {emailVerificationRequired ? (
+                                <div className="mb-3">
+                                    <span className="form-text text-danger d-block">
+                                        Tenés que verificar tu mail antes de
+                                        ingresar. Revisá tu bandeja de entrada
+                                        (y la carpeta de spam).
+                                    </span>
+                                    {resendStatus === 'sent' ? (
+                                        <span className="form-text d-block">
+                                            Te enviamos un nuevo mail de
+                                            verificación.
+                                        </span>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className="btn btn-link p-0"
+                                            onClick={handleResend}
+                                        >
+                                            Reenviar mail de verificación
+                                        </button>
+                                    )}
+                                    {resendStatus === 'error' && (
+                                        <span className="form-text text-danger d-block">
+                                            No se pudo reenviar el mail. Intentá
+                                            de nuevo más tarde.
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                <LoginErrorSpan response={response} />
+                            )}
                         </div>
                         <div className="modal-footer">
                             <button

@@ -623,6 +623,11 @@ describe('authentication popups', () => {
         });
         fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
         await waitFor(() => expect(registerEndpoint).toHaveBeenCalled());
+        expect(
+            await screen.findByText(/Te enviamos un mail a/),
+        ).toBeInTheDocument();
+        expect(onClose).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Entendido' }));
         expect(onClose).toHaveBeenCalled();
     });
 });
