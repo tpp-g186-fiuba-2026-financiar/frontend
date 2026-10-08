@@ -715,9 +715,7 @@ function ModelComparisonTable({
                             return (
                                 <tr
                                     key={name}
-                                    className={
-                                        `${pred.available ? rowClass(pred.signal) : 'is-flat'}${selectedModel === name ? ' model-comparison-selected' : ''}`
-                                    }
+                                    className={`${pred.available ? rowClass(pred.signal) : 'is-flat'}${selectedModel === name ? ' model-comparison-selected' : ''}`}
                                     style={{ cursor: 'default' }}
                                 >
                                     <td className="t-ticker">{name}</td>
@@ -856,9 +854,7 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
         trend: ShareTrend;
     } | null>(null);
     const trend =
-        appliedTrend?.ticker === row.ticker
-            ? appliedTrend.trend
-            : row.trend;
+        appliedTrend?.ticker === row.ticker ? appliedTrend.trend : row.trend;
     const handleModelApplied = (model: string, prediction: ModelPrediction) => {
         const appliedTrend: ShareTrend = {
             ticker: row.ticker,

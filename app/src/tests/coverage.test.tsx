@@ -441,9 +441,9 @@ test('TickerDetail renders projections, results and range controls', async () =>
         model: 'lstm-modal',
         stock: 'GGAL',
     });
-    expect(
-        await screen.findByRole('status'),
-    ).toHaveTextContent('Modelo guardado para este ticker.');
+    expect(await screen.findByRole('status')).toHaveTextContent(
+        'Modelo guardado para este ticker.',
+    );
     expect(screen.getAllByText('lstm-modal')).toHaveLength(2);
     expect(onModelApplied).toHaveBeenCalledWith(
         expect.objectContaining({
