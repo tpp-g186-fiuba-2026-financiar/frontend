@@ -5,6 +5,7 @@ import {
     type CompareTrendsResponse,
     type ModelPrediction,
 } from '../../api/userShares/getShareTrendCompareEndpoint';
+import { postUserPreferenceEndpoint } from '../../api/user/postUserPreference';
 import {
     MIN_RELIABLE_CASES,
     pickClearWinner,
@@ -32,6 +33,7 @@ interface PortfolioRow {
 interface TickerDetailProps {
     row: PortfolioRow;
     onBack: () => void;
+    onModelApplied: (trend: ShareTrend) => void;
 }
 
 function pillClass(signal: string | null | undefined): string {
@@ -287,7 +289,16 @@ function rowClass(signal: string | null | undefined): string {
 interface ModelComparisonTableProps {
     ticker: string;
     view: 'prediction' | 'results';
+    activeModel: string | null;
+    onModelApplied: (model: string, prediction: ModelPrediction) => void;
 }
+
+const SELECTABLE_MODELS = new Set([
+    'arima-modal',
+    'lstm-modal',
+    'transformer-modal',
+    'xgboost-modal',
+]);
 
 function ResultsChart({
     series,
@@ -377,18 +388,50 @@ function ResultsChart({
     return <canvas className="results-chart" ref={canvasRef} />;
 }
 
-function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
+function ModelComparisonTable({
+    ticker,
+    view,
+    activeModel,
+    onModelApplied,
+}: ModelComparisonTableProps) {
     const [compare, setCompare] = useState<CompareTrendsResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [selectedModel, setSelectedModel] = useState<string | null>(null);
+    const [savingModel, setSavingModel] = useState(false);
+    const [saveResult, setSaveResult] = useState<{
+        message: string;
+        error: boolean;
+    } | null>(null);
+    const activeModelRef = useRef(activeModel);
+
+    useEffect(() => {
+        activeModelRef.current = activeModel;
+    }, [activeModel]);
 
     useEffect(() => {
         let cancelled = false;
         const load = async () => {
             setCompare(null);
             setError(null);
+            setSaveResult(null);
+            setSelectedModel(null);
             try {
                 const res = await getShareTrendCompareEndpoint(ticker);
-                if (!cancelled) setCompare(res);
+                if (!cancelled) {
+                    setCompare(res);
+                    const preferredModel = activeModelRef.current;
+                    setSelectedModel(
+                        preferredModel &&
+                            SELECTABLE_MODELS.has(preferredModel) &&
+                            res.predictions[preferredModel]?.available
+                            ? preferredModel
+                            : res.default_model &&
+                                SELECTABLE_MODELS.has(res.default_model) &&
+                                res.predictions[res.default_model]?.available
+                              ? res.default_model
+                              : null,
+                    );
+                }
             } catch {
                 if (!cancelled)
                     setError(
@@ -401,6 +444,37 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
             cancelled = true;
         };
     }, [ticker]);
+
+    const useSelectedModel = async () => {
+        if (
+            !selectedModel ||
+            !compare?.predictions[selectedModel]?.available ||
+            savingModel
+        ) {
+            return;
+        }
+        const prediction = compare.predictions[selectedModel];
+        setSavingModel(true);
+        setSaveResult(null);
+        try {
+            await postUserPreferenceEndpoint({
+                model: selectedModel,
+                stock: ticker,
+            });
+            onModelApplied(selectedModel, prediction);
+            setSaveResult({
+                message: 'Modelo guardado para este ticker.',
+                error: false,
+            });
+        } catch {
+            setSaveResult({
+                message: 'No se pudo guardar el modelo seleccionado.',
+                error: true,
+            });
+        } finally {
+            setSavingModel(false);
+        }
+    };
 
     if (error) {
         return (
@@ -623,6 +697,9 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                             <th>Último cierre</th>
                             <th>Proyectado</th>
                             <th>Δ%</th>
+                            <th className="model-comparison-select">
+                                Seleccionar
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -639,11 +716,7 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                             return (
                                 <tr
                                     key={name}
-                                    className={
-                                        pred.available
-                                            ? rowClass(pred.signal)
-                                            : 'is-flat'
-                                    }
+                                    className={`${pred.available ? rowClass(pred.signal) : 'is-flat'}${selectedModel === name ? ' model-comparison-selected' : ''}`}
                                     style={{ cursor: 'default' }}
                                 >
                                     <td className="t-ticker">{name}</td>
@@ -713,17 +786,54 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                             {pred.reason ?? 'No disponible'}
                                         </td>
                                     )}
+                                    <td className="model-comparison-select">
+                                        {SELECTABLE_MODELS.has(name) && (
+                                            <input
+                                                type="radio"
+                                                name={`model-selection-${ticker}`}
+                                                aria-label={`Seleccionar modelo ${name}`}
+                                                checked={selectedModel === name}
+                                                disabled={!pred.available}
+                                                onChange={() => {
+                                                    setSelectedModel(name);
+                                                    setSaveResult(null);
+                                                }}
+                                            />
+                                        )}
+                                    </td>
                                 </tr>
                             );
                         })}
                     </tbody>
                 </table>
+                <div className="model-comparison-actions mt-3">
+                    {saveResult && (
+                        <p
+                            className="mb-0"
+                            role={saveResult.error ? 'alert' : 'status'}
+                        >
+                            {saveResult.message}
+                        </p>
+                    )}
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={
+                            savingModel ||
+                            !selectedModel ||
+                            !compare.predictions[selectedModel]?.available
+                        }
+                        onClick={useSelectedModel}
+                    >
+                        {savingModel ? 'Guardando…' : 'Usar este modelo'}
+                    </button>
+                </div>
             </div>
         </>
     );
 }
 
-function TickerDetail({ row, onBack }: TickerDetailProps) {
+function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
     const [historyResult, setHistoryResult] = useState<{
         ticker: string;
         prices: HistoricalPricePoint[];
@@ -745,7 +855,30 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
         ticker: string;
         sector: string;
     } | null>(null);
-    const trend = row.trend;
+    const [appliedTrend, setAppliedTrend] = useState<{
+        ticker: string;
+        trend: ShareTrend;
+    } | null>(null);
+    const trend =
+        appliedTrend?.ticker === row.ticker ? appliedTrend.trend : row.trend;
+    const handleModelApplied = (model: string, prediction: ModelPrediction) => {
+        const appliedTrend: ShareTrend = {
+            ticker: row.ticker,
+            available: prediction.available,
+            signal: prediction.signal,
+            condition: prediction.condition,
+            rsi: prediction.rsi,
+            horizon_days: prediction.horizon_days,
+            last_close: prediction.last_close,
+            predicted_close: prediction.predicted_close,
+            as_of: prediction.as_of,
+            model,
+            model_version: prediction.model_version,
+            reason: prediction.reason,
+        };
+        setAppliedTrend({ ticker: row.ticker, trend: appliedTrend });
+        onModelApplied(appliedTrend);
+    };
     const historyLoaded = historyResult?.ticker === row.ticker;
     const history = historyLoaded ? historyResult.prices : [];
     const historyError = historyLoaded && historyResult.error;
@@ -1071,7 +1204,12 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                     Resultados
                 </button>
             </div>
-            <ModelComparisonTable ticker={row.ticker} view={insightsTab} />
+            <ModelComparisonTable
+                ticker={row.ticker}
+                view={insightsTab}
+                activeModel={trend?.model ?? null}
+                onModelApplied={handleModelApplied}
+            />
 
             {tickerInfo && !tickerInfoError && (
                 <div className="panel mt-3">
