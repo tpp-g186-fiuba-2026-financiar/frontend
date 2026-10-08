@@ -12,6 +12,7 @@ export interface LoginResponse {
     message: string;
     token: string;
     two_factor_required?: boolean;
+    email_verification_required?: boolean;
 }
 
 export async function loginEndpoint(
