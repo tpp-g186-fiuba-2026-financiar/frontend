@@ -268,6 +268,24 @@ function setupHappyApis() {
                 volatility_forecast: null,
                 reason: null,
             },
+            'garch-modal': {
+                available: false,
+                signal: null,
+                condition: null,
+                rsi: null,
+                horizon_days: null,
+                last_close: null,
+                predicted_close: null,
+                as_of: null,
+                model: 'garch-modal',
+                model_version: 'v1',
+                backtest: null,
+                volatility_forecast: [
+                    { horizon_days: 1, volatility_pct: 3 },
+                    { horizon_days: 2, volatility_pct: 4 },
+                ],
+                reason: 'GARCH proyecta volatilidad, no una direccion',
+            },
             garch: {
                 available: true,
                 signal: null,
@@ -425,6 +443,11 @@ test('TickerDetail renders projections, results and range controls', async () =>
         await screen.findByText('Grupo Financiero Galicia S.A.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Banco argentino de prueba')).toBeInTheDocument();
+    expect(
+        await screen.findByText(/Volatilidad GARCH \(2\s+ruedas\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/±5\.0%/)).toBeInTheDocument();
+    expect(screen.getByText(/La banda sombreada/)).toBeInTheDocument();
     const defaultModelRadio = screen.getByRole('radio', {
         name: 'Seleccionar modelo transformer-modal',
     });
