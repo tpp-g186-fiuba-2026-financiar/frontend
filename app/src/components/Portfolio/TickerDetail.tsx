@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ShareTrend } from '../../api/userShares/getUserSharesTrendsEndpoint';
 import {
     getShareTrendCompareEndpoint,
@@ -21,6 +21,7 @@ import {
     type TickerInfo,
 } from '../../api/shares/getShareInfo';
 import { shareSectorEndpoint } from '../../api/shares/getShareSector';
+import { buildGarchBand, type GarchBandPoint } from '../../utils/garchBand';
 import InfoTip from '../Layout/InfoTip';
 import { ConsensusCard } from './ConsensusCard';
 
@@ -63,12 +64,15 @@ function formatMoney(value: number | null | undefined): string {
     return `$${value.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`;
 }
 
+const EMPTY_BAND: GarchBandPoint[] = [];
+
 interface ProjectionChartProps {
     history: HistoricalPricePoint[];
     lastClose: number | null;
     predictedClose: number | null;
     horizonDays: number | null;
     signal: string | null | undefined;
+    volatilityBand?: GarchBandPoint[];
 }
 
 function ProjectionChart({
@@ -77,6 +81,7 @@ function ProjectionChart({
     predictedClose,
     horizonDays,
     signal,
+    volatilityBand = EMPTY_BAND,
 }: ProjectionChartProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -99,10 +104,12 @@ function ProjectionChart({
         const historyColor = cs.getPropertyValue('--ink').trim();
         const labelColor = cs.getPropertyValue('--ink-3').trim();
         const line = cs.getPropertyValue('--line').trim();
+        const bandColor = cs.getPropertyValue('--warn').trim();
 
         const values = history.map((point) => point.close);
         if (lastClose != null) values.push(lastClose);
         if (predictedClose != null) values.push(predictedClose);
+        volatilityBand.forEach((point) => values.push(point.low, point.high));
         if (values.length === 0) return;
         const rawMin = Math.min(...values);
         const rawMax = Math.max(...values);
@@ -122,6 +129,16 @@ function ProjectionChart({
         const y = (v: number) => plotBottom - ((v - min) / span) * plotHeight;
         const pointX = (index: number) =>
             x0 + (index / Math.max(1, history.length - 1)) * (historyEndX - x0);
+        // El tramo proyectado cubre el horizonte mas largo entre el modelo de
+        // tendencia y la banda de GARCH, asi ambos quedan en la misma escala.
+        const bandDays = volatilityBand.length
+            ? volatilityBand[volatilityBand.length - 1].days
+            : 0;
+        const projectionDays = Math.max(horizonDays ?? 0, bandDays) || 1;
+        const dayX = (days: number) =>
+            historyEndX + (x1 - historyEndX) * (days / projectionDays);
+        const trendEndX =
+            horizonDays && bandDays > horizonDays ? dayX(horizonDays) : x1;
         const formatAxisPrice = (value: number) =>
             `$${value.toLocaleString('es-AR', {
                 maximumFractionDigits: value >= 100 ? 0 : 2,
@@ -186,8 +203,43 @@ function ProjectionChart({
             ctx.stroke();
             ctx.setLineDash([]);
 
+            if (volatilityBand.length > 1) {
+                // Se dibuja hasta donde llego la animacion
+                const visible = volatilityBand.filter(
+                    (point) => point.days <= bandDays * t,
+                );
+                if (visible.length > 1) {
+                    ctx.beginPath();
+                    visible.forEach((point, index) => {
+                        if (index === 0)
+                            ctx.moveTo(dayX(point.days), y(point.high));
+                        else ctx.lineTo(dayX(point.days), y(point.high));
+                    });
+                    [...visible].reverse().forEach((point) => {
+                        ctx.lineTo(dayX(point.days), y(point.low));
+                    });
+                    ctx.closePath();
+                    ctx.fillStyle = bandColor + '2e';
+                    ctx.fill();
+
+                    ctx.strokeStyle = bandColor;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([2, 3]);
+                    (['high', 'low'] as const).forEach((key) => {
+                        ctx.beginPath();
+                        visible.forEach((point, index) => {
+                            if (index === 0)
+                                ctx.moveTo(dayX(point.days), y(point[key]));
+                            else ctx.lineTo(dayX(point.days), y(point[key]));
+                        });
+                        ctx.stroke();
+                    });
+                    ctx.setLineDash([]);
+                }
+            }
+
             if (lastClose != null && predictedClose != null) {
-                const curX = historyEndX + (x1 - historyEndX) * t;
+                const curX = historyEndX + (trendEndX - historyEndX) * t;
                 const curY =
                     y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
 
@@ -247,9 +299,12 @@ function ProjectionChart({
             if (predictedClose != null) {
                 ctx.fillText(
                     horizonDays ? `+${horizonDays} ruedas` : 'proyección',
-                    x1 + 12,
+                    trendEndX + 12,
                     h - 5,
                 );
+            }
+            if (bandDays > 0 && (predictedClose == null || trendEndX < x1)) {
+                ctx.fillText(`+${bandDays} ruedas`, x1 + 12, h - 5);
             }
         }
 
@@ -270,7 +325,14 @@ function ProjectionChart({
         }
         raf = requestAnimationFrame(frame);
         return () => cancelAnimationFrame(raf);
-    }, [history, lastClose, predictedClose, horizonDays, signal]);
+    }, [
+        history,
+        lastClose,
+        predictedClose,
+        horizonDays,
+        signal,
+        volatilityBand,
+    ]);
 
     return <canvas ref={canvasRef} width={560} height={170} />;
 }
@@ -291,6 +353,7 @@ interface ModelComparisonTableProps {
     view: 'prediction' | 'results';
     activeModel: string | null;
     onModelApplied: (model: string, prediction: ModelPrediction) => void;
+    onCompareLoaded?: (compare: CompareTrendsResponse) => void;
 }
 
 const SELECTABLE_MODELS = new Set([
@@ -393,6 +456,7 @@ function ModelComparisonTable({
     view,
     activeModel,
     onModelApplied,
+    onCompareLoaded,
 }: ModelComparisonTableProps) {
     const [compare, setCompare] = useState<CompareTrendsResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -403,10 +467,15 @@ function ModelComparisonTable({
         error: boolean;
     } | null>(null);
     const activeModelRef = useRef(activeModel);
+    const onCompareLoadedRef = useRef(onCompareLoaded);
 
     useEffect(() => {
         activeModelRef.current = activeModel;
     }, [activeModel]);
+
+    useEffect(() => {
+        onCompareLoadedRef.current = onCompareLoaded;
+    }, [onCompareLoaded]);
 
     useEffect(() => {
         let cancelled = false;
@@ -419,6 +488,7 @@ function ModelComparisonTable({
                 const res = await getShareTrendCompareEndpoint(ticker);
                 if (!cancelled) {
                     setCompare(res);
+                    onCompareLoadedRef.current?.(res);
                     const preferredModel = activeModelRef.current;
                     setSelectedModel(
                         preferredModel &&
@@ -859,6 +929,10 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
         ticker: string;
         trend: ShareTrend;
     } | null>(null);
+    const [garchResult, setGarchResult] = useState<{
+        ticker: string;
+        prediction: ModelPrediction | null;
+    } | null>(null);
     const trend =
         appliedTrend?.ticker === row.ticker ? appliedTrend.trend : row.trend;
     const handleModelApplied = (model: string, prediction: ModelPrediction) => {
@@ -878,6 +952,12 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
         };
         setAppliedTrend({ ticker: row.ticker, trend: appliedTrend });
         onModelApplied(appliedTrend);
+    };
+    const handleCompareLoaded = (compare: CompareTrendsResponse) => {
+        setGarchResult({
+            ticker: row.ticker,
+            prediction: compare.predictions['garch-modal'] ?? null,
+        });
     };
     const historyLoaded = historyResult?.ticker === row.ticker;
     const history = historyLoaded ? historyResult.prices : [];
@@ -968,6 +1048,21 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
             cancelled = true;
         };
     }, [row.ticker]);
+
+    const garchForecast =
+        garchResult?.ticker === row.ticker
+            ? (garchResult.prediction?.volatility_forecast ?? null)
+            : null;
+    const bandBasePrice =
+        trend?.last_close ?? history[history.length - 1]?.close ?? null;
+    const volatilityBand = useMemo(
+        () => buildGarchBand(bandBasePrice, garchForecast),
+        [bandBasePrice, garchForecast],
+    );
+    const bandEnd =
+        volatilityBand.length > 0
+            ? volatilityBand[volatilityBand.length - 1]
+            : null;
 
     const rangeDays = { '1M': 31, '3M': 93, '6M': 186, '1A': 366 } as const;
     const filteredHistory =
@@ -1079,6 +1174,7 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                             predictedClose={trend?.predicted_close ?? null}
                             horizonDays={trend?.horizon_days ?? null}
                             signal={trend?.signal}
+                            volatilityBand={volatilityBand}
                         />
                         {historyError && (
                             <p style={{ color: 'var(--ink-3)', margin: 0 }}>
@@ -1163,6 +1259,31 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                                     un modelo entrenado para este ticker.
                                 </p>
                             )}
+                            {bandEnd && (
+                                <div className="kv">
+                                    <span>
+                                        Volatilidad GARCH ({bandEnd.days}{' '}
+                                        ruedas)
+                                        <InfoTip label="Volatilidad GARCH">
+                                            GARCH no predice si la acción sube o
+                                            baja: estima cuánto puede moverse.
+                                            Con ±1σ, el precio debería quedar
+                                            dentro de la banda sombreada en ~2
+                                            de cada 3 casos.
+                                        </InfoTip>
+                                    </span>
+                                    <span>±{bandEnd.sigmaPct.toFixed(1)}%</span>
+                                </div>
+                            )}
+                            {bandEnd && (
+                                <div className="kv">
+                                    <span>Rango esperado</span>
+                                    <span>
+                                        {formatMoney(bandEnd.low)} –{' '}
+                                        {formatMoney(bandEnd.high)}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className="roadmap-box">
                             La línea continua muestra los cierres históricos.
@@ -1171,6 +1292,13 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                                     {' '}
                                     La línea punteada muestra la proyección del
                                     modelo {trend?.model ?? 'lstm'}.
+                                </>
+                            )}
+                            {bandEnd && (
+                                <>
+                                    {' '}
+                                    La banda sombreada es el rango de movimiento
+                                    esperado según GARCH (±1σ).
                                 </>
                             )}
                         </div>
@@ -1209,6 +1337,7 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                 view={insightsTab}
                 activeModel={trend?.model ?? null}
                 onModelApplied={handleModelApplied}
+                onCompareLoaded={handleCompareLoaded}
             />
 
             {tickerInfo && !tickerInfoError && (
