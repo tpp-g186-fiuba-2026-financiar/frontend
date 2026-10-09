@@ -5,6 +5,7 @@ import RetakeRiskQuizSetting from '../settings/RetakeRiskQuizSetting';
 import TwoFactorSetting from '../settings/TwoFactorSetting';
 import NotificationsSettings from '../settings/NotificationsSettings';
 import DefaultModelsSettings from '../settings/DefaultModelsSettings';
+import RiskProfileGate from '../settings/RiskProfileGate';
 // import DefaultModelsSettings from '../settings/DefaultModelsSettings';
 
 // Pagina de ajustes con ruta propia (/ajustes) en vez de modal. La idea es
@@ -15,6 +16,9 @@ type SettingsTab = 'general' | 'notificaciones' | 'modelos predeterminados';
 function Settings() {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+    // Al rehacer el perfil vencido se remonta la seccion para que recargue
+    // lo que el back habia rechazado.
+    const [profileVersion, setProfileVersion] = useState(0);
 
     return (
         <div className="container py-4">
@@ -80,11 +84,16 @@ function Settings() {
                     </>
                 )}
 
-                {activeTab === 'notificaciones' && <NotificationsSettings />}
+                {activeTab === 'notificaciones' && (
+                    <NotificationsSettings key={profileVersion} />
+                )}
                 {activeTab === 'modelos predeterminados' && (
-                    <DefaultModelsSettings />
+                    <DefaultModelsSettings key={profileVersion} />
                 )}
             </div>
+            <RiskProfileGate
+                onCompleted={() => setProfileVersion((version) => version + 1)}
+            />
         </div>
     );
 }

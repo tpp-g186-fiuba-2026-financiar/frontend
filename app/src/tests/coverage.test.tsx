@@ -415,6 +415,52 @@ test('Home loads a rich portfolio and opens the ticker detail', async () => {
     );
 });
 
+test('Home asks to redo an expired risk profile and reloads the portfolio', async () => {
+    mocked(getUserEndpoint).mockResolvedValueOnce({
+        id: 7,
+        email: 'ana@example.com',
+        full_name: 'Ana Pérez',
+        risk_profile: 'moderate',
+        has_to_redo_risk_profile: true,
+        is_active: true,
+        two_factor_enabled: false,
+        created_at: '2026-01-01',
+    });
+    render(
+        <MemoryRouter>
+            <Home />
+        </MemoryRouter>,
+    );
+
+    expect(
+        await screen.findByText('Tu perfil de inversor venció'),
+    ).toBeInTheDocument();
+    const sharesCalls = mocked(getUserSharesEndpoint).mock.calls.length;
+    for (let index = 0; index < 9; index += 1) {
+        const options = within(screen.getByRole('dialog'))
+            .getAllByRole('button')
+            .filter((button) =>
+                button.className.includes('btn-outline-secondary'),
+            );
+        fireEvent.click(options[0]);
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: index === 8 ? 'Finalizar' : 'Siguiente',
+            }),
+        );
+    }
+
+    await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(updateProfileEndpoint).toHaveBeenCalledWith({
+        risk_profile: 'conservative',
+    });
+    expect(mocked(getUserSharesEndpoint).mock.calls.length).toBeGreaterThan(
+        sharesCalls,
+    );
+});
+
 test('Home exposes fallback states and retry actions', async () => {
     mocked(getUserEndpoint).mockRejectedValueOnce(new Error('offline'));
     mocked(getUserSharesEndpoint).mockRejectedValueOnce(new Error('offline'));
