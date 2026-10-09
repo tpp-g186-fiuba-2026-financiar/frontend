@@ -28,6 +28,7 @@ import {
     type DefaultModelsConfig,
 } from '../../utils/defaultModels';
 import TopBar from '../Layout/Topbar';
+import RiskProfileGate from '../settings/RiskProfileGate';
 import SharesTable from '../SharesTable/SharesTable';
 import ChartBar from '../Portfolio/ChartBar';
 import BalanceHistoryChart from '../Portfolio/BalanceHistoryChart';
@@ -599,6 +600,28 @@ function Home() {
                 isOpen={isBuilderOpen}
                 onClose={() => setIsBuilderOpen(false)}
                 onSaved={loadPortfolio}
+            />
+
+            <RiskProfileGate
+                reason={
+                    user.has_to_redo_risk_profile
+                        ? user.risk_profile
+                            ? 'expired'
+                            : 'required'
+                        : null
+                }
+                onCompleted={(risk) => {
+                    setUser((current) =>
+                        current
+                            ? {
+                                  ...current,
+                                  risk_profile: risk,
+                                  has_to_redo_risk_profile: false,
+                              }
+                            : current,
+                    );
+                    loadPortfolio();
+                }}
             />
         </div>
     );

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Questionnaire from '../SignUp/InversionQuestionarie';
 import { questions } from '../SignUp/questions';
 import {
@@ -8,11 +9,28 @@ import {
 interface QuestionariePopUpProps {
     isOpen: boolean;
     onClose: () => void;
+    title?: string;
+    description?: string;
+    // Sin cerrar con la X ni el fondo: el usuario tiene que completarlo.
+    dismissible?: boolean;
+    onCompleted?: (risk: string) => void;
 }
 
-function QuestionariePopUp({ isOpen, onClose }: QuestionariePopUpProps) {
+function QuestionariePopUp({
+    isOpen,
+    onClose,
+    title = 'Editar perfil de riesgo',
+    description,
+    dismissible = true,
+    onCompleted,
+}: QuestionariePopUpProps) {
+    const [error, setError] = useState<string | null>(null);
     const closePopUp = () => {
+        setError(null);
         onClose();
+    };
+    const dismiss = () => {
+        if (dismissible) closePopUp();
     };
     const getRiskType = (answers: Record<number, number>): string => {
         const totalScore = Object.values(answers).reduce(
@@ -33,10 +51,17 @@ function QuestionariePopUp({ isOpen, onClose }: QuestionariePopUpProps) {
     };
     const handleSubmit = async (risk: string) => {
         const request: ProfileUpdateRequest = { risk_profile: risk };
-        const r = await updateProfileEndpoint(request);
-        if (r && r.code == 200) {
-            closePopUp();
+        try {
+            const r = await updateProfileEndpoint(request);
+            if (r && r.code == 200) {
+                onCompleted?.(risk);
+                closePopUp();
+                return;
+            }
+        } catch {
+            // se informa abajo
         }
+        setError('No se pudo guardar tu perfil. Intentá de nuevo.');
     };
     return (
         <>
@@ -44,7 +69,7 @@ function QuestionariePopUp({ isOpen, onClose }: QuestionariePopUpProps) {
                 <>
                     <div
                         className="modal-backdrop fade show"
-                        onClick={closePopUp}
+                        onClick={dismiss}
                     />
 
                     <div className="modal d-block fade show" role="dialog">
@@ -54,15 +79,28 @@ function QuestionariePopUp({ isOpen, onClose }: QuestionariePopUpProps) {
                         >
                             <div className="modal-content">
                                 <div className="modal-header">
-                                    <h5 className="modal-title">
-                                        Editar perfil de riesgo
-                                    </h5>
-                                    <button
-                                        className="btn-close"
-                                        onClick={closePopUp}
-                                        aria-label="Close"
-                                    />
+                                    <h5 className="modal-title">{title}</h5>
+                                    {dismissible && (
+                                        <button
+                                            className="btn-close"
+                                            onClick={closePopUp}
+                                            aria-label="Close"
+                                        />
+                                    )}
                                 </div>
+                                {description && (
+                                    <p className="px-3 pt-3 mb-0">
+                                        {description}
+                                    </p>
+                                )}
+                                {error && (
+                                    <div
+                                        className="alert alert-danger mx-3 mt-3 mb-0"
+                                        role="alert"
+                                    >
+                                        {error}
+                                    </div>
+                                )}
                                 <Questionnaire
                                     questions={questions}
                                     finishQuestionarie={finishQuestionarie}
