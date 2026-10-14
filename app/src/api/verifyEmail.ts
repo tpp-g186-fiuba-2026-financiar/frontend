@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { backendMessage } from './errors';
 
 const BASE = import.meta.env.VITE_SERVER_API + '/verify-email';
 
@@ -16,10 +17,10 @@ export async function verifyEmailEndpoint(
         const res = await axios.post(BASE, { token });
         return { ok: true, message: res.data.message };
     } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.data?.message) {
-            return { ok: false, message: err.response.data.message };
-        }
-        return { ok: false, message: 'No se pudo verificar la cuenta' };
+        return {
+            ok: false,
+            message: backendMessage(err) ?? 'No se pudo verificar la cuenta',
+        };
     }
 }
 

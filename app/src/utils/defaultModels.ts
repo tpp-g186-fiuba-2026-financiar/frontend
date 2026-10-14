@@ -1,3 +1,5 @@
+import logger from './logger';
+
 type ModelPrediction = {
     available: boolean;
     backtest?: {
@@ -39,7 +41,10 @@ export async function loadConfig(): Promise<DefaultModelsConfig> {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         return raw ? { ...DEFAULT_CONFIG, ...JSON.parse(raw) } : DEFAULT_CONFIG;
-    } catch {
+    } catch (err) {
+        logger.warn('Config de modelos guardada invalida, se usa la default', {
+            mensaje: err instanceof Error ? err.message : String(err),
+        });
         return DEFAULT_CONFIG;
     }
 }

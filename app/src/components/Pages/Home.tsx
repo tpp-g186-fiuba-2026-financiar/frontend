@@ -28,6 +28,8 @@ import {
     type DefaultModelsConfig,
 } from '../../utils/defaultModels';
 import TopBar from '../Layout/Topbar';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 import RiskProfileGate from '../settings/RiskProfileGate';
 import SharesTable from '../SharesTable/SharesTable';
 import ChartBar from '../Portfolio/ChartBar';
@@ -128,7 +130,8 @@ async function fetchPnl(): Promise<{
             byTicker[item.ticker] = item;
         });
         return { byTicker, portfolio: res.portfolio };
-    } catch {
+    } catch (err) {
+        logger.warn('Cartera sin P&L', describeError(err));
         return { byTicker: null, portfolio: null };
     }
 }
@@ -147,7 +150,8 @@ async function fetchPortfolio(): Promise<{
             trendsUnavailable: false,
             portfolioPnl,
         };
-    } catch {
+    } catch (err) {
+        logger.warn('Cartera sin tendencias', describeError(err));
         // Las acciones se guardaron igual: mostrarlas sin señal en vez de
         // vaciar toda la pantalla si los modelos no responden.
         return {
@@ -233,10 +237,12 @@ function Home() {
                     buildRows(sharesRes.shares, trendsRes.trends, pnlByTicker),
                 );
                 setTrendsUnavailable(false);
-            } catch {
+            } catch (err) {
+                logger.warn('Cartera sin tendencias', describeError(err));
                 setTrendsUnavailable(true);
             }
-        } catch {
+        } catch (err) {
+            logger.error('No se pudo recargar la cartera', describeError(err));
             setPortfolioError('No se pudo cargar tu cartera.');
         }
     };
@@ -251,7 +257,11 @@ function Home() {
                     setUser(u);
                     setUserError(false);
                 }
-            } catch {
+            } catch (err) {
+                logger.warn(
+                    'No se pudo cargar el usuario, se reintenta en 10s',
+                    describeError(err),
+                );
                 if (!cancelled) {
                     setUserError(true);
                     retryTimer = window.setTimeout(
@@ -269,7 +279,11 @@ function Home() {
                 setTrendsUnavailable(trendsUnavailable);
                 setPortfolioPnl(portfolioPnl);
                 setPortfolioError(null);
-            } catch {
+            } catch (err) {
+                logger.error(
+                    'No se pudo cargar la cartera',
+                    describeError(err),
+                );
                 setPortfolioError('No se pudo cargar tu cartera.');
             } finally {
                 setLoadingPortfolio(false);
@@ -308,7 +322,11 @@ function Home() {
                     })),
                 );
                 setTrendsUnavailable(false);
-            } catch {
+            } catch (err) {
+                logger.warn(
+                    'Fallo la reconsulta de tendencias',
+                    describeError(err),
+                );
                 setTrendsUnavailable(true);
             } finally {
                 setRefreshingTrends(false);

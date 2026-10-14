@@ -6,6 +6,8 @@ import {
     setupTwoFactorEndpoint,
     type TwoFactorSetupResponse,
 } from '../../api/user/twoFactor';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 type Mode = 'idle' | 'enrolling' | 'disabling';
 
@@ -19,7 +21,13 @@ function TwoFactorSetting() {
     useEffect(() => {
         getUserEndpoint()
             .then((user) => setEnabled(user.two_factor_enabled))
-            .catch(() => setEnabled(false));
+            .catch((err) => {
+                logger.warn(
+                    'No se pudo leer el estado de 2FA, se asume desactivado',
+                    describeError(err),
+                );
+                setEnabled(false);
+            });
     }, []);
 
     const reset = () => {
@@ -34,7 +42,11 @@ function TwoFactorSetting() {
         try {
             setSetup(await setupTwoFactorEndpoint());
             setMode('enrolling');
-        } catch {
+        } catch (err) {
+            logger.error(
+                'No se pudo iniciar la configuracion de 2FA',
+                describeError(err),
+            );
             setError('No se pudo iniciar la configuración');
         }
     };

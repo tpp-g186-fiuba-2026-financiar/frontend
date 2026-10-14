@@ -11,6 +11,9 @@ export default defineConfig({
         env: {
             VITE_SERVER_API: 'http://localhost:8000',
             VITE_DATA_COLLECTOR_API: 'http://localhost:3000',
+            // Los tests provocan errores a proposito: el logger no ensucia la
+            // salida. Los que verifican logs suben el nivel con setLogLevel.
+            VITE_LOG_LEVEL: 'silent',
         },
         // e2e/ son specs de Playwright, no de Vitest -- mismo patron *.spec.ts.
         exclude: [...configDefaults.exclude, './e2e/**'],

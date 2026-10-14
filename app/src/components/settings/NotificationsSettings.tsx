@@ -9,6 +9,8 @@ import {
     subscribeToTickerAlertEndpoint,
     unsubscribeFromTickerAlertEndpoint,
 } from '../../api/subscriptions/tickerAlertSubscription';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 interface TickerRow {
     ticker: string;
@@ -42,7 +44,11 @@ function NotificationsSettings() {
                     })),
                 );
                 setPortfolioSubscribed(subscriptions.portfolio);
-            } catch {
+            } catch (err) {
+                logger.error(
+                    'No se pudieron cargar las notificaciones',
+                    describeError(err),
+                );
                 if (!cancelled)
                     setError('No pudimos cargar tus notificaciones.');
             } finally {
@@ -67,7 +73,11 @@ function NotificationsSettings() {
             } else {
                 await unsubscribeFromPortfolioAlertsEndpoint();
             }
-        } catch {
+        } catch (err) {
+            logger.error('No se pudo actualizar la alerta de cartera', {
+                suscribir: next,
+                ...describeError(err),
+            });
             setPortfolioSubscribed(!next);
             setError('No pudimos actualizar la subscripción general.');
         } finally {
@@ -94,7 +104,12 @@ function NotificationsSettings() {
             } else {
                 await unsubscribeFromTickerAlertEndpoint(ticker);
             }
-        } catch {
+        } catch (err) {
+            logger.error('No se pudo actualizar la alerta del ticker', {
+                ticker,
+                suscribir: next,
+                ...describeError(err),
+            });
             setRows((prev) =>
                 prev.map((r) =>
                     r.ticker === ticker ? { ...r, subscribed: !next } : r,

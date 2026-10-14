@@ -1,5 +1,5 @@
-import axios from 'axios';
 import authAxios from '../authFetch';
+import { backendMessage } from '../errors';
 
 const BASE = import.meta.env.VITE_SERVER_API + '/user/2fa';
 
@@ -25,10 +25,10 @@ async function postCode(
         const res = await authAxios.post(`${BASE}/${action}`, { code });
         return { ok: true, message: res.data.message };
     } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.data?.message) {
-            return { ok: false, message: err.response.data.message };
-        }
-        return { ok: false, message: 'No se pudo completar la operación' };
+        return {
+            ok: false,
+            message: backendMessage(err) ?? 'No se pudo completar la operación',
+        };
     }
 }
 

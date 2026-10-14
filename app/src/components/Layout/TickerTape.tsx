@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getAllSharesEndpoint } from '../../api/shares/getAllSharesEndpoint';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 export interface TapeItem {
     ticker: string;
@@ -27,7 +29,13 @@ function TickerTape({ items }: TickerTapeProps) {
         if (items) return;
         getAllSharesEndpoint()
             .then((res) => setPublicTickers(res.shares.map((s) => s.ticker)))
-            .catch(() => setPublicTickers([]));
+            .catch((err) => {
+                logger.warn(
+                    'Cinta de tickers vacia: fallo la lista publica',
+                    describeError(err),
+                );
+                setPublicTickers([]);
+            });
     }, [items]);
 
     const list: TapeItem[] =

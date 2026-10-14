@@ -24,6 +24,8 @@ import { shareSectorEndpoint } from '../../api/shares/getShareSector';
 import { buildGarchBand, type GarchBandPoint } from '../../utils/garchBand';
 import InfoTip from '../Layout/InfoTip';
 import { ConsensusCard } from './ConsensusCard';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 interface PortfolioRow {
     ticker: string;
@@ -502,7 +504,11 @@ function ModelComparisonTable({
                               : null,
                     );
                 }
-            } catch {
+            } catch (err) {
+                logger.warn('No se pudo comparar los modelos', {
+                    ticker,
+                    ...describeError(err),
+                });
                 if (!cancelled)
                     setError(
                         'No se pudo comparar los modelos para este ticker.',
@@ -536,7 +542,12 @@ function ModelComparisonTable({
                 message: 'Modelo guardado para este ticker.',
                 error: false,
             });
-        } catch {
+        } catch (err) {
+            logger.error('No se pudo guardar el modelo seleccionado', {
+                ticker,
+                modelo: selectedModel,
+                ...describeError(err),
+            });
             setSaveResult({
                 message: 'No se pudo guardar el modelo seleccionado.',
                 error: true,
@@ -986,7 +997,11 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                     });
                 }
             })
-            .catch(() => {
+            .catch((err) => {
+                logger.warn('No se pudo cargar el historico', {
+                    ticker: row.ticker,
+                    ...describeError(err),
+                });
                 if (!cancelled) {
                     setHistoryResult({
                         ticker: row.ticker,
@@ -1012,7 +1027,11 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                     });
                 }
             })
-            .catch(() => {
+            .catch((err) => {
+                logger.warn('No se pudo cargar la info del ticker', {
+                    ticker: row.ticker,
+                    ...describeError(err),
+                });
                 if (!cancelled) {
                     setTickerInfoResult({
                         ticker: row.ticker,
@@ -1043,7 +1062,13 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                     });
                 }
             })
-            .catch(() => undefined);
+            .catch((err) =>
+                // El sector es opcional: sin el, el detalle se muestra igual.
+                logger.debug('Ticker sin sector', {
+                    ticker: row.ticker,
+                    ...describeError(err),
+                }),
+            );
         return () => {
             cancelled = true;
         };

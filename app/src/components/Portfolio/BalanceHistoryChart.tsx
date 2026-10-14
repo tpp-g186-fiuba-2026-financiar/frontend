@@ -10,6 +10,8 @@ import {
     sliceRange,
     type BalanceRange,
 } from '../../utils/balanceHistory';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 interface BalanceHistoryChartProps {
     // Cambia cada vez que se recarga la cartera (p. ej. despues de "Editar mi
@@ -160,7 +162,11 @@ function BalanceHistoryChart({ reloadKey = 0 }: BalanceHistoryChartProps) {
                 setHistory(onlyTradingDays(points));
                 setError(false);
             })
-            .catch(() => {
+            .catch((err) => {
+                logger.warn(
+                    'No se pudo cargar la evolucion del balance',
+                    describeError(err),
+                );
                 if (!cancelled) setError(true);
             });
         return () => {

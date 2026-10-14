@@ -5,6 +5,8 @@ import {
     updateProfileEndpoint,
     type ProfileUpdateRequest,
 } from '../../api/user/updateProfile';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 interface QuestionariePopUpProps {
     isOpen: boolean;
@@ -58,8 +60,14 @@ function QuestionariePopUp({
                 closePopUp();
                 return;
             }
-        } catch {
-            // se informa abajo
+            logger.warn('Respuesta inesperada al guardar el perfil de riesgo', {
+                code: r?.code,
+            });
+        } catch (err) {
+            logger.error(
+                'No se pudo guardar el perfil de riesgo',
+                describeError(err),
+            );
         }
         setError('No se pudo guardar tu perfil. Intentá de nuevo.');
     };

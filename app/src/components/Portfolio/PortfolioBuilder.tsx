@@ -4,6 +4,8 @@ import { getUserSharesEndpoint } from '../../api/userShares/getUserSharesEndpoin
 import { addUserShareEndpoint } from '../../api/userShares/postUserShare';
 import { updateUserShareEndpoint } from '../../api/userShares/putUserShare';
 import { deleteUserShareEndpoint } from '../../api/userShares/deleteUserShare';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 interface Share {
     id: number;
@@ -70,7 +72,13 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                 setEntryPrices(entryPriceMap);
                 setError(null);
             })
-            .catch(() => setError('No se pudo cargar la lista de acciones.'))
+            .catch((err) => {
+                logger.error(
+                    'No se pudo cargar la lista de acciones',
+                    describeError(err),
+                );
+                setError('No se pudo cargar la lista de acciones.');
+            })
             .finally(() => setLoading(false));
     }, [isOpen]);
 
@@ -170,7 +178,8 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
             await Promise.all(ops);
             onSaved();
             closePopUp();
-        } catch {
+        } catch (err) {
+            logger.error('No se pudo guardar la cartera', describeError(err));
             setError('No se pudo guardar la cartera. Probá de nuevo.');
         } finally {
             setSaving(false);
@@ -200,7 +209,8 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
             setSelected({});
             onSaved();
             closePopUp();
-        } catch {
+        } catch (err) {
+            logger.error('No se pudo vaciar la cartera', describeError(err));
             setError('No se pudo vaciar la cartera. Probá de nuevo.');
         } finally {
             setSaving(false);

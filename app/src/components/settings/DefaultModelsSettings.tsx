@@ -10,6 +10,8 @@ import {
     saveConfig,
     type DefaultModelsConfig,
 } from '../../utils/defaultModels';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 type CompareTrendsResponse = Awaited<
     ReturnType<typeof getTrendsCompareEndpoint>
@@ -151,12 +153,21 @@ function DefaultModelsSettings() {
                 const byTicker: Record<string, CompareTrendsResponse> = {};
                 results.forEach((r, i) => {
                     if (r.status === 'fulfilled') byTicker[list[i]] = r.value;
+                    else
+                        logger.warn('No se pudo comparar los modelos', {
+                            ticker: list[i],
+                            ...describeError(r.reason),
+                        });
                 });
 
                 setTickers(list);
                 setData(byTicker);
                 setConfig(saved);
-            } catch {
+            } catch (err) {
+                logger.error(
+                    'No se pudieron cargar los modelos por defecto',
+                    describeError(err),
+                );
                 if (!cancelled) setError('No pudimos cargar los modelos.');
             } finally {
                 if (!cancelled) setLoading(false);
@@ -173,9 +184,13 @@ function DefaultModelsSettings() {
         const next = { ...config, ...patch };
         setConfig(next);
         setError(null);
-        saveConfig(next).catch(() =>
-            setError('No pudimos guardar tu configuración.'),
-        );
+        saveConfig(next).catch((err) => {
+            logger.error(
+                'No se pudo guardar la configuracion de modelos',
+                describeError(err),
+            );
+            setError('No pudimos guardar tu configuración.');
+        });
     }
 
     function toggleExpanded(key: string) {

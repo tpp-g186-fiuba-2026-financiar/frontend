@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getPortfolioRecomendacionEndpoint } from '../../api/userShares/getPortfolioRecomendacionEndpoint';
 import { getUserSharesPnlEndpoint } from '../../api/userShares/getUserSharesPnlEndpoint';
+import { backendMessage, describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 interface PesoRow {
     ticker: string;
@@ -9,19 +11,8 @@ interface PesoRow {
     actual: number | null;
 }
 
-interface ApiErrorResponse {
-    message?: string;
-}
-
-function extractErrorMessage(err: unknown): string {
-    const maybeAxiosError = err as {
-        response?: { data?: ApiErrorResponse };
-    };
-    return (
-        maybeAxiosError.response?.data?.message ??
-        'No se pudo calcular la estimación. Intentá de nuevo en unos minutos.'
-    );
-}
+const DEFAULT_ERROR =
+    'No se pudo calcular la estimación. Intentá de nuevo en unos minutos.';
 
 function sortedRows(
     pesos: Record<string, number>,
@@ -64,15 +55,22 @@ function EstimacionBlackLitterman({ onBack }: EstimacionBlackLittermanProps) {
                                 ? s.weight_percentage / 100
                                 : null;
                     });
-                } catch {
-                    // sin pesos actuales
+                } catch (err) {
+                    logger.warn(
+                        'Sin pesos actuales para la estimacion',
+                        describeError(err),
+                    );
                 }
                 if (!cancelled) {
                     setRows(sortedRows(res.pesos_recomendados, actuales));
                 }
             } catch (err) {
+                logger.warn(
+                    'No se pudo calcular la estimacion Black-Litterman',
+                    describeError(err),
+                );
                 if (!cancelled) {
-                    setError(extractErrorMessage(err));
+                    setError(backendMessage(err) ?? DEFAULT_ERROR);
                 }
             } finally {
                 if (!cancelled) {

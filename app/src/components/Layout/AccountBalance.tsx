@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getUserSharesBalanceEndpoint } from '../../api/userShares/getUserSharesBalanceEndpoint';
+import { describeError } from '../../api/errors';
+import logger from '../../utils/logger';
 
 // Se refresca solo cada tanto para reflejar cambios hechos en "Editar mi
 // cartera" sin necesidad de que el componente padre le avise nada.
@@ -15,7 +17,8 @@ function AccountBalance() {
             try {
                 const res = await getUserSharesBalanceEndpoint();
                 if (!cancelled) setTotalBalance(res.total_current_value);
-            } catch {
+            } catch (err) {
+                logger.warn('No se pudo cargar el balance', describeError(err));
                 if (!cancelled) setTotalBalance(null);
             }
         };
