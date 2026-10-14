@@ -13,6 +13,11 @@ const RISK_PROFILE_ERRORS: Record<string, RiskProfileReason> = {
     RISK_PROFILE_REQUIRED: 'required',
 };
 
+// El back responde 401 en las rutas protegidas solo cuando el JWT falta, es
+// invalido o vencio: se borra el token y se avisa con un evento global para
+// que la pantalla vuelva al inicio (ver RequireAuth).
+export const SESSION_EXPIRED_EVENT = 'financiar:session-expired';
+
 authAxios.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -22,6 +27,10 @@ authAxios.interceptors.request.use((config) => {
 });
 
 authAxios.interceptors.response.use(undefined, (error) => {
+    if (error?.response?.status === 401 && localStorage.getItem('token')) {
+        localStorage.removeItem('token');
+        window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     const reason =
         error?.response?.status === 403
             ? RISK_PROFILE_ERRORS[error.response.data?.error]

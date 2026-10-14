@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ColorModeSetting from '../settings/ColorModeSetting';
 import RetakeRiskQuizSetting from '../settings/RetakeRiskQuizSetting';
 import TwoFactorSetting from '../settings/TwoFactorSetting';
+import ChangePasswordSetting from '../settings/ChangePasswordSetting';
 import NotificationsSettings from '../settings/NotificationsSettings';
 import DefaultModelsSettings from '../settings/DefaultModelsSettings';
 import RiskProfileGate from '../settings/RiskProfileGate';
@@ -80,6 +81,7 @@ function Settings() {
                     <>
                         <ColorModeSetting />
                         <RetakeRiskQuizSetting />
+                        <ChangePasswordSetting />
                         <TwoFactorSetting />
                     </>
                 )}

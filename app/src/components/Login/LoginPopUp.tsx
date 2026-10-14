@@ -8,14 +8,27 @@ import {
 } from '../../api/login';
 import LoginErrorSpan from './LoginErrorSpan';
 import { resendVerificationEndpoint } from '../../api/verifyEmail';
+import { forgotPasswordEndpoint } from '../../api/passwordReset';
 import { useState } from 'react';
+
+// 'forgot' muestra el formulario para pedir el mail de reseteo de contrasena.
+export type LoginMode = 'login' | 'forgot';
 
 interface LoginPopUpProps {
     isOpen: boolean;
     onClose: () => void;
+    initialMode?: LoginMode;
+    // Aviso que se muestra arriba del formulario (p. ej. despues de cambiar
+    // la contrasena).
+    notice?: string;
 }
 
-function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
+function LoginPopUp({
+    isOpen,
+    onClose,
+    initialMode = 'login',
+    notice,
+}: LoginPopUpProps) {
     // const [response, setResponse] = useState<RegisterResponse | null>(null);
     const navigate = useNavigate();
     const [email, setEmail] = useState<string>('');
@@ -28,15 +41,42 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
     const [resendStatus, setResendStatus] = useState<'idle' | 'sent' | 'error'>(
         'idle',
     );
+    const [mode, setMode] = useState<LoginMode>(initialMode);
+    const [noticeVisible, setNoticeVisible] = useState<boolean>(!!notice);
+    const [forgotStatus, setForgotStatus] = useState<
+        'idle' | 'sending' | 'sent' | 'error'
+    >('idle');
     const canSubmit =
         email != '' && password != '' && (!twoFactorRequired || totpCode != '');
+    const canRequestReset =
+        email.trim() != '' &&
+        forgotStatus !== 'sending' &&
+        forgotStatus !== 'sent';
     const closePopUp = () => {
         setEmail('');
         setPassword('');
         setTotpCode('');
         setResponse(null);
         setResendStatus('idle');
+        setMode('login');
+        setNoticeVisible(false);
+        setForgotStatus('idle');
         onClose();
+    };
+
+    const switchMode = (next: LoginMode) => {
+        setMode(next);
+        setResponse(null);
+        setPassword('');
+        setTotpCode('');
+        setNoticeVisible(false);
+        setForgotStatus('idle');
+    };
+
+    const handleForgot = async () => {
+        setForgotStatus('sending');
+        const ok = await forgotPasswordEndpoint(email.trim());
+        setForgotStatus(ok ? 'sent' : 'error');
     };
 
     const handleResend = async () => {
@@ -71,93 +111,152 @@ function LoginPopUp({ isOpen, onClose }: LoginPopUpProps) {
                 >
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">Ingresar</h5>
+                            <h5 className="modal-title">
+                                {mode === 'forgot'
+                                    ? 'Recuperar contraseña'
+                                    : 'Ingresar'}
+                            </h5>
                             <button
                                 className="btn-close"
                                 onClick={closePopUp}
                                 aria-label="Close"
                             />
                         </div>
-                        <div className="modal-body">
-                            <EmailInput field={email} setField={setEmail} />
-                            <PasswordInput
-                                field={password}
-                                setField={setPassword}
-                            />
-                            {twoFactorRequired && (
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="totp-code"
-                                        className="form-label"
-                                    >
-                                        Código de verificación
-                                    </label>
-                                    <input
-                                        id="totp-code"
-                                        className="form-control"
-                                        type="text"
-                                        inputMode="numeric"
-                                        autoComplete="one-time-code"
-                                        maxLength={6}
-                                        placeholder="123456"
-                                        value={totpCode}
-                                        onChange={(e) =>
-                                            setTotpCode(e.target.value)
-                                        }
-                                    />
-                                    <span className="form-text">
-                                        Ingresá el código de 6 dígitos de tu app
-                                        autenticadora.
+                        {mode === 'forgot' ? (
+                            <div className="modal-body">
+                                <p className="form-text">
+                                    Ingresá el mail de tu cuenta y te enviamos
+                                    un link para elegir una nueva contraseña.
+                                </p>
+                                <EmailInput field={email} setField={setEmail} />
+                                {forgotStatus === 'sent' && (
+                                    <span className="form-text d-block">
+                                        Si hay una cuenta con ese mail, te
+                                        enviamos un link para restablecer la
+                                        contraseña. Revisá tu bandeja de entrada
+                                        (y la carpeta de spam); el link vence en
+                                        1 hora.
                                     </span>
-                                </div>
-                            )}
-                            {emailVerificationRequired ? (
-                                <div className="mb-3">
+                                )}
+                                {forgotStatus === 'error' && (
                                     <span className="form-text text-danger d-block">
-                                        Tenés que verificar tu mail antes de
-                                        ingresar. Revisá tu bandeja de entrada
-                                        (y la carpeta de spam).
+                                        No se pudo enviar el mail. Intentá de
+                                        nuevo más tarde.
                                     </span>
-                                    {resendStatus === 'sent' ? (
-                                        <span className="form-text d-block">
-                                            Te enviamos un nuevo mail de
-                                            verificación.
-                                        </span>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            className="btn btn-link p-0"
-                                            onClick={handleResend}
+                                )}
+                            </div>
+                        ) : (
+                            <div className="modal-body">
+                                {noticeVisible && (
+                                    <div className="alert alert-info py-2">
+                                        {notice}
+                                    </div>
+                                )}
+                                <EmailInput field={email} setField={setEmail} />
+                                <PasswordInput
+                                    field={password}
+                                    setField={setPassword}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-link p-0 mb-2"
+                                    onClick={() => switchMode('forgot')}
+                                >
+                                    ¿Olvidaste tu contraseña?
+                                </button>
+                                {twoFactorRequired && (
+                                    <div className="mb-3">
+                                        <label
+                                            htmlFor="totp-code"
+                                            className="form-label"
                                         >
-                                            Reenviar mail de verificación
-                                        </button>
-                                    )}
-                                    {resendStatus === 'error' && (
-                                        <span className="form-text text-danger d-block">
-                                            No se pudo reenviar el mail. Intentá
-                                            de nuevo más tarde.
+                                            Código de verificación
+                                        </label>
+                                        <input
+                                            id="totp-code"
+                                            className="form-control"
+                                            type="text"
+                                            inputMode="numeric"
+                                            autoComplete="one-time-code"
+                                            maxLength={6}
+                                            placeholder="123456"
+                                            value={totpCode}
+                                            onChange={(e) =>
+                                                setTotpCode(e.target.value)
+                                            }
+                                        />
+                                        <span className="form-text">
+                                            Ingresá el código de 6 dígitos de tu
+                                            app autenticadora.
                                         </span>
-                                    )}
-                                </div>
-                            ) : (
-                                <LoginErrorSpan response={response} />
-                            )}
-                        </div>
-                        <div className="modal-footer">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={closePopUp}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleSubmit}
-                                disabled={!canSubmit}
-                            >
-                                Ingresar
-                            </button>
-                        </div>
+                                    </div>
+                                )}
+                                {emailVerificationRequired ? (
+                                    <div className="mb-3">
+                                        <span className="form-text text-danger d-block">
+                                            Tenés que verificar tu mail antes de
+                                            ingresar. Revisá tu bandeja de
+                                            entrada (y la carpeta de spam).
+                                        </span>
+                                        {resendStatus === 'sent' ? (
+                                            <span className="form-text d-block">
+                                                Te enviamos un nuevo mail de
+                                                verificación.
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="btn btn-link p-0"
+                                                onClick={handleResend}
+                                            >
+                                                Reenviar mail de verificación
+                                            </button>
+                                        )}
+                                        {resendStatus === 'error' && (
+                                            <span className="form-text text-danger d-block">
+                                                No se pudo reenviar el mail.
+                                                Intentá de nuevo más tarde.
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <LoginErrorSpan response={response} />
+                                )}
+                            </div>
+                        )}
+                        {mode === 'forgot' ? (
+                            <div className="modal-footer">
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => switchMode('login')}
+                                >
+                                    Volver
+                                </button>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleForgot}
+                                    disabled={!canRequestReset}
+                                >
+                                    Enviar link
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="modal-footer">
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={closePopUp}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleSubmit}
+                                    disabled={!canSubmit}
+                                >
+                                    Ingresar
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
