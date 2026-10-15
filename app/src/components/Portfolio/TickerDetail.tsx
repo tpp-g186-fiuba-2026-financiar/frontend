@@ -23,6 +23,8 @@ import {
 import { shareSectorEndpoint } from '../../api/shares/getShareSector';
 import { buildGarchBand, type GarchBandPoint } from '../../utils/garchBand';
 import InfoTip from '../Layout/InfoTip';
+import { bestModelOf } from '../../utils/defaultModels';
+import { projectionBand, signalLabel } from '../../utils/modelInsights';
 import { ConsensusCard } from './ConsensusCard';
 
 interface PortfolioRow {
@@ -110,6 +112,12 @@ function ProjectionChart({
         if (lastClose != null) values.push(lastClose);
         if (predictedClose != null) values.push(predictedClose);
         volatilityBand.forEach((point) => values.push(point.low, point.high));
+        // Sin banda GARCH-ANN, abanico de respaldo con la volatilidad histórica.
+        const band =
+            predictedClose != null && volatilityBand.length === 0
+                ? projectionBand(history, predictedClose, horizonDays)
+                : null;
+        if (band) values.push(band.low, band.high);
         if (values.length === 0) return;
         const rawMin = Math.min(...values);
         const rawMax = Math.max(...values);
@@ -242,6 +250,24 @@ function ProjectionChart({
                 const curX = historyEndX + (trendEndX - historyEndX) * t;
                 const curY =
                     y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
+
+                if (band) {
+                    // Rango típico: abanico que se abre desde el último cierre
+                    // hasta ±1 desvío de la volatilidad reciente al horizonte.
+                    ctx.beginPath();
+                    ctx.moveTo(historyEndX, y(lastClose));
+                    ctx.lineTo(
+                        curX,
+                        y(lastClose) + (y(band.high) - y(lastClose)) * t,
+                    );
+                    ctx.lineTo(
+                        curX,
+                        y(lastClose) + (y(band.low) - y(lastClose)) * t,
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = projectionColor + '26';
+                    ctx.fill();
+                }
 
                 ctx.beginPath();
                 ctx.moveTo(historyEndX, y(lastClose));
@@ -568,6 +594,8 @@ function ModelComparisonTable({
         );
     }
 
+    // Mejor modelo de ESTA acción según nuestras métricas (el predeterminado).
+    const defaultModel = bestModelOf(compare);
     const entries = Object.entries(compare.predictions) as [
         string,
         ModelPrediction,
@@ -789,7 +817,17 @@ function ModelComparisonTable({
                                     className={`${pred.available ? rowClass(pred.signal) : 'is-flat'}${selectedModel === name ? ' model-comparison-selected' : ''}`}
                                     style={{ cursor: 'default' }}
                                 >
-                                    <td className="t-ticker">{name}</td>
+                                    <td className="t-ticker">
+                                        {name}
+                                        {name === defaultModel && (
+                                            <span
+                                                className="tag-default"
+                                                title="El de mejor accuracy según el backtest de esta acción"
+                                            >
+                                                Predeterminado
+                                            </span>
+                                        )}
+                                    </td>
                                     {pred.available ? (
                                         <>
                                             <td>
@@ -832,15 +870,19 @@ function ModelComparisonTable({
                                                     : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`}
                                             </td>
                                         </>
-                                    ) : name === 'garch-modal' &&
+                                    ) : (name === 'garch-modal' ||
+                                          name === 'garch-ann-modal') &&
                                       pred.volatility_forecast &&
                                       pred.volatility_forecast.length > 0 ? (
                                         <td
                                             colSpan={7}
                                             style={{ color: 'var(--ink-3)' }}
                                         >
-                                            No predice dirección, proyecta
-                                            volatilidad:{' '}
+                                            No predice dirección, proyecta{' '}
+                                            {name === 'garch-ann-modal'
+                                                ? 'el movimiento esperado'
+                                                : 'volatilidad'}
+                                            :{' '}
                                             {pred.volatility_forecast
                                                 .map(
                                                     (point) =>
@@ -1089,7 +1131,10 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                             <span
                                 className={`pill ${pillClass(trend?.signal)}`}
                             >
-                                {trend?.signal ?? 'neutral'}
+                                {signalLabel(
+                                    trend?.signal,
+                                    trend?.horizon_days,
+                                )}
                             </span>
                         ) : (
                             <span className="pill pill-neutral">Sin datos</span>
@@ -1176,6 +1221,22 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                             signal={trend?.signal}
                             volatilityBand={volatilityBand}
                         />
+                        {available &&
+                            trend?.predicted_close != null &&
+                            volatilityBand.length === 0 && (
+                                <p
+                                    className="mb-0"
+                                    style={{
+                                        color: 'var(--ink-3)',
+                                        fontSize: '12px',
+                                    }}
+                                >
+                                    El abanico sombreado es el rango típico del
+                                    precio al final del horizonte, según la
+                                    volatilidad de los últimos 60 días. No es
+                                    una probabilidad de acierto.
+                                </p>
+                            )}
                         {historyError && (
                             <p style={{ color: 'var(--ink-3)', margin: 0 }}>
                                 No se pudo cargar el histórico; se muestra sólo

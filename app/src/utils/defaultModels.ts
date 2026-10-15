@@ -2,6 +2,7 @@ type ModelPrediction = {
     available: boolean;
     backtest?: {
         directional_accuracy?: number | null;
+        observations?: number | null;
     } | null;
 };
 
@@ -63,17 +64,37 @@ export function fmtPct(v: number | null): string {
     return `${(v <= 1 ? v * 100 : v).toFixed(1)}%`;
 }
 
+// Casos "virtuales" al 50% que se le suman a cada accuracy: con pocas
+// observaciones el número se acerca al azar, así un 90% sobre 30 casos no le
+// gana a un 65% sobre 500 solo por tener suerte. Mismo criterio que usa el
+// backend para elegir `default_model`.
+const ACCURACY_PRIOR_CASES = 50;
+
+export function shrunkAccuracy(p: ModelPrediction): number | null {
+    const acc = getAccuracy(p);
+    if (acc == null) return null;
+    const value = acc <= 1 ? acc : acc / 100;
+    const n = p.backtest?.observations;
+    if (n == null || n <= 0) return value;
+    return 0.5 + ((value - 0.5) * n) / (n + ACCURACY_PRIOR_CASES);
+}
+
+/**
+ * Mejor modelo de UNA acción según nuestras métricas: la accuracy direccional
+ * de su backtest, ajustada por cantidad de casos. Cada ticker puede tener un
+ * ganador distinto.
+ */
 export function bestModelOf(
     data: CompareTrendsResponse | undefined,
 ): string | null {
     if (!data) return null;
     let best: string | null = null;
-    let bestAcc = -Infinity;
+    let bestScore = -Infinity;
     for (const [key, p] of Object.entries(data.predictions)) {
-        const acc = getAccuracy(p);
-        if (acc != null && acc > bestAcc) {
+        const score = shrunkAccuracy(p);
+        if (score != null && score > bestScore) {
             best = key;
-            bestAcc = acc;
+            bestScore = score;
         }
     }
     if (best) return best;

@@ -5,10 +5,12 @@ const apiURL = import.meta.env.VITE_SERVER_API + ENDPOINT;
 export type TrendModelName =
     | 'arima'
     | 'arima-modal'
+    | 'garch-ann-modal'
     | 'garch-modal'
     | 'lstm'
     | 'lstm-modal'
     | 'macro'
+    | 'contexto'
     | 'svm-modal'
     | 'transformer'
     | 'xgboost'
@@ -59,6 +61,8 @@ export interface TrendPrediction {
     ticker?: string;
     source?: string;
     confidence?: number;
+    probability_up?: number;
+    probability_down?: number;
     expected_return?: number;
     backtest?: TrendBacktest;
     // Solo en garch

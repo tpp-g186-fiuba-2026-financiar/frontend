@@ -7,7 +7,7 @@ interface ChartBarProps {
 
 function ChartBar({ ref, tickers }: ChartBarProps) {
     return (
-        <div className="panel portfolio-chart-panel mb-4">
+        <div className="panel portfolio-chart-panel mb-4 reveal">
             <h2 className="portfolio-chart-title">
                 Distribución de mi cartera
             </h2>
