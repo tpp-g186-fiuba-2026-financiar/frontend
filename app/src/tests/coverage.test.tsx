@@ -34,6 +34,9 @@ vi.mock('../api/userShares/getShareHistoryEndpoint', () => ({
 vi.mock('../api/user/postUserPreference', () => ({
     postUserPreferenceEndpoint: vi.fn(),
 }));
+vi.mock('../api/user/deleteUserPreference', () => ({
+    deleteUserPreferenceEndpoint: vi.fn(),
+}));
 vi.mock('../api/userShares/getShareTrendCompareEndpoint', () => ({
     getShareTrendCompareEndpoint: vi.fn(),
 }));
@@ -75,6 +78,7 @@ import { getUserSharesPnlEndpoint } from '../api/userShares/getUserSharesPnlEndp
 import { getUserSharesBalanceEndpoint } from '../api/userShares/getUserSharesBalanceEndpoint';
 import { getShareHistoryEndpoint } from '../api/userShares/getShareHistoryEndpoint';
 import { postUserPreferenceEndpoint } from '../api/user/postUserPreference';
+import { deleteUserPreferenceEndpoint } from '../api/user/deleteUserPreference';
 import { getShareTrendCompareEndpoint } from '../api/userShares/getShareTrendCompareEndpoint';
 import { getPortfolioRecomendacionEndpoint } from '../api/userShares/getPortfolioRecomendacionEndpoint';
 import { addUserShareEndpoint } from '../api/userShares/postUserShare';
@@ -216,6 +220,7 @@ function setupHappyApis() {
         prices: history,
     });
     mocked(postUserPreferenceEndpoint).mockResolvedValue(undefined);
+    mocked(deleteUserPreferenceEndpoint).mockResolvedValue(undefined);
     mocked(shareInfoEndpoint).mockResolvedValue({
         cached: true,
         data: [],
@@ -525,6 +530,19 @@ test('TickerDetail renders projections, results and range controls', async () =>
             model: 'lstm-modal',
             predicted_close: 132,
         }),
+    );
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Restablecer modelo' }),
+    );
+    await waitFor(() =>
+        expect(deleteUserPreferenceEndpoint).toHaveBeenCalledWith('GGAL'),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent(
+        'Modelo restablecido para este ticker.',
+    );
+    expect(onModelApplied).toHaveBeenLastCalledWith(
+        'lstm-modal',
+        expect.objectContaining({ predicted_close: 132 }),
     );
     fireEvent.click(screen.getByRole('button', { name: '1M' }));
     fireEvent.click(screen.getByRole('tab', { name: /Resultados/ }));

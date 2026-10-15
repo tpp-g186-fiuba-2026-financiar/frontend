@@ -5,6 +5,7 @@ import {
     type CompareTrendsResponse,
     type ModelPrediction,
 } from '../../api/userShares/getShareTrendCompareEndpoint';
+import { deleteUserPreferenceEndpoint } from '../../api/user/deleteUserPreference';
 import { postUserPreferenceEndpoint } from '../../api/user/postUserPreference';
 import {
     MIN_RELIABLE_CASES,
@@ -488,6 +489,7 @@ function ModelComparisonTable({
     const [error, setError] = useState<string | null>(null);
     const [selectedModel, setSelectedModel] = useState<string | null>(null);
     const [savingModel, setSavingModel] = useState(false);
+    const [resettingModel, setResettingModel] = useState(false);
     const [saveResult, setSaveResult] = useState<{
         message: string;
         error: boolean;
@@ -568,6 +570,42 @@ function ModelComparisonTable({
                 error: true,
             });
         } finally {
+            setSavingModel(false);
+        }
+    };
+
+    const resetSelectedModel = async () => {
+        if (savingModel) return;
+        setSavingModel(true);
+        setResettingModel(true);
+        setSaveResult(null);
+        try {
+            await deleteUserPreferenceEndpoint(ticker);
+            const defaultModel = compare?.default_model;
+            const defaultPrediction = defaultModel
+                ? compare?.predictions[defaultModel]
+                : undefined;
+            if (
+                defaultModel &&
+                SELECTABLE_MODELS.has(defaultModel) &&
+                defaultPrediction?.available
+            ) {
+                setSelectedModel(defaultModel);
+                onModelApplied(defaultModel, defaultPrediction);
+            } else {
+                setSelectedModel(null);
+            }
+            setSaveResult({
+                message: 'Modelo restablecido para este ticker.',
+                error: false,
+            });
+        } catch {
+            setSaveResult({
+                message: 'No se pudo restablecer el modelo.',
+                error: true,
+            });
+        } finally {
+            setResettingModel(false);
             setSavingModel(false);
         }
     };
@@ -927,6 +965,16 @@ function ModelComparisonTable({
                             {saveResult.message}
                         </p>
                     )}
+                    <button
+                        type="button"
+                        className="btn btn-secondary"
+                        disabled={savingModel}
+                        onClick={resetSelectedModel}
+                    >
+                        {resettingModel
+                            ? 'Restableciendo…'
+                            : 'Restablecer modelo'}
+                    </button>
                     <button
                         type="button"
                         className="btn btn-primary"
