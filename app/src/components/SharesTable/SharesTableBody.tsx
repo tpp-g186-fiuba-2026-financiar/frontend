@@ -1,4 +1,6 @@
 import MiniProjection from './MiniProjection';
+import Sparkline from './Sparkline';
+import { signalLabel, signalStrength } from '../../utils/modelInsights';
 import { type ShareTrend } from '../../api/userShares/getUserSharesTrendsEndpoint';
 interface PortfolioRow {
     ticker: string;
@@ -13,24 +15,48 @@ interface PortfolioRow {
 interface SharesTableBodyProps {
     rows: PortfolioRow[];
     setSelectedTicker: (ticker: string) => void;
+    pnlLoading?: boolean;
+    trendsLoading?: boolean;
+    historyByTicker?: Record<string, number[]>;
 }
 
-function SharesTableBody({ rows, setSelectedTicker }: SharesTableBodyProps) {
+const Skeleton = () => <span className="skel" aria-hidden="true" />;
+
+function SharesTableBody({
+    rows,
+    setSelectedTicker,
+    pnlLoading,
+    trendsLoading,
+    historyByTicker,
+}: SharesTableBodyProps) {
     return (
         <tbody>
-            {rows.map((row) => {
+            {rows.map((row, index) => {
                 const available = row.trend?.available ?? false;
+                const waitingTrend = trendsLoading && row.trend == null;
+                const waitingPnl = pnlLoading && row.pnlAmount == null;
+                const history = historyByTicker?.[row.ticker];
                 return (
                     <tr
                         key={row.ticker}
-                        className={
-                            available ? rowStateClass(row.trend?.signal) : ''
-                        }
+                        className={`row-in ${available ? rowStateClass(row.trend?.signal) : ''}`}
+                        style={{ ['--i' as string]: index }}
                         onClick={() => setSelectedTicker(row.ticker)}
                     >
                         <td className="t-ticker">{row.ticker}</td>
                         <td>
-                            {available &&
+                            {waitingTrend ? (
+                                <Skeleton />
+                            ) : history ? (
+                                <Sparkline
+                                    closes={history}
+                                    signal={
+                                        available ? row.trend?.signal : null
+                                    }
+                                    label={`Últimos 30 días de ${row.ticker}`}
+                                />
+                            ) : (
+                                available &&
                                 row.trend?.last_close != null &&
                                 row.trend?.predicted_close != null && (
                                     <MiniProjection
@@ -40,11 +66,14 @@ function SharesTableBody({ rows, setSelectedTicker }: SharesTableBodyProps) {
                                         }
                                         signal={row.trend.signal}
                                     />
-                                )}
+                                )
+                            )}
                         </td>
                         <td className="t-qty">{row.quantity}</td>
                         <td className="t-pnl">
-                            {row.pnlAmount != null ? (
+                            {waitingPnl ? (
+                                <Skeleton />
+                            ) : row.pnlAmount != null ? (
                                 <span
                                     className="num"
                                     style={{
@@ -69,7 +98,9 @@ function SharesTableBody({ rows, setSelectedTicker }: SharesTableBodyProps) {
                             )}
                         </td>
                         <td className="t-price">
-                            {available && row.trend?.last_close != null ? (
+                            {waitingTrend ? (
+                                <Skeleton />
+                            ) : available && row.trend?.last_close != null ? (
                                 <span className="num">
                                     $
                                     {row.trend.last_close.toLocaleString(
@@ -81,7 +112,9 @@ function SharesTableBody({ rows, setSelectedTicker }: SharesTableBodyProps) {
                             )}
                         </td>
                         <td className="rsi-cell">
-                            {available && row.trend?.rsi != null ? (
+                            {waitingTrend ? (
+                                <Skeleton />
+                            ) : available && row.trend?.rsi != null ? (
                                 <>
                                     <span className="rsi-bar">
                                         <i
@@ -99,12 +132,29 @@ function SharesTableBody({ rows, setSelectedTicker }: SharesTableBodyProps) {
                             )}
                         </td>
                         <td>
-                            {available ? (
-                                <span
-                                    className={`pill ${pillClass(row.trend?.signal)}`}
-                                >
-                                    {row.trend?.signal ?? 'neutral'}
-                                </span>
+                            {waitingTrend ? (
+                                <Skeleton />
+                            ) : available ? (
+                                <>
+                                    <span
+                                        className={`pill ${pillClass(row.trend?.signal)}`}
+                                    >
+                                        {signalLabel(
+                                            row.trend?.signal,
+                                            row.trend?.horizon_days,
+                                        )}
+                                    </span>
+                                    <SignalStrength
+                                        level={signalStrength({
+                                            signal: row.trend?.signal,
+                                            last_close: row.trend?.last_close,
+                                            predicted_close:
+                                                row.trend?.predicted_close,
+                                            probability_up:
+                                                row.trend?.probability_up,
+                                        })}
+                                    />
+                                </>
                             ) : (
                                 <span
                                     className="pill pill-neutral"
@@ -115,15 +165,34 @@ function SharesTableBody({ rows, setSelectedTicker }: SharesTableBodyProps) {
                             )}
                         </td>
                         <td className="t-model">
-                            {available
-                                ? `${row.trend?.model ?? '—'} · ${row.trend?.as_of ?? ''}`
-                                : 'sin cobertura'}
+                            {waitingTrend ? (
+                                <Skeleton />
+                            ) : available ? (
+                                `${row.trend?.model ?? '—'} · ${row.trend?.as_of ?? ''}`
+                            ) : (
+                                'sin cobertura'
+                            )}
                         </td>
                         <td className="chev">›</td>
                     </tr>
                 );
             })}
         </tbody>
+    );
+}
+
+function SignalStrength({ level }: { level: 0 | 1 | 2 | 3 }) {
+    if (level === 0) return null;
+    return (
+        <span
+            className="strength"
+            title="Qué tan marcada es la señal del modelo (1 a 3). No es una probabilidad de acierto."
+            aria-label={`Fuerza de la señal: ${level} de 3`}
+        >
+            {[1, 2, 3].map((i) => (
+                <i key={i} className={i <= level ? 'on' : ''} />
+            ))}
+        </span>
     );
 }
 

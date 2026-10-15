@@ -16,6 +16,7 @@ export interface ShareTrend {
     model_version: string | null;
     reason: string | null;
     retryable?: boolean;
+    probability_up?: number | null;
 }
 
 export interface TrendsResponse {

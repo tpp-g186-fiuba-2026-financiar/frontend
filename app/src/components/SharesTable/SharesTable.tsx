@@ -5,9 +5,18 @@ import SharesTableHead from './SharesTableHead';
 interface SharesTableProps {
     rows: PortfolioRow[];
     setSelectedTicker: (ticker: string) => void;
+    pnlLoading?: boolean;
+    trendsLoading?: boolean;
+    historyByTicker?: Record<string, number[]>;
 }
 
-function SharesTable({ rows, setSelectedTicker }: SharesTableProps) {
+function SharesTable({
+    rows,
+    setSelectedTicker,
+    pnlLoading,
+    trendsLoading,
+    historyByTicker,
+}: SharesTableProps) {
     return (
         <div style={{ overflowX: 'auto' }}>
             <table className="watchlist">
@@ -17,6 +26,9 @@ function SharesTable({ rows, setSelectedTicker }: SharesTableProps) {
                 <SharesTableBody
                     rows={rows}
                     setSelectedTicker={setSelectedTicker}
+                    pnlLoading={pnlLoading}
+                    trendsLoading={trendsLoading}
+                    historyByTicker={historyByTicker}
                 />
             </table>
         </div>

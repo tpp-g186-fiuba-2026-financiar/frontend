@@ -10,6 +10,7 @@ export type TrendModelName =
     | 'lstm'
     | 'lstm-modal'
     | 'macro'
+    | 'contexto'
     | 'svm-modal'
     | 'transformer'
     | 'xgboost'
@@ -60,6 +61,8 @@ export interface TrendPrediction {
     ticker?: string;
     source?: string;
     confidence?: number;
+    probability_up?: number;
+    probability_down?: number;
     expected_return?: number;
     backtest?: TrendBacktest;
     // Solo en garch

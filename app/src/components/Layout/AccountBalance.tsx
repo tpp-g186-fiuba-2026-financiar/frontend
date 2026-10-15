@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AnimatedNumber from './AnimatedNumber';
 import { getUserSharesBalanceEndpoint } from '../../api/userShares/getUserSharesBalanceEndpoint';
 
 // Se refresca solo cada tanto para reflejar cambios hechos en "Editar mi
@@ -33,9 +34,7 @@ function AccountBalance() {
 
     return (
         <span className="balance-total">
-            {totalBalance.toLocaleString('es-AR', {
-                maximumFractionDigits: 0,
-            })}
+            <AnimatedNumber value={totalBalance} />
         </span>
     );
 }

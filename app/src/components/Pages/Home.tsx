@@ -9,6 +9,7 @@ import {
     getUserSharesTrendsEndpoint,
     type ShareTrend,
 } from '../../api/userShares/getUserSharesTrendsEndpoint';
+import { getShareHistoryEndpoint } from '../../api/userShares/getShareHistoryEndpoint';
 import {
     getUserSharesPnlEndpoint,
     type SharePnlItem,
@@ -65,16 +66,32 @@ function withPreferredModel(
     compareByTicker: Record<string, CompareTrendsResponse>,
 ): PortfolioRow {
     const compare = compareByTicker[row.ticker];
-    if (!config || !compare || !row.trend) return row;
+    if (!config || !compare) return row;
     const model = resolveDefaultModel(config, row.ticker, compare);
     const p = model
         ? compare.predictions[model as keyof typeof compare.predictions]
         : undefined;
     if (!model || !p || !p.available) return row;
+    // Si el endpoint principal de tendencias no respondió (row.trend nulo), la
+    // comparación igual alcanza para mostrar la señal del modelo elegido.
+    const base: ShareTrend = row.trend ?? {
+        ticker: row.ticker,
+        available: false,
+        signal: null,
+        condition: null,
+        rsi: null,
+        horizon_days: null,
+        last_close: null,
+        predicted_close: null,
+        as_of: null,
+        model: null,
+        model_version: null,
+        reason: null,
+    };
     return {
         ...row,
         trend: {
-            ...row.trend,
+            ...base,
             available: p.available,
             signal: p.signal,
             rsi: p.rsi,
@@ -84,6 +101,7 @@ function withPreferredModel(
             as_of: p.as_of,
             model: p.model ?? model,
             reason: p.reason,
+            probability_up: p.probability_up ?? null,
         } as ShareTrend,
     };
 }
@@ -131,31 +149,6 @@ async function fetchPnl(): Promise<{
     }
 }
 
-async function fetchPortfolio(): Promise<{
-    rows: PortfolioRow[];
-    trendsUnavailable: boolean;
-    portfolioPnl: PortfolioPnlSummary | null;
-}> {
-    const sharesRes = await getUserSharesEndpoint();
-    const { byTicker: pnlByTicker, portfolio: portfolioPnl } = await fetchPnl();
-    try {
-        const trendsRes = await getUserSharesTrendsEndpoint();
-        return {
-            rows: buildRows(sharesRes.shares, trendsRes.trends, pnlByTicker),
-            trendsUnavailable: false,
-            portfolioPnl,
-        };
-    } catch {
-        // Las acciones se guardaron igual: mostrarlas sin señal en vez de
-        // vaciar toda la pantalla si los modelos no responden.
-        return {
-            rows: buildRows(sharesRes.shares, null, pnlByTicker),
-            trendsUnavailable: true,
-            portfolioPnl,
-        };
-    }
-}
-
 function Home() {
     const navigate = useNavigate();
     const [user, setUser] = useState<UserResponse | null>(null);
@@ -165,6 +158,11 @@ function Home() {
     const [portfolioPnl, setPortfolioPnl] =
         useState<PortfolioPnlSummary | null>(null);
     const [loadingPortfolio, setLoadingPortfolio] = useState<boolean>(true);
+    const [pnlLoading, setPnlLoading] = useState<boolean>(false);
+    const [trendsLoading, setTrendsLoading] = useState<boolean>(false);
+    const [historyByTicker, setHistoryByTicker] = useState<
+        Record<string, number[]>
+    >({});
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
@@ -244,18 +242,68 @@ function Home() {
                 }
             }
         };
+        // Carga progresiva: la cartera aparece apenas llega la lista de
+        // acciones; precios/P&L y señales se completan cuando responde cada
+        // servicio (cualquiera de los dos puede tardar o fallar sin bloquear).
         const fetchInitialPortfolio = async () => {
             try {
-                const { rows, trendsUnavailable, portfolioPnl } =
-                    await fetchPortfolio();
-                setRows(rows);
-                setTrendsUnavailable(trendsUnavailable);
-                setPortfolioPnl(portfolioPnl);
+                const sharesRes = await getUserSharesEndpoint();
+                if (cancelled) return;
+                setRows(buildRows(sharesRes.shares, null, null));
                 setPortfolioError(null);
-            } catch {
-                setPortfolioError('No se pudo cargar tu cartera.');
-            } finally {
                 setLoadingPortfolio(false);
+                setPnlLoading(true);
+                setTrendsLoading(true);
+
+                const pnlPromise = fetchPnl().then(
+                    ({ byTicker, portfolio }) => {
+                        if (cancelled) return;
+                        setPortfolioPnl(portfolio);
+                        setRows((current) =>
+                            current.map((row) => {
+                                const pnl = byTicker?.[row.ticker];
+                                return {
+                                    ...row,
+                                    currentPrice: pnl?.current_price ?? null,
+                                    pnlAmount: pnl?.pnl_amount ?? null,
+                                    pnlPercentage: pnl?.pnl_percentage ?? null,
+                                    weightPercentage:
+                                        pnl?.weight_percentage ?? null,
+                                };
+                            }),
+                        );
+                        setPnlLoading(false);
+                    },
+                );
+                const trendsPromise = getUserSharesTrendsEndpoint().then(
+                    (trendsRes) => {
+                        if (cancelled) return;
+                        const byTicker = new Map(
+                            trendsRes.trends.map((t) => [t.ticker, t]),
+                        );
+                        setRows((current) =>
+                            current.map((row) => ({
+                                ...row,
+                                trend: byTicker.get(row.ticker) ?? null,
+                            })),
+                        );
+                        setTrendsUnavailable(false);
+                    },
+                    () => {
+                        if (!cancelled) setTrendsUnavailable(true);
+                    },
+                );
+                await Promise.all([pnlPromise, trendsPromise]);
+            } catch {
+                if (!cancelled) {
+                    setPortfolioError('No se pudo cargar tu cartera.');
+                    setLoadingPortfolio(false);
+                }
+            } finally {
+                if (!cancelled) {
+                    setPnlLoading(false);
+                    setTrendsLoading(false);
+                }
             }
         };
         fetchUser();
@@ -322,6 +370,31 @@ function Home() {
             setCompareByTicker(byTicker);
             setModelConfig(config);
         })();
+        return () => {
+            cancelled = true;
+        };
+    }, [tickersKey]);
+
+    // Últimos 30 cierres de cada acción para el minigráfico de la tabla. Se
+    // piden en segundo plano; mientras tanto la tabla usa la línea de proyección.
+    useEffect(() => {
+        if (!tickersKey) return;
+        let cancelled = false;
+        const tickers = tickersKey.split(',');
+        Promise.allSettled(tickers.map((t) => getShareHistoryEndpoint(t))).then(
+            (results) => {
+                if (cancelled) return;
+                const byTicker: Record<string, number[]> = {};
+                results.forEach((r, i) => {
+                    if (r.status !== 'fulfilled') return;
+                    const closes = r.value.prices
+                        .slice(-30)
+                        .map((point) => point.close);
+                    if (closes.length >= 5) byTicker[tickers[i]] = closes;
+                });
+                setHistoryByTicker(byTicker);
+            },
+        );
         return () => {
             cancelled = true;
         };
@@ -533,10 +606,11 @@ function Home() {
                                     </div>
                                 )}
 
-                                <div className="watchlist-panel mb-4">
+                                <div className="watchlist-panel mb-4 reveal">
                                     <TopBar
                                         trendsUnavailable={trendsUnavailable}
                                         rows={rows}
+                                        trendsLoading={trendsLoading}
                                         upCount={upCount}
                                         withTrend={withTrend}
                                         refreshingTrends={refreshingTrends}
@@ -545,8 +619,11 @@ function Home() {
                                         setIsBuilderOpen={setIsBuilderOpen}
                                     />
                                     <SharesTable
-                                        rows={rows}
+                                        rows={displayRows}
                                         setSelectedTicker={setSelectedTicker}
+                                        pnlLoading={pnlLoading}
+                                        trendsLoading={trendsLoading}
+                                        historyByTicker={historyByTicker}
                                     />
                                 </div>
                                 <ChartBar ref={portfolioChartRef} />

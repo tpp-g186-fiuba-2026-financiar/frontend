@@ -21,6 +21,8 @@ import {
 } from '../../api/shares/getShareInfo';
 import { shareSectorEndpoint } from '../../api/shares/getShareSector';
 import InfoTip from '../Layout/InfoTip';
+import { bestModelOf } from '../../utils/defaultModels';
+import { projectionBand, signalLabel } from '../../utils/modelInsights';
 import { ConsensusCard } from './ConsensusCard';
 
 interface PortfolioRow {
@@ -101,6 +103,11 @@ function ProjectionChart({
         const values = history.map((point) => point.close);
         if (lastClose != null) values.push(lastClose);
         if (predictedClose != null) values.push(predictedClose);
+        const band =
+            predictedClose != null
+                ? projectionBand(history, predictedClose, horizonDays)
+                : null;
+        if (band) values.push(band.low, band.high);
         if (values.length === 0) return;
         const rawMin = Math.min(...values);
         const rawMax = Math.max(...values);
@@ -188,6 +195,24 @@ function ProjectionChart({
                 const curX = historyEndX + (x1 - historyEndX) * t;
                 const curY =
                     y(lastClose) + (y(predictedClose) - y(lastClose)) * t;
+
+                if (band) {
+                    // Rango típico: abanico que se abre desde el último cierre
+                    // hasta ±1 desvío de la volatilidad reciente al horizonte.
+                    ctx.beginPath();
+                    ctx.moveTo(historyEndX, y(lastClose));
+                    ctx.lineTo(
+                        curX,
+                        y(lastClose) + (y(band.high) - y(lastClose)) * t,
+                    );
+                    ctx.lineTo(
+                        curX,
+                        y(lastClose) + (y(band.low) - y(lastClose)) * t,
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = projectionColor + '26';
+                    ctx.fill();
+                }
 
                 ctx.beginPath();
                 ctx.moveTo(historyEndX, y(lastClose));
@@ -424,6 +449,8 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
         );
     }
 
+    // Mejor modelo de ESTA acción según nuestras métricas (el predeterminado).
+    const defaultModel = bestModelOf(compare);
     const entries = Object.entries(compare.predictions) as [
         string,
         ModelPrediction,
@@ -646,7 +673,17 @@ function ModelComparisonTable({ ticker, view }: ModelComparisonTableProps) {
                                     }
                                     style={{ cursor: 'default' }}
                                 >
-                                    <td className="t-ticker">{name}</td>
+                                    <td className="t-ticker">
+                                        {name}
+                                        {name === defaultModel && (
+                                            <span
+                                                className="tag-default"
+                                                title="El de mejor accuracy según el backtest de esta acción"
+                                            >
+                                                Predeterminado
+                                            </span>
+                                        )}
+                                    </td>
                                     {pred.available ? (
                                         <>
                                             <td>
@@ -865,7 +902,10 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                             <span
                                 className={`pill ${pillClass(trend?.signal)}`}
                             >
-                                {trend?.signal ?? 'neutral'}
+                                {signalLabel(
+                                    trend?.signal,
+                                    trend?.horizon_days,
+                                )}
                             </span>
                         ) : (
                             <span className="pill pill-neutral">Sin datos</span>
@@ -951,6 +991,20 @@ function TickerDetail({ row, onBack }: TickerDetailProps) {
                             horizonDays={trend?.horizon_days ?? null}
                             signal={trend?.signal}
                         />
+                        {available && trend?.predicted_close != null && (
+                            <p
+                                className="mb-0"
+                                style={{
+                                    color: 'var(--ink-3)',
+                                    fontSize: '12px',
+                                }}
+                            >
+                                El abanico sombreado es el rango típico del
+                                precio al final del horizonte, según la
+                                volatilidad de los últimos 60 días. No es una
+                                probabilidad de acierto.
+                            </p>
+                        )}
                         {historyError && (
                             <p style={{ color: 'var(--ink-3)', margin: 0 }}>
                                 No se pudo cargar el histórico; se muestra sólo

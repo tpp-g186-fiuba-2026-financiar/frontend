@@ -4,6 +4,7 @@ import SignUpPopUp from '../SignUp/SignUpPopUp';
 import { helloEndpoint, type Introduction } from '../../api/hello';
 import LoginPopUp from '../Login/LoginPopUp';
 import TickerTape from '../Layout/TickerTape';
+import Bars3D from '../Viz/Bars3D';
 
 function App() {
     const [loading, setLoading] = useState(true);
@@ -42,19 +43,38 @@ function App() {
 
             <TickerTape />
 
-            <h1 className="mb-3" style={{ fontSize: '32px' }}>
-                Señales de tendencia para el S&amp;P Merval
-            </h1>
-            <p
-                className="mb-4"
-                style={{ color: 'var(--ink-3)', maxWidth: '65ch' }}
-            >
-                FinanciAr cruza precios históricos e indicadores técnicos con
-                varios modelos de machine learning para mostrarte, acción por
-                acción, si está en alza, en baja, en sobrecompra o en
-                sobreventa. Trabajo Profesional de Ingeniería en Informática,
-                FIUBA — Grupo 186.
-            </p>
+            <div className="hero">
+                <div className="hero-copy">
+                    <h1 className="mb-3" style={{ fontSize: '32px' }}>
+                        Señales de tendencia para el S&amp;P Merval
+                    </h1>
+                    <p
+                        className="mb-4"
+                        style={{ color: 'var(--ink-3)', maxWidth: '65ch' }}
+                    >
+                        FinanciAr cruza precios históricos e indicadores
+                        técnicos con varios modelos de machine learning para
+                        mostrarte, acción por acción, si está en alza, en baja,
+                        en sobrecompra o en sobreventa. Trabajo Profesional de
+                        Ingeniería en Informática, FIUBA — Grupo 186.
+                    </p>
+                </div>
+                <div className="hero-3d" aria-hidden="true">
+                    <Bars3D
+                        height={110}
+                        interactive
+                        ariaLabel="Ilustración decorativa de columnas en 3D"
+                        formatValue={() => ''}
+                        items={[
+                            { label: '', values: [0.35, 0.5] },
+                            { label: '', values: [0.6, 0.45] },
+                            { label: '', values: [0.45, 0.8] },
+                            { label: '', values: [0.8, 0.65] },
+                            { label: '', values: [0.55, 0.95] },
+                        ]}
+                    />
+                </div>
+            </div>
 
             <div className="feature-row mb-4">
                 <div className="feature">

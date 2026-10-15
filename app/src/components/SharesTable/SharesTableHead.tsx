@@ -10,7 +10,7 @@ function SharesTableHead() {
     return (
         <tr>
             <th>Ticker</th>
-            <th></th>
+            <th>30 días</th>
             <th>Cant.</th>
             <th>
                 P&L

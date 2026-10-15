@@ -6,6 +6,7 @@ import PortfolioPnl from './PortfolioPnl';
 
 interface TopBarProps {
     trendsUnavailable: boolean;
+    trendsLoading?: boolean;
     rows: PortfolioRow[];
     upCount: number;
     withTrend: PortfolioRow[];
@@ -16,6 +17,7 @@ interface TopBarProps {
 }
 function TopBar({
     trendsUnavailable,
+    trendsLoading,
     rows,
     upCount,
     withTrend,
@@ -30,6 +32,7 @@ function TopBar({
                 <Balance />
                 <Midbar
                     trendsUnavailable={trendsUnavailable}
+                    trendsLoading={trendsLoading}
                     rows={rows}
                     upCount={upCount}
                     withTrend={withTrend}
