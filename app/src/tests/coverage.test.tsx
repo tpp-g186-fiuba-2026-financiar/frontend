@@ -541,8 +541,11 @@ test('TickerDetail renders projections, results and range controls', async () =>
         'Modelo restablecido para este ticker.',
     );
     expect(onModelApplied).toHaveBeenLastCalledWith(
-        'lstm-modal',
-        expect.objectContaining({ predicted_close: 132 }),
+        expect.objectContaining({
+            ticker: 'GGAL',
+            model: 'lstm-modal',
+            predicted_close: 132,
+        }),
     );
     fireEvent.click(screen.getByRole('button', { name: '1M' }));
     fireEvent.click(screen.getByRole('tab', { name: /Resultados/ }));
