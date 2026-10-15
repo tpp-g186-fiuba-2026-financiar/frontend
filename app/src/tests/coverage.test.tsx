@@ -531,9 +531,7 @@ test('TickerDetail renders projections, results and range controls', async () =>
             predicted_close: 132,
         }),
     );
-    fireEvent.click(
-        screen.getByRole('button', { name: 'Restablecer modelo' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Restablecer modelo' }));
     await waitFor(() =>
         expect(deleteUserPreferenceEndpoint).toHaveBeenCalledWith('GGAL'),
     );
