@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getUserEndpoint, type UserResponse } from '../../api/user/getUser';
 import {
     getUserSharesEndpoint,
@@ -56,6 +56,19 @@ const RISK_PROFILE_LABEL: Record<string, string> = {
 
 function riskProfileLabel(value: string): string {
     return RISK_PROFILE_LABEL[value] ?? value;
+}
+
+function selectedTickerFromState(state: unknown): string | null {
+    if (
+        typeof state !== 'object' ||
+        state === null ||
+        !('selectedTicker' in state)
+    ) {
+        return null;
+    }
+    return typeof state.selectedTicker === 'string'
+        ? state.selectedTicker
+        : null;
 }
 
 // Reemplaza los datos de la tendencia por los del modelo que el usuario
@@ -160,6 +173,7 @@ async function fetchPortfolio(): Promise<{
 
 function Home() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [user, setUser] = useState<UserResponse | null>(null);
     const [userError, setUserError] = useState(false);
     const [userAttempt, setUserAttempt] = useState(0);
@@ -170,7 +184,7 @@ function Home() {
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
-    const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+    const selectedTicker = selectedTickerFromState(location.state);
     const [showEstimacion, setShowEstimacion] = useState<boolean>(false);
     const [refreshingTrends, setRefreshingTrends] = useState(false);
     // Se incrementa en cada recarga de la cartera para que el grafico de
@@ -211,6 +225,8 @@ function Home() {
     const selectedRow =
         displayRows.find((row) => row.ticker === selectedTicker) ?? null;
     const tickersKey = rows.map((row) => row.ticker).join(',');
+    const openTicker = (ticker: string) =>
+        navigate('/home', { state: { selectedTicker: ticker } });
 
     const loadPortfolio = async () => {
         try {
@@ -484,7 +500,7 @@ function Home() {
             {selectedRow ? (
                 <TickerDetail
                     row={selectedRow}
-                    onBack={() => setSelectedTicker(null)}
+                    onBack={() => navigate(-1)}
                     onModelApplied={(trend) =>
                         setAppliedModels((current) => ({
                             ...current,
@@ -569,7 +585,7 @@ function Home() {
                                     />
                                     <SharesTable
                                         rows={displayRows}
-                                        setSelectedTicker={setSelectedTicker}
+                                        setSelectedTicker={openTicker}
                                     />
                                 </div>
                                 <BalanceHistoryChart
