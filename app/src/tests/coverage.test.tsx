@@ -25,8 +25,14 @@ vi.mock('../api/userShares/getUserSharesPnlEndpoint', () => ({
 vi.mock('../api/userShares/getUserSharesBalanceEndpoint', () => ({
     getUserSharesBalanceEndpoint: vi.fn(),
 }));
+vi.mock('../api/userShares/getUserSharesBalanceHistoryEndpoint', () => ({
+    getUserSharesBalanceHistoryEndpoint: vi.fn().mockResolvedValue([]),
+}));
 vi.mock('../api/userShares/getShareHistoryEndpoint', () => ({
     getShareHistoryEndpoint: vi.fn(),
+}));
+vi.mock('../api/user/postUserPreference', () => ({
+    postUserPreferenceEndpoint: vi.fn(),
 }));
 vi.mock('../api/userShares/getShareTrendCompareEndpoint', () => ({
     getShareTrendCompareEndpoint: vi.fn(),
@@ -68,6 +74,7 @@ import { getUserSharesTrendsEndpoint } from '../api/userShares/getUserSharesTren
 import { getUserSharesPnlEndpoint } from '../api/userShares/getUserSharesPnlEndpoint';
 import { getUserSharesBalanceEndpoint } from '../api/userShares/getUserSharesBalanceEndpoint';
 import { getShareHistoryEndpoint } from '../api/userShares/getShareHistoryEndpoint';
+import { postUserPreferenceEndpoint } from '../api/user/postUserPreference';
 import { getShareTrendCompareEndpoint } from '../api/userShares/getShareTrendCompareEndpoint';
 import { getPortfolioRecomendacionEndpoint } from '../api/userShares/getPortfolioRecomendacionEndpoint';
 import { addUserShareEndpoint } from '../api/userShares/postUserShare';
@@ -208,6 +215,7 @@ function setupHappyApis() {
         ticker: 'GGAL',
         prices: history,
     });
+    mocked(postUserPreferenceEndpoint).mockResolvedValue(undefined);
     mocked(shareInfoEndpoint).mockResolvedValue({
         cached: true,
         data: [],
@@ -221,9 +229,9 @@ function setupHappyApis() {
     mocked(getShareTrendCompareEndpoint).mockResolvedValue({
         symbol: 'GGAL',
         as_of: '2026-09-16',
-        default_model: 'lstm',
+        default_model: 'lstm-modal',
         predictions: {
-            lstm: {
+            'lstm-modal': {
                 available: true,
                 signal: 'alza',
                 condition: 'neutral',
@@ -232,7 +240,7 @@ function setupHappyApis() {
                 last_close: 120,
                 predicted_close: 132,
                 as_of: '2026-09-16',
-                model: 'lstm',
+                model: 'svm-modal',
                 model_version: 'v1',
                 backtest: {
                     directional_accuracy: 0.7,
@@ -247,6 +255,39 @@ function setupHappyApis() {
                 },
                 volatility_forecast: null,
                 reason: null,
+            },
+            'transformer-modal': {
+                available: true,
+                signal: 'baja',
+                condition: 'neutral',
+                rsi: 45,
+                horizon_days: 5,
+                last_close: 120,
+                predicted_close: 114,
+                as_of: '2026-09-16',
+                model: 'transformer-modal',
+                model_version: 'v1',
+                backtest: null,
+                volatility_forecast: null,
+                reason: null,
+            },
+            'garch-modal': {
+                available: false,
+                signal: null,
+                condition: null,
+                rsi: null,
+                horizon_days: null,
+                last_close: null,
+                predicted_close: null,
+                as_of: null,
+                model: 'garch-modal',
+                model_version: 'v1',
+                backtest: null,
+                volatility_forecast: [
+                    { horizon_days: 1, volatility_pct: 3 },
+                    { horizon_days: 2, volatility_pct: 4 },
+                ],
+                reason: 'GARCH proyecta volatilidad, no una direccion',
             },
             garch: {
                 available: true,
@@ -374,6 +415,52 @@ test('Home loads a rich portfolio and opens the ticker detail', async () => {
     );
 });
 
+test('Home asks to redo an expired risk profile and reloads the portfolio', async () => {
+    mocked(getUserEndpoint).mockResolvedValueOnce({
+        id: 7,
+        email: 'ana@example.com',
+        full_name: 'Ana Pérez',
+        risk_profile: 'moderate',
+        has_to_redo_risk_profile: true,
+        is_active: true,
+        two_factor_enabled: false,
+        created_at: '2026-01-01',
+    });
+    render(
+        <MemoryRouter>
+            <Home />
+        </MemoryRouter>,
+    );
+
+    expect(
+        await screen.findByText('Tu perfil de inversor venció'),
+    ).toBeInTheDocument();
+    const sharesCalls = mocked(getUserSharesEndpoint).mock.calls.length;
+    for (let index = 0; index < 9; index += 1) {
+        const options = within(screen.getByRole('dialog'))
+            .getAllByRole('button')
+            .filter((button) =>
+                button.className.includes('btn-outline-secondary'),
+            );
+        fireEvent.click(options[0]);
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: index === 8 ? 'Finalizar' : 'Siguiente',
+            }),
+        );
+    }
+
+    await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(updateProfileEndpoint).toHaveBeenCalledWith({
+        risk_profile: 'conservative',
+    });
+    expect(mocked(getUserSharesEndpoint).mock.calls.length).toBeGreaterThan(
+        sharesCalls,
+    );
+});
+
 test('Home exposes fallback states and retry actions', async () => {
     mocked(getUserEndpoint).mockRejectedValueOnce(new Error('offline'));
     mocked(getUserSharesEndpoint).mockRejectedValueOnce(new Error('offline'));
@@ -389,16 +476,56 @@ test('Home exposes fallback states and retry actions', async () => {
 
 test('TickerDetail renders projections, results and range controls', async () => {
     const onBack = vi.fn();
+    const onModelApplied = vi.fn();
     render(
         <TickerDetail
-            row={{ ticker: 'GGAL', quantity: 10, trend }}
+            row={{
+                ticker: 'GGAL',
+                quantity: 10,
+                trend: { ...trend, model: 'transformer-modal' },
+            }}
             onBack={onBack}
+            onModelApplied={onModelApplied}
         />,
     );
     expect(
         await screen.findByText('Grupo Financiero Galicia S.A.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Banco argentino de prueba')).toBeInTheDocument();
+    expect(
+        await screen.findByText(/Volatilidad GARCH \(2\s+ruedas\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/±5\.0%/)).toBeInTheDocument();
+    expect(screen.getByText(/La banda sombreada/)).toBeInTheDocument();
+    const defaultModelRadio = screen.getByRole('radio', {
+        name: 'Seleccionar modelo transformer-modal',
+    });
+    const otherModelRadio = screen.getByRole('radio', {
+        name: 'Seleccionar modelo lstm-modal',
+    });
+    expect(
+        screen.queryByRole('radio', { name: 'Seleccionar modelo garch' }),
+    ).not.toBeInTheDocument();
+    expect(defaultModelRadio).toBeChecked();
+    fireEvent.click(otherModelRadio);
+    expect(otherModelRadio).toBeChecked();
+    expect(defaultModelRadio).not.toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Usar este modelo' }));
+    expect(postUserPreferenceEndpoint).toHaveBeenCalledWith({
+        model: 'lstm-modal',
+        stock: 'GGAL',
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent(
+        'Modelo guardado para este ticker.',
+    );
+    expect(screen.getAllByText('lstm-modal')).toHaveLength(2);
+    expect(onModelApplied).toHaveBeenCalledWith(
+        expect.objectContaining({
+            ticker: 'GGAL',
+            model: 'lstm-modal',
+            predicted_close: 132,
+        }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '1M' }));
     fireEvent.click(screen.getByRole('tab', { name: /Resultados/ }));
     expect(
@@ -568,6 +695,11 @@ describe('authentication popups', () => {
         });
         fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
         await waitFor(() => expect(registerEndpoint).toHaveBeenCalled());
+        expect(
+            await screen.findByText(/Te enviamos un mail a/),
+        ).toBeInTheDocument();
+        expect(onClose).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Entendido' }));
         expect(onClose).toHaveBeenCalled();
     });
 });

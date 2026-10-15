@@ -57,7 +57,6 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
 
     const handleSubmit = async () => {
         if (email) {
-            console.log('Entra');
             const request: RegisterRequest = {
                 email: email,
                 password: password,
@@ -67,7 +66,7 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
             const r = await registerEndpoint(request);
             setResponse(r);
             if (r && r.code == 200) {
-                closePopUp();
+                setStep('verify');
             }
         }
     };
@@ -130,6 +129,29 @@ function SignUpPopUp({ isOpen, onClose }: SignUpProps) {
                         )}
                         {step === 'form' && (
                             <SignUpForm formFields={signUpFormFields} />
+                        )}
+                        {step === 'verify' && (
+                            <>
+                                <div className="modal-body">
+                                    <p className="mb-2">
+                                        ¡Tu cuenta fue creada! Te enviamos un
+                                        mail a <strong>{email}</strong> para
+                                        verificarla.
+                                    </p>
+                                    <p className="mb-0">
+                                        Abrí el link del mail para poder
+                                        ingresar. Vence en 24 horas.
+                                    </p>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={closePopUp}
+                                    >
+                                        Entendido
+                                    </button>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>

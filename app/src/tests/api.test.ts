@@ -22,6 +22,7 @@ import { getPortfolioRecomendacionEndpoint } from '../api/userShares/getPortfoli
 import { getShareHistoryEndpoint } from '../api/userShares/getShareHistoryEndpoint';
 import { getShareTrendCompareEndpoint } from '../api/userShares/getShareTrendCompareEndpoint';
 import { getUserSharesBalanceEndpoint } from '../api/userShares/getUserSharesBalanceEndpoint';
+import { getUserSharesBalanceHistoryEndpoint } from '../api/userShares/getUserSharesBalanceHistoryEndpoint';
 import { getUserSharesEndpoint } from '../api/userShares/getUserSharesEndpoint';
 import { getUserSharesPnlEndpoint } from '../api/userShares/getUserSharesPnlEndpoint';
 import { getUserSharesTrendsEndpoint } from '../api/userShares/getUserSharesTrendsEndpoint';
@@ -48,6 +49,7 @@ describe('API adapters', () => {
             getShareHistoryEndpoint('GGAL'),
             getShareTrendCompareEndpoint('GGAL'),
             getUserSharesBalanceEndpoint(),
+            getUserSharesBalanceHistoryEndpoint(),
             getUserSharesEndpoint(),
             getUserSharesPnlEndpoint(),
             getUserSharesTrendsEndpoint(),

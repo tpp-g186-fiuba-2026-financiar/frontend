@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getUserEndpoint, type UserResponse } from '../../api/user/getUser';
 import {
     getUserSharesEndpoint,
@@ -29,8 +29,10 @@ import {
     type DefaultModelsConfig,
 } from '../../utils/defaultModels';
 import TopBar from '../Layout/Topbar';
+import RiskProfileGate from '../settings/RiskProfileGate';
 import SharesTable from '../SharesTable/SharesTable';
 import ChartBar from '../Portfolio/ChartBar';
+import BalanceHistoryChart from '../Portfolio/BalanceHistoryChart';
 
 interface PortfolioRow {
     ticker: string;
@@ -55,6 +57,19 @@ const RISK_PROFILE_LABEL: Record<string, string> = {
 
 function riskProfileLabel(value: string): string {
     return RISK_PROFILE_LABEL[value] ?? value;
+}
+
+function selectedTickerFromState(state: unknown): string | null {
+    if (
+        typeof state !== 'object' ||
+        state === null ||
+        !('selectedTicker' in state)
+    ) {
+        return null;
+    }
+    return typeof state.selectedTicker === 'string'
+        ? state.selectedTicker
+        : null;
 }
 
 // Reemplaza los datos de la tendencia por los del modelo que el usuario
@@ -99,7 +114,7 @@ function withPreferredModel(
             last_close: p.last_close,
             predicted_close: p.predicted_close,
             as_of: p.as_of,
-            model: p.model ?? model,
+            model,
             reason: p.reason,
             probability_up: p.probability_up ?? null,
         } as ShareTrend,
@@ -151,6 +166,7 @@ async function fetchPnl(): Promise<{
 
 function Home() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [user, setUser] = useState<UserResponse | null>(null);
     const [userError, setUserError] = useState(false);
     const [userAttempt, setUserAttempt] = useState(0);
@@ -166,9 +182,12 @@ function Home() {
     const [trendsUnavailable, setTrendsUnavailable] = useState<boolean>(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const [isBuilderOpen, setIsBuilderOpen] = useState<boolean>(false);
-    const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+    const selectedTicker = selectedTickerFromState(location.state);
     const [showEstimacion, setShowEstimacion] = useState<boolean>(false);
     const [refreshingTrends, setRefreshingTrends] = useState(false);
+    // Se incrementa en cada recarga de la cartera para que el grafico de
+    // evolucion vuelva a pedir el historial.
+    const [portfolioVersion, setPortfolioVersion] = useState(0);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     // Solo para aplicar el tema guardado al cargar Home; cambiarlo se hace
     // desde /ajustes.
@@ -180,19 +199,32 @@ function Home() {
     const [compareByTicker, setCompareByTicker] = useState<
         Record<string, CompareTrendsResponse>
     >({});
+    const [appliedModels, setAppliedModels] = useState<
+        Record<string, ShareTrend>
+    >({});
     // `rows` guarda lo que devuelve el endpoint principal; `displayRows` es lo
     // que se muestra, con el modelo preferido del usuario aplicado encima.
     const displayRows = useMemo(
         () =>
-            rows.map((row) =>
-                withPreferredModel(row, modelConfig, compareByTicker),
-            ),
-        [rows, modelConfig, compareByTicker],
+            rows.map((row) => {
+                const preferred = withPreferredModel(
+                    row,
+                    modelConfig,
+                    compareByTicker,
+                );
+                const appliedTrend = appliedModels[row.ticker];
+                return appliedTrend
+                    ? { ...preferred, trend: appliedTrend }
+                    : preferred;
+            }),
+        [rows, modelConfig, compareByTicker, appliedModels],
     );
     const portfolioChartRef = useRef<HTMLCanvasElement>(null);
     const selectedRow =
         displayRows.find((row) => row.ticker === selectedTicker) ?? null;
     const tickersKey = rows.map((row) => row.ticker).join(',');
+    const openTicker = (ticker: string) =>
+        navigate('/home', { state: { selectedTicker: ticker } });
 
     const loadPortfolio = async () => {
         try {
@@ -200,6 +232,7 @@ function Home() {
             const { byTicker: pnlByTicker, portfolio: pnlSummary } =
                 await fetchPnl();
             setPortfolioPnl(pnlSummary);
+            setPortfolioVersion((version) => version + 1);
             setRows((currentRows) => {
                 const currentTrends = currentRows
                     .map((row) => row.trend)
@@ -540,7 +573,13 @@ function Home() {
             {selectedRow ? (
                 <TickerDetail
                     row={selectedRow}
-                    onBack={() => setSelectedTicker(null)}
+                    onBack={() => navigate(-1)}
+                    onModelApplied={(trend) =>
+                        setAppliedModels((current) => ({
+                            ...current,
+                            [trend.ticker]: trend,
+                        }))
+                    }
                 />
             ) : (
                 <>
@@ -609,7 +648,7 @@ function Home() {
                                 <div className="watchlist-panel mb-4 reveal">
                                     <TopBar
                                         trendsUnavailable={trendsUnavailable}
-                                        rows={rows}
+                                        rows={displayRows}
                                         trendsLoading={trendsLoading}
                                         upCount={upCount}
                                         withTrend={withTrend}
@@ -620,13 +659,19 @@ function Home() {
                                     />
                                     <SharesTable
                                         rows={displayRows}
-                                        setSelectedTicker={setSelectedTicker}
+                                        setSelectedTicker={openTicker}
                                         pnlLoading={pnlLoading}
                                         trendsLoading={trendsLoading}
                                         historyByTicker={historyByTicker}
                                     />
                                 </div>
-                                <ChartBar ref={portfolioChartRef} />
+                                <BalanceHistoryChart
+                                    reloadKey={portfolioVersion}
+                                />
+                                <ChartBar
+                                    ref={portfolioChartRef}
+                                    tickers={rows.map(({ ticker }) => ticker)}
+                                />
                             </>
                         ))}
                 </>
@@ -648,6 +693,28 @@ function Home() {
                 isOpen={isBuilderOpen}
                 onClose={() => setIsBuilderOpen(false)}
                 onSaved={loadPortfolio}
+            />
+
+            <RiskProfileGate
+                reason={
+                    user.has_to_redo_risk_profile
+                        ? user.risk_profile
+                            ? 'expired'
+                            : 'required'
+                        : null
+                }
+                onCompleted={(risk) => {
+                    setUser((current) =>
+                        current
+                            ? {
+                                  ...current,
+                                  risk_profile: risk,
+                                  has_to_redo_risk_profile: false,
+                              }
+                            : current,
+                    );
+                    loadPortfolio();
+                }}
             />
         </div>
     );

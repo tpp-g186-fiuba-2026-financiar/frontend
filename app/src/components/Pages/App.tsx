@@ -1,21 +1,55 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import '../../css/App.css';
 import SignUpPopUp from '../SignUp/SignUpPopUp';
 import { helloEndpoint, type Introduction } from '../../api/hello';
-import LoginPopUp from '../Login/LoginPopUp';
+import LoginPopUp, { type LoginMode } from '../Login/LoginPopUp';
 import TickerTape from '../Layout/TickerTape';
 import Bars3D from '../Viz/Bars3D';
 
+// Estado con el que otras paginas (p. ej. /restore-password) vuelven al inicio
+// para abrir el login directamente.
+export interface LandingState {
+    login?: LoginMode;
+    passwordRestored?: boolean;
+    sessionExpired?: boolean;
+}
+
+function landingNotice(state: LandingState): string | undefined {
+    if (state.passwordRestored) {
+        return 'Tu contraseña se actualizó. Ya podés ingresar con la nueva.';
+    }
+    if (state.sessionExpired) {
+        return 'Tu sesión venció. Volvé a ingresar para continuar.';
+    }
+    return undefined;
+}
+
 function App() {
+    const location = useLocation();
+    const navigate = useNavigate();
+    // Se lee una sola vez: el popup arranca abierto pero el estado no debe
+    // sobrevivir a un refresh.
+    const [landingState] = useState<LandingState>(
+        () => (location.state as LandingState | null) ?? {},
+    );
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [introduction, setIntroduction] = useState<Introduction | null>(null);
     const [isSignUpOpen, setIsSignUpOpen] = useState<boolean>(false);
-    const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
+    const [isLoginOpen, setIsLoginOpen] = useState<boolean>(
+        landingState.login !== undefined,
+    );
 
     useEffect(() => {
         helloEndpoint(setIntroduction, setError, setLoading);
     }, []);
+
+    useEffect(() => {
+        if (location.state) {
+            navigate(location.pathname, { replace: true, state: null });
+        }
+    }, [location, navigate]);
 
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error: {error}</p>;
@@ -192,6 +226,8 @@ function App() {
             <LoginPopUp
                 isOpen={isLoginOpen}
                 onClose={() => setIsLoginOpen(false)}
+                initialMode={landingState.login}
+                notice={landingNotice(landingState)}
             />
         </div>
     );

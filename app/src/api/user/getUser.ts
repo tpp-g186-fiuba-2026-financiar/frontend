@@ -7,6 +7,7 @@ export interface UserResponse {
     email: string;
     full_name: string;
     risk_profile: string;
+    has_to_redo_risk_profile?: boolean;
     is_active: boolean;
     two_factor_enabled: boolean;
     created_at: string;
