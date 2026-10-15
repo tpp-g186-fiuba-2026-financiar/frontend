@@ -15,6 +15,7 @@ import {
     subscribeToTickerAlertEndpoint,
     unsubscribeFromTickerAlertEndpoint,
 } from '../api/subscriptions/tickerAlertSubscription';
+import { deleteUserPreferenceEndpoint } from '../api/user/deleteUserPreference';
 import { getUserEndpoint } from '../api/user/getUser';
 import { updateProfileEndpoint } from '../api/user/updateProfile';
 import { deleteUserShareEndpoint } from '../api/userShares/deleteUserShare';
@@ -65,7 +66,9 @@ describe('API adapters', () => {
         vi.spyOn(authAxios, 'post').mockResolvedValue({ data: payload });
         vi.spyOn(authAxios, 'put').mockResolvedValue({ data: payload });
         vi.spyOn(authAxios, 'patch').mockResolvedValue({ data: payload });
-        vi.spyOn(authAxios, 'delete').mockResolvedValue({ data: undefined });
+        const remove = vi
+            .spyOn(authAxios, 'delete')
+            .mockResolvedValue({ data: undefined });
 
         await expect(
             addUserShareEndpoint({ ticker: 'GGAL', quantity: 2 }),
@@ -89,6 +92,12 @@ describe('API adapters', () => {
             unsubscribeFromTickerAlertEndpoint('GGAL'),
         ).resolves.toBeUndefined();
         await expect(deleteUserShareEndpoint(7)).resolves.toBeUndefined();
+        await expect(
+            deleteUserPreferenceEndpoint('GGAL'),
+        ).resolves.toBeUndefined();
+        expect(remove).toHaveBeenCalledWith(
+            `${import.meta.env.VITE_SERVER_API}/user/preferences/GGAL`,
+        );
     });
 
     test('adapts public API calls', async () => {
