@@ -33,6 +33,7 @@ import RiskProfileGate from '../settings/RiskProfileGate';
 import SharesTable from '../SharesTable/SharesTable';
 import ChartBar from '../Portfolio/ChartBar';
 import BalanceHistoryChart from '../Portfolio/BalanceHistoryChart';
+import StockSearch from '../Layout/StockSearch';
 
 interface PortfolioRow {
     ticker: string;
@@ -189,6 +190,13 @@ function Home() {
     // evolucion vuelva a pedir el historial.
     const [portfolioVersion, setPortfolioVersion] = useState(0);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    // Acción que el builder abre ya tildada ("Agregar a mi cartera")
+    const [builderTicker, setBuilderTicker] = useState<string | null>(null);
+    // Ticker fuera de la cartera cuya comparación de modelos ya respondió
+    const [exploreLoadedTicker, setExploreLoadedTicker] = useState<
+        string | null
+    >(null);
     // Solo para aplicar el tema guardado al cargar Home; cambiarlo se hace
     // desde /ajustes.
     useTheme();
@@ -222,6 +230,32 @@ function Home() {
     const portfolioChartRef = useRef<HTMLCanvasElement>(null);
     const selectedRow =
         displayRows.find((row) => row.ticker === selectedTicker) ?? null;
+    // Acción elegida en el buscador que no está en la cartera: se muestra el
+    // mismo detalle, sin cantidad, con la señal sacada de la comparación.
+    const exploreTicker =
+        selectedTicker && !loadingPortfolio && !portfolioError && !selectedRow
+            ? selectedTicker
+            : null;
+    const exploreRow = useMemo(() => {
+        if (!exploreTicker) return null;
+        const row = withPreferredModel(
+            {
+                ticker: exploreTicker,
+                quantity: 0,
+                trend: null,
+                entryPrice: null,
+                currentPrice: null,
+                pnlAmount: null,
+                pnlPercentage: null,
+                weightPercentage: null,
+            },
+            modelConfig,
+            compareByTicker,
+        );
+        const appliedTrend = appliedModels[exploreTicker];
+        return appliedTrend ? { ...row, trend: appliedTrend } : row;
+    }, [exploreTicker, modelConfig, compareByTicker, appliedModels]);
+    const detailRow = selectedRow ?? exploreRow;
     const tickersKey = rows.map((row) => row.ticker).join(',');
     const openTicker = (ticker: string) =>
         navigate('/home', { state: { selectedTicker: ticker } });
@@ -400,13 +434,38 @@ function Home() {
             results.forEach((r, i) => {
                 if (r.status === 'fulfilled') byTicker[tickers[i]] = r.value;
             });
-            setCompareByTicker(byTicker);
+            setCompareByTicker((current) => ({ ...current, ...byTicker }));
             setModelConfig(config);
         })();
         return () => {
             cancelled = true;
         };
     }, [tickersKey]);
+
+    // Para una acción fuera de la cartera no hay tendencia del endpoint
+    // principal: se arma con la comparación y el modelo preferido.
+    useEffect(() => {
+        if (!exploreTicker) return;
+        let cancelled = false;
+        Promise.all([loadConfig(), getTrendsCompareEndpoint(exploreTicker)])
+            .then(([config, compare]) => {
+                if (cancelled) return;
+                setModelConfig((current) => current ?? config);
+                setCompareByTicker((current) => ({
+                    ...current,
+                    [exploreTicker]: compare,
+                }));
+            })
+            .catch(() => {
+                // Sin comparación el detalle queda sin señal ("Sin datos")
+            })
+            .finally(() => {
+                if (!cancelled) setExploreLoadedTicker(exploreTicker);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [exploreTicker]);
 
     // Últimos 30 cierres de cada acción para el minigráfico de la tabla. Se
     // piden en segundo plano; mientras tanto la tabla usa la línea de proyección.
@@ -519,7 +578,10 @@ function Home() {
 
     return (
         <div className="container py-4">
-            <div className="topbar">
+            {isSearchOpen && (
+                <div className="stock-search-scrim" aria-hidden="true" />
+            )}
+            <div className={`topbar${isSearchOpen ? ' is-searching' : ''}`}>
                 <button
                     type="button"
                     className="wordmark wordmark-link"
@@ -527,6 +589,11 @@ function Home() {
                 >
                     Financi<span className="accent">Ar</span>
                 </button>
+                <StockSearch
+                    portfolio={displayRows}
+                    onSelect={openTicker}
+                    onOpenChange={setIsSearchOpen}
+                />
                 <div className="userzone">
                     <div className="user-menu-wrap" ref={userMenuRef}>
                         <button
@@ -570,9 +637,19 @@ function Home() {
 
             <TickerTape items={tapeItems.length > 0 ? tapeItems : undefined} />
             <LayoutDisclaimer />
-            {selectedRow ? (
+            {detailRow ? (
                 <TickerDetail
-                    row={selectedRow}
+                    row={detailRow}
+                    owned={selectedRow !== null}
+                    trendLoading={
+                        !selectedRow &&
+                        !detailRow.trend &&
+                        exploreLoadedTicker !== detailRow.ticker
+                    }
+                    onAddToPortfolio={() => {
+                        setBuilderTicker(detailRow.ticker);
+                        setIsBuilderOpen(true);
+                    }}
                     onBack={() => navigate(-1)}
                     onModelApplied={(trend) =>
                         setAppliedModels((current) => ({
@@ -691,7 +768,11 @@ function Home() {
 
             <PortfolioBuilder
                 isOpen={isBuilderOpen}
-                onClose={() => setIsBuilderOpen(false)}
+                initialTicker={builderTicker}
+                onClose={() => {
+                    setIsBuilderOpen(false);
+                    setBuilderTicker(null);
+                }}
                 onSaved={loadPortfolio}
             />
 

@@ -19,6 +19,8 @@ interface OwnedShare {
 
 interface PortfolioBuilderProps {
     isOpen: boolean;
+    // Acción que se abre ya tildada (desde el detalle de una que no tenés)
+    initialTicker?: string | null;
     onClose: () => void;
     onSaved: () => void;
 }
@@ -37,7 +39,12 @@ function avatarClass(ticker: string): string {
     return AVATAR_CLASSES[code % AVATAR_CLASSES.length];
 }
 
-function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
+function PortfolioBuilder({
+    isOpen,
+    initialTicker = null,
+    onClose,
+    onSaved,
+}: PortfolioBuilderProps) {
     const [allShares, setAllShares] = useState<Share[]>([]);
     const [owned, setOwned] = useState<Record<string, OwnedShare>>({});
     const [selected, setSelected] = useState<Record<string, number>>({});
@@ -65,6 +72,16 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                     entryPriceMap[s.ticker] =
                         s.entry_price != null ? String(s.entry_price) : '';
                 });
+                const initialShare = shares.shares.find(
+                    (share) => share.ticker === initialTicker,
+                );
+                if (
+                    initialShare?.predictable &&
+                    !(initialShare.ticker in selectedMap)
+                ) {
+                    selectedMap[initialShare.ticker] = 1;
+                    entryPriceMap[initialShare.ticker] = '';
+                }
                 setOwned(ownedMap);
                 setSelected(selectedMap);
                 setEntryPrices(entryPriceMap);
@@ -72,7 +89,7 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
             })
             .catch(() => setError('No se pudo cargar la lista de acciones.'))
             .finally(() => setLoading(false));
-    }, [isOpen]);
+    }, [isOpen, initialTicker]);
 
     const toggleShare = (ticker: string) => {
         const share = allShares.find((item) => item.ticker === ticker);

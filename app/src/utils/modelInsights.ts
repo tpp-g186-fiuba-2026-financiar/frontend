@@ -29,6 +29,18 @@ export function signalLabel(
     return 'sin vista';
 }
 
+// Clase de la pill de señal: alza y baja con su color, el resto neutral.
+export function pillClass(signal: string | null | undefined): string {
+    switch (signal) {
+        case 'alza':
+            return 'pill-up';
+        case 'baja':
+            return 'pill-down';
+        default:
+            return 'pill-neutral';
+    }
+}
+
 // Rango típico de la proyección: ±1 desvío de la volatilidad diaria de los
 // últimos 60 cierres, escalado al horizonte (raíz del tiempo). No es una
 // probabilidad de acierto del modelo, solo cuánto suele moverse el precio.

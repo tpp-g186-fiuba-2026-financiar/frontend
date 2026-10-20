@@ -1,6 +1,10 @@
 import MiniProjection from './MiniProjection';
 import Sparkline from './Sparkline';
-import { signalLabel, signalStrength } from '../../utils/modelInsights';
+import {
+    pillClass,
+    signalLabel,
+    signalStrength,
+} from '../../utils/modelInsights';
 import { type ShareTrend } from '../../api/userShares/getUserSharesTrendsEndpoint';
 interface PortfolioRow {
     ticker: string;
@@ -205,16 +209,6 @@ function formatPnl(amount: number, percentage: number | null): string {
     return `${sign}$${formattedAmount} (${sign}${Math.abs(percentage).toFixed(1)}%)`;
 }
 
-function pillClass(signal: string | null | undefined): string {
-    switch (signal) {
-        case 'alza':
-            return 'pill-up';
-        case 'baja':
-            return 'pill-down';
-        default:
-            return 'pill-neutral';
-    }
-}
 function rowStateClass(signal: string | null | undefined): string {
     switch (signal) {
         case 'alza':

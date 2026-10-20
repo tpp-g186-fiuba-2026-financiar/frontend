@@ -37,6 +37,9 @@ vi.mock('../api/user/postUserPreference', () => ({
 vi.mock('../api/user/deleteUserPreference', () => ({
     deleteUserPreferenceEndpoint: vi.fn(),
 }));
+vi.mock('../api/userShares/getShareTrendsCompare', () => ({
+    getTrendsCompareEndpoint: vi.fn(),
+}));
 vi.mock('../api/userShares/getShareTrendCompareEndpoint', () => ({
     getShareTrendCompareEndpoint: vi.fn(),
 }));
@@ -80,6 +83,8 @@ import { getShareHistoryEndpoint } from '../api/userShares/getShareHistoryEndpoi
 import { postUserPreferenceEndpoint } from '../api/user/postUserPreference';
 import { deleteUserPreferenceEndpoint } from '../api/user/deleteUserPreference';
 import { getShareTrendCompareEndpoint } from '../api/userShares/getShareTrendCompareEndpoint';
+import { getTrendsCompareEndpoint } from '../api/userShares/getShareTrendsCompare';
+import { resetShareDirectory } from '../utils/shareDirectory';
 import { getPortfolioRecomendacionEndpoint } from '../api/userShares/getPortfolioRecomendacionEndpoint';
 import { addUserShareEndpoint } from '../api/userShares/postUserShare';
 import { updateUserShareEndpoint } from '../api/userShares/putUserShare';
@@ -227,8 +232,8 @@ function setupHappyApis() {
         status: 200,
         ticker_info: {
             descripcion: 'Banco argentino de prueba',
-            nombre_corto: 'Grupo Galicia',
-            nombre_largo: 'Grupo Financiero Galicia S.A.',
+            nombre_corto: 'Grupo Financiero Galicia S.A.',
+            nombre_largo: 'Grupo',
         },
     });
     mocked(getShareTrendCompareEndpoint).mockResolvedValue({
@@ -353,7 +358,9 @@ function setupHappyApis() {
 beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    resetShareDirectory();
     setupHappyApis();
+    mocked(getTrendsCompareEndpoint).mockRejectedValue(new Error('offline'));
     Object.defineProperty(window, 'matchMedia', {
         configurable: true,
         value: vi.fn(() => ({
@@ -418,6 +425,111 @@ test('Home loads a rich portfolio and opens the ticker detail', async () => {
     await waitFor(() =>
         expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
     );
+});
+
+test('Home searches a share outside the portfolio and offers to add it', async () => {
+    mocked(getAllSharesEndpoint).mockResolvedValue({
+        shares: [
+            { id: 1, ticker: 'GGAL', predictable: true },
+            { id: 2, ticker: 'YPFD', predictable: true },
+            { id: 4, ticker: 'PAMP', predictable: true },
+        ],
+    });
+    mocked(getTrendsCompareEndpoint).mockImplementation(async (ticker) => {
+        if (ticker !== 'PAMP') throw new Error('offline');
+        return {
+            symbol: 'PAMP',
+            as_of: '2026-09-16',
+            default_model: 'lstm-modal',
+            predictions: {
+                'lstm-modal': {
+                    model: 'lstm-modal',
+                    model_version: 'v1',
+                    available: true,
+                    as_of: '2026-09-16',
+                    horizon_days: 5,
+                    last_close: 5080,
+                    predicted_close: 5300,
+                    rsi: 50,
+                    condition: 'neutral',
+                    signal: 'alza',
+                    backtest: { observations: 100, directional_accuracy: 0.6 },
+                },
+            },
+        };
+    });
+    render(
+        <MemoryRouter>
+            <Home />
+        </MemoryRouter>,
+    );
+    expect(await screen.findByText(/2 acciones/)).toBeInTheDocument();
+
+    const search = screen.getByRole('combobox');
+    fireEvent.keyDown(document.body, { key: '/' });
+    expect(search).toHaveFocus();
+    fireEvent.change(search, { target: { value: 'pam' } });
+    expect(document.querySelector('.stock-search-scrim')).toBeInTheDocument();
+    expect(
+        await screen.findByRole('option', { name: /PAMP/ }),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(search, { key: 'Enter' });
+
+    expect(
+        await screen.findByText('No está en tu cartera'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/nominales/)).not.toBeInTheDocument();
+    await waitFor(() =>
+        expect(document.querySelector('.detail-price')).toHaveTextContent(
+            '$5.080',
+        ),
+    );
+    expect(screen.getAllByText('alza · 5r').length).toBeGreaterThan(0);
+
+    fireEvent.click(
+        screen.getByRole('button', { name: /Agregar a mi cartera/ }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() =>
+        expect(
+            within(dialog).getByText('PAMP').closest('.builder-row'),
+        ).toHaveClass('is-checked'),
+    );
+    expect(within(dialog).getByText('3 seleccionadas')).toBeInTheDocument();
+});
+
+test('TickerDetail of a share outside the portfolio waits for its signal', async () => {
+    const onAddToPortfolio = vi.fn();
+    const { rerender } = render(
+        <TickerDetail
+            row={{ ticker: 'PAMP', quantity: 0, trend: null }}
+            owned={false}
+            trendLoading={true}
+            onAddToPortfolio={onAddToPortfolio}
+            onBack={vi.fn()}
+            onModelApplied={vi.fn()}
+        />,
+    );
+    expect(document.querySelectorAll('.detail-head .skel')).toHaveLength(2);
+    expect(screen.getByText('No está en tu cartera')).toBeInTheDocument();
+    fireEvent.click(
+        screen.getByRole('button', { name: /Agregar a mi cartera/ }),
+    );
+    expect(onAddToPortfolio).toHaveBeenCalled();
+
+    rerender(
+        <TickerDetail
+            row={{ ticker: 'PAMP', quantity: 0, trend: null }}
+            owned={false}
+            onBack={vi.fn()}
+            onModelApplied={vi.fn()}
+        />,
+    );
+    expect(document.querySelector('.detail-head .skel')).toBeNull();
+    expect(screen.getByText('Sin datos')).toBeInTheDocument();
+    expect(
+        screen.queryByRole('button', { name: /Agregar a mi cartera/ }),
+    ).not.toBeInTheDocument();
 });
 
 test('Home asks to redo an expired risk profile and reloads the portfolio', async () => {

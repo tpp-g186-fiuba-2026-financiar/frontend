@@ -25,7 +25,11 @@ import { shareSectorEndpoint } from '../../api/shares/getShareSector';
 import { buildGarchBand, type GarchBandPoint } from '../../utils/garchBand';
 import InfoTip from '../Layout/InfoTip';
 import { bestModelOf } from '../../utils/defaultModels';
-import { projectionBand, signalLabel } from '../../utils/modelInsights';
+import {
+    pillClass,
+    projectionBand,
+    signalLabel,
+} from '../../utils/modelInsights';
 import { ConsensusCard } from './ConsensusCard';
 
 interface PortfolioRow {
@@ -36,19 +40,13 @@ interface PortfolioRow {
 
 interface TickerDetailProps {
     row: PortfolioRow;
+    // false: la acción se abrió desde el buscador y no está en la cartera
+    owned?: boolean;
+    // La señal todavía no llegó (acción fuera de la cartera)
+    trendLoading?: boolean;
+    onAddToPortfolio?: () => void;
     onBack: () => void;
     onModelApplied: (trend: ShareTrend) => void;
-}
-
-function pillClass(signal: string | null | undefined): string {
-    switch (signal) {
-        case 'alza':
-            return 'pill-up';
-        case 'baja':
-            return 'pill-down';
-        default:
-            return 'pill-neutral';
-    }
 }
 
 function signalColorVar(signal: string | null | undefined): string {
@@ -993,7 +991,14 @@ function ModelComparisonTable({
     );
 }
 
-function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
+function TickerDetail({
+    row,
+    owned = true,
+    trendLoading = false,
+    onAddToPortfolio,
+    onBack,
+    onModelApplied,
+}: TickerDetailProps) {
     const [historyResult, setHistoryResult] = useState<{
         ticker: string;
         prices: HistoricalPricePoint[];
@@ -1175,7 +1180,9 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                 <div>
                     <div className="detail-title">
                         <h1 className="mb-0">{row.ticker}</h1>
-                        {available ? (
+                        {trendLoading ? (
+                            <span className="skel" aria-hidden="true" />
+                        ) : available ? (
                             <span
                                 className={`pill ${pillClass(trend?.signal)}`}
                             >
@@ -1189,31 +1196,79 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
                         )}
                     </div>
                     <div className="detail-sub mb-2">{sector}</div>
-                    <p className="detail-sub mb-0">
-                        {row.quantity} nominales
-                        {available && trend?.horizon_days
-                            ? ` · horizonte ${trend.horizon_days} ruedas`
-                            : ''}
-                        {available && trend?.as_of
-                            ? ` · actualizado ${trend.as_of}`
-                            : ''}
+                    <p className="detail-sub detail-sub-row mb-0">
+                        {!owned && (
+                            <span className="not-owned-tag">
+                                No está en tu cartera
+                            </span>
+                        )}
+                        <span>
+                            {[
+                                owned
+                                    ? `${row.quantity} nominales`
+                                    : tickerInfo?.nombre_corto,
+                                available && trend?.horizon_days
+                                    ? `horizonte ${trend.horizon_days} ruedas`
+                                    : null,
+                                available && trend?.as_of
+                                    ? `actualizado ${trend.as_of}`
+                                    : null,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        </span>
                     </p>
                 </div>
-                <div className="detail-price">
-                    <span className="p num">
-                        {formatMoney(trend?.last_close)}
-                    </span>
-                    {delta != null && (
-                        <span
-                            className="d num"
-                            style={{
-                                color: delta >= 0 ? 'var(--up)' : 'var(--down)',
-                            }}
-                        >
-                            → {formatMoney(trend?.predicted_close)} (
-                            {delta >= 0 ? '+' : ''}
-                            {delta.toFixed(1)}%)
+                <div className="detail-actions">
+                    <div className="detail-price">
+                        <span className="p num">
+                            {trendLoading ? (
+                                <span
+                                    className="skel detail-price-skel"
+                                    aria-hidden="true"
+                                />
+                            ) : (
+                                formatMoney(trend?.last_close)
+                            )}
                         </span>
+                        {delta != null && (
+                            <span
+                                className="d num"
+                                style={{
+                                    color:
+                                        delta >= 0
+                                            ? 'var(--up)'
+                                            : 'var(--down)',
+                                }}
+                            >
+                                → {formatMoney(trend?.predicted_close)} (
+                                {delta >= 0 ? '+' : ''}
+                                {delta.toFixed(1)}%)
+                            </span>
+                        )}
+                    </div>
+                    {!owned && onAddToPortfolio && (
+                        <button
+                            type="button"
+                            className="btn btn-primary btn-add-portfolio"
+                            onClick={onAddToPortfolio}
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="M8 3V13M3 8H13"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            Agregar a mi cartera
+                        </button>
                     )}
                 </div>
             </div>
@@ -1452,7 +1507,7 @@ function TickerDetail({ row, onBack, onModelApplied }: TickerDetailProps) {
             {tickerInfo && !tickerInfoError && (
                 <div className="panel mt-3">
                     <h3 className="mb-2">
-                        {tickerInfo.nombre_largo || tickerInfo.nombre_corto}
+                        {tickerInfo.nombre_corto || tickerInfo.nombre_largo}
                     </h3>
                     <p className="mb-0" style={{ color: 'var(--ink-3)' }}>
                         {tickerInfo.descripcion}
