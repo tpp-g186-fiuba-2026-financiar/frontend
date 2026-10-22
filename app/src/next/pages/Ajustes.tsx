@@ -41,7 +41,6 @@ export default function Ajustes() {
     const [saved, setSaved] = useState<string | null>(null);
     const risk = user?.risk_profile ?? '';
 
-    // al salir de Ajustes, la cartera vuelve a leer el modelo elegido
     const refresh = useRef(refreshModelConfig);
     useEffect(() => {
         refresh.current = refreshModelConfig;

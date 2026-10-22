@@ -14,23 +14,18 @@ import { LineChart } from './Charts';
 import { pct, pct1, shortDate, tone, usd } from '../format';
 import { modelLabel, normalizeSignal, probabilityOf } from '../finance';
 
-// Todos los modelos lado a lado: qué predice cada uno hoy (Predicción) y qué
-// tan bien le fue con esta acción en el pasado (Resultados).
-
 const CONDITION: Record<string, string> = {
     sobrecompra: 'Subió mucho',
     sobreventa: 'Cayó mucho',
     neutral: 'Normal',
 };
 
-// Nombre legible: los modelos "-modal" son las versiones que corren en la nube.
 function displayName(key: string): string {
     return key.endsWith('-modal')
         ? `${modelLabel(key)} (nube)`
         : modelLabel(key);
 }
 
-// El motivo de un modelo que no respondió, sin URLs ni detalles técnicos.
 function friendlyReason(p: ModelPrediction): string {
     const r = (p.reason ?? '').toLowerCase();
     if (
@@ -92,7 +87,6 @@ export default function ModelsPanel({
         const m = p.available ? toBacktestAccuracy(p.backtest) : null;
         if (m) measured.push([k, m]);
     });
-    // Solo se corona un modelo si es claramente mejor que el azar y que el resto.
     const winner = pickClearWinner(measured);
     const withSeries = entries
         .filter(([, p]) => (p.backtest?.series?.length ?? 0) > 1)
@@ -169,8 +163,6 @@ export default function ModelsPanel({
                                         : null;
                                 const pu = probabilityOf(p);
                                 const vol = volatilityText(key, p);
-                                // clasificadores que no opinan: el "proyectado" es el mismo
-                                // precio de hoy, no una predicción de que quede igual
                                 const abstains =
                                     pu != null &&
                                     normalizeSignal(p.signal) === 'neutral' &&
@@ -301,8 +293,6 @@ export default function ModelsPanel({
                                 ? toBacktestAccuracy(p.backtest)
                                 : null;
                             const mae = p.backtest?.mae;
-                            // los que dan probabilidad no predicen un precio: su error
-                            // de precio no dice nada (proyectan el de hoy al no opinar)
                             const err =
                                 mae == null || probabilityOf(p) != null
                                     ? null

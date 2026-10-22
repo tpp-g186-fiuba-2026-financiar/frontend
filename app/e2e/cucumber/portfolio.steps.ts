@@ -105,7 +105,9 @@ When(
             .filter({ hasText: ticker });
         await stockRow.getByRole('checkbox').check();
         await stockRow.locator('.builder-qty').fill(String(quantity));
-        await this.page.getByRole('button', { name: 'Guardar cartera' }).click();
+        await this.page
+            .getByRole('button', { name: 'Guardar cartera' })
+            .click();
     },
 );
 
@@ -124,7 +126,9 @@ Then(
             .locator('table.nx-table tbody tr')
             .filter({ hasText: ticker });
         await expect(row.locator('.nx-tk b')).toHaveText(ticker);
-        await expect(row.locator('.nx-tk span')).toHaveText(`${quantity} acciones`);
+        await expect(row.locator('.nx-tk span')).toHaveText(
+            `${quantity} acciones`,
+        );
     },
 );
 

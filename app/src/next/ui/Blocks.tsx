@@ -3,8 +3,6 @@ import InfoTip from '../../components/Layout/InfoTip';
 import { GLOSSARY, type GlossaryKey } from '../glossary';
 import Icon from './Icon';
 
-// Piezas chicas reutilizadas por todas las páginas nuevas.
-
 export function Tip({ k }: { k: GlossaryKey }) {
     const [title, text] = GLOSSARY[k];
     return <InfoTip label={title}>{text}</InfoTip>;
@@ -74,8 +72,6 @@ export function PageHead({
     );
 }
 
-// Recuadro "¿qué estoy viendo?". Se oculta entero cuando el usuario apaga la
-// guía desde la barra superior (clase nx-guide-off en el shell).
 export function Explain({
     title,
     children,
@@ -136,7 +132,6 @@ const SIGNAL_HERO: Record<Signal, { arrow: string; line: string }> = {
     },
 };
 
-// Señal grande para no tener que recorrer toda la pantalla.
 export function SignalBanner({
     signal,
     detail,

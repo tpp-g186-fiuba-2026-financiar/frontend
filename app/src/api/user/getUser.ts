@@ -11,7 +11,6 @@ export interface UserResponse {
     is_active: boolean;
     two_factor_enabled: boolean;
     created_at: string;
-    // 'admin' habilita el panel de administración (lo agrega backend-website)
     role?: 'user' | 'admin';
 }
 

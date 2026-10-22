@@ -1,11 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-// Monitor de mercado en 3D de la portada: carriles con una línea de precio
-// por acción que avanza sola. Es puramente decorativo: arranca con los
-// últimos cierres reales de cada acción y después sigue un paseo aleatorio.
-// Se carga con React.lazy para que three.js no pese en el resto de la app.
-
 interface Props {
     series: Array<{ name: string; closes: number[] }>;
 }
@@ -49,7 +44,7 @@ export default function HeroMonitor({ series }: Props) {
                 alpha: true,
             });
         } catch {
-            return; // sin WebGL queda el fondo con degradé
+            return;
         }
         const W = el.clientWidth || 500;
         const H = el.clientHeight || 300;
@@ -95,14 +90,12 @@ export default function HeroMonitor({ series }: Props) {
         const lanes = names.map((s, k) => {
             const z = 1.4 - k * GAP;
             const base = -1.3 + k * 0.5;
-            // arranca con los retornos log reales y completa con ruido
             const vals: number[] = [];
             const real = s.closes.filter((c) => c > 0).slice(-PTS);
             if (real.length > 10) {
                 const scale = 1 / Math.max(1e-9, real[0]);
                 real.forEach((c) => vals.push(Math.log(c * scale)));
             }
-            // si faltan cierres, se completa hacia atrás con un paseo aleatorio
             while (vals.length < PTS)
                 vals.unshift((vals[0] ?? 0) - gauss() * 0.012);
             const vol = 0.015 + r() * 0.01;
@@ -187,9 +180,6 @@ export default function HeroMonitor({ series }: Props) {
         });
 
         type Lane = (typeof lanes)[number];
-        // Solo el ticker: el movimiento de las lineas es decorativo (sigue
-        // simulado despues de los cierres reales), asi que no se muestran
-        // porcentajes que parezcan cotizaciones.
         const drawTag = (L: Lane) => {
             if (L.lastTxt) return;
             L.lastTxt = L.name;

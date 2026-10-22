@@ -1,6 +1,3 @@
-// Glosario central: cada "i" de la interfaz busca acá su explicación, en
-// lenguaje simple y sin detalles de implementación.
-
 export const GLOSSARY = {
     senal: [
         'Señal',

@@ -1,6 +1,3 @@
-// Íconos de trazo (24x24) usados en la barra lateral, la barra superior y
-// los botones. Un solo componente para no repetir el SVG en cada lugar.
-
 const PATHS = {
     home: 'M3 11l9-7 9 7M5 10v10h14V10',
     wallet: 'M3 6h18v14H3zM3 10h18M16.5 15h.01',

@@ -11,20 +11,17 @@ import {
     type Signal,
 } from '../finance';
 
-// Vista "lista para mostrar" de cada posición: precio, valor, peso, variación
-// semanal, señal, probabilidad y confianza. La usan varias páginas.
-
 export interface HoldingView extends Holding {
     closes: number[];
     price: number | null;
     value: number | null;
     cost: number | null;
-    share: number; // 0-1 del valor de la cartera
-    week: number | null; // % últimas 5 ruedas
-    signal: Signal | null; // null: el modelo todavía no respondió (no es "neutral")
+    share: number;
+    week: number | null;
+    signal: Signal | null;
     prob: number | null;
-    probModel: string | null; // de que modelo sale la probabilidad
-    base: number | null; // cuantas veces sube "normalmente" en 20 ruedas
+    probModel: string | null;
+    base: number | null;
     conf: 1 | 2 | 3;
     model: string | null;
 }
@@ -40,8 +37,6 @@ export function useHoldingsView() {
             const value = price != null ? price * h.quantity : null;
             const cost =
                 h.entryPrice != null ? h.entryPrice * h.quantity : null;
-            // la probabilidad del modelo elegido; si ese modelo no da
-            // probabilidad (predice un precio), la de XGBoost
             const own = probabilityOf(h.trend);
             const prob = own ?? probabilityUp(compare[h.ticker]);
             const probModel =
@@ -84,7 +79,6 @@ export function useHoldingsView() {
                       ? (h.value ?? 0) / sumValues
                       : 0,
         }));
-        // variación semanal en plata: cuánto cambió el valor de cada posición
         const weekAmount = rows.reduce((s, h) => {
             if (h.week == null || h.value == null) return s;
             return s + h.value - h.value / (1 + h.week / 100);

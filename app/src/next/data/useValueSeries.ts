@@ -2,10 +2,6 @@ import { useMemo } from 'react';
 import { usePortfolio } from './PortfolioContext';
 import { portfolioSeries } from '../finance';
 
-// Valor diario de la cartera. Si la cartera es nueva y todavía no tiene
-// historia propia, se arma con las cantidades de hoy sobre el último año de
-// precios (`simulated`), y las pantallas lo aclaran.
-
 export interface ValuePoint {
     date: string;
     value: number;

@@ -7,10 +7,6 @@ import {
     type ReactNode,
 } from 'react';
 
-// Preferencias de interfaz del shell: tema, guía de explicaciones y vista de
-// administrador. El tema se guarda en la misma clave que usaba useTheme para
-// no perder la elección de los usuarios actuales.
-
 export type Theme = 'dark' | 'light' | 'terminal';
 
 interface UiState {

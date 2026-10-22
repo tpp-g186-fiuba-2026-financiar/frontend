@@ -32,7 +32,6 @@ function fmtMetric(key: string, v: number): string {
 export default function Modelos() {
     const diag = useRemote('admin-models', getAdminModelsEndpoint);
     const results = Object.entries(diag.data?.results ?? {});
-    // las banderas (ej. alza_disabled) no son métricas
     const oos = Object.entries(diag.data?.xgboost_oos ?? {}).filter(
         ([k]) => !k.endsWith('disabled'),
     );

@@ -98,7 +98,6 @@ export async function mockBackend(page: Page, opts: MockBackendOptions = {}) {
             (route) => route.fulfill({ json: opts.comparison }),
         );
     }
-    // Historia de precios y de la cartera: vacías (las pantallas lo toleran).
     await page.route(`${API}/user/shares/*/history`, (route) =>
         route.fulfill({ json: { ticker: '', prices: [] } }),
     );

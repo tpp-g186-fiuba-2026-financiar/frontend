@@ -2,8 +2,6 @@ import { type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../next/ui/Icon';
 
-// Marco de las páginas sueltas a las que se llega desde un mail (verificar la
-// cuenta, restablecer la contraseña), con el mismo diseño que la portada.
 function AuthFrame({
     title,
     children,

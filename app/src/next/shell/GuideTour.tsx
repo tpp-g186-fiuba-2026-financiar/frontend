@@ -1,9 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Recorrido de la app a demanda (botón "?" al lado de notificaciones).
-// Resalta cada parte de la pantalla y la explica en una tarjeta.
-
 const STEPS: Array<[string | null, string, string]> = [
     [
         null,
@@ -79,7 +76,6 @@ export default function GuideTour({ onClose }: { onClose: () => void }) {
         if (!sel) return;
         const el = document.querySelector(sel);
         el?.scrollIntoView?.({ block: 'nearest' });
-        // medir el elemento en pantalla es leer un sistema externo (el DOM)
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setRect(el ? el.getBoundingClientRect() : null);
     }, [sel]);

@@ -1,4 +1,3 @@
-// Colores por posición (donut, barras de reparto).
 export const PALETTE = [
     '#5b9dff',
     '#3ee6c4',

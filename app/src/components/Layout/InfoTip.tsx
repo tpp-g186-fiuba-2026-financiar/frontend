@@ -17,8 +17,6 @@ const GAP = 8;
 const MARGIN = 8;
 
 // Tooltip accesible (hover + foco + touch) para explicar como se calcula
-// una metrica. Se dibuja en el <body> para que las tarjetas con overflow
-// no lo recorten. Se para el click para que no dispare el onClick de la fila
 // que lo contiene (ej: las filas de la watchlist navegan al detalle).
 function InfoTip({ label, children }: InfoTipProps) {
     const id = useId();

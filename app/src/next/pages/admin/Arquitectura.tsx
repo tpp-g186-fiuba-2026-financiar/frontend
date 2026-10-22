@@ -9,7 +9,7 @@ interface Node {
     t: string;
     s: string;
     d: string;
-    health?: string; // nombre del servicio en /admin/health
+    health?: string;
 }
 
 const ARCH: Record<string, Node> = {

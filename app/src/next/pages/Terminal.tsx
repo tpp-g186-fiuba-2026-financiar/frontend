@@ -26,10 +26,6 @@ import {
 } from '../finance';
 import { bestModelOf } from '../../utils/defaultModels';
 
-// Terminal de comandos: cada comando consulta los mismos datos que el resto
-// de la app y los muestra como texto. Al usuario se le describe qué hace cada
-// uno, sin detalles de implementación.
-
 type Kind = '' | 'hd' | 'ok' | 'err' | 'dim' | 'cmd' | 'w';
 type Seg = string | { t: string; k: Kind };
 type Line = { k: Kind; segs: Seg[] };
@@ -78,7 +74,6 @@ const PAGES = [
     'ajustes',
 ];
 
-// La sesión de la terminal sobrevive a cambiar de pestaña.
 const session: { lines: Line[]; hist: string[] } = { lines: [], hist: [] };
 
 interface Ctx {
@@ -559,7 +554,6 @@ export default function Terminal() {
     }, [lines]);
 
     const queue = useRef<Promise<void>>(Promise.resolve());
-    // los comandos corren de a uno, así la salida queda en orden
     const exec = (raw: string) => {
         queue.current = queue.current.then(() => execOne(raw));
         return queue.current;
@@ -604,7 +598,6 @@ export default function Terminal() {
     const initial = (location.state as { cmd?: string } | null)?.cmd;
     useEffect(() => {
         if (initial) {
-            // comando que llega desde otra pantalla ("Ver en terminal")
             void exec(initial);
             navigate('.', { replace: true, state: null });
         }

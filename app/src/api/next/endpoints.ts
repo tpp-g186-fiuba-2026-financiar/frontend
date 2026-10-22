@@ -1,9 +1,5 @@
 import authAxios from '../authFetch';
 
-// Endpoints nuevos de backend-website que usa la interfaz FinanciAr Next.
-// Todas las páginas los consumen con tolerancia a fallas: si un endpoint
-// todavía no existe o el servicio está caído, se muestra un estado vacío.
-
 const base = () => import.meta.env.VITE_SERVER_API as string;
 
 export interface CandlePoint {
@@ -53,9 +49,7 @@ export interface ExplainContribution {
     label: string;
     value: number | null;
     contribution: number;
-    /** Qué mide, en palabras simples. */
     help?: string | null;
-    /** Cómo mostrar value: pct, rank, flag, days, index o num. */
     unit?: string;
 }
 
@@ -66,9 +60,7 @@ export interface ExplainResponse {
     base_value: number;
     contributions: ExplainContribution[];
     signal?: 'alza' | 'baja' | 'neutral' | null;
-    /** Desde qué P(sube) el modelo dice "alza"; null = no emite alzas. */
     alza_threshold?: number | null;
-    /** Hasta qué P(sube) el modelo dice "baja"; null = no emite bajas. */
     baja_threshold?: number | null;
 }
 
@@ -101,7 +93,6 @@ export interface SignalHistoryResponse {
         evaluated: number;
         hits: number;
         hit_rate: number | null;
-        // fecha de la última señal guardada: si queda vieja, el job diario se frenó
         last_signal?: string | null;
         updated_at?: string | null;
     };
@@ -109,7 +100,6 @@ export interface SignalHistoryResponse {
 
 export async function getSignalHistoryEndpoint(): Promise<SignalHistoryResponse> {
     const res = await authAxios.get(`${base()}/user/signals/history`);
-    // sin acciones en cartera el backend responde {signals: []}
     const rows: SignalHistoryRow[] = res.data?.rows ?? res.data?.signals ?? [];
     return {
         rows,
@@ -118,9 +108,7 @@ export async function getSignalHistoryEndpoint(): Promise<SignalHistoryResponse>
 }
 
 export interface ServiceHealth {
-    // data-colector | api-ml | modal
     name: string;
-    // up | down | not_configured
     status: string;
     latency_ms: number | null;
     http_status?: number | null;
@@ -150,7 +138,6 @@ export interface ModelDiagnostics {
     xgboost_version?: string | null;
 }
 
-// api-ml responde {backtest: {run_at, results}, xgboost: {version, metrics}}.
 export async function getAdminModelsEndpoint(): Promise<ModelDiagnostics> {
     const res = await authAxios.get(`${base()}/admin/models`);
     const d = res.data ?? {};
@@ -166,8 +153,6 @@ export async function getAdminModelsEndpoint(): Promise<ModelDiagnostics> {
     };
 }
 
-// Black-Litterman con los valores intermedios por acción (si api-ml todavía
-// no los devuelve, `detalle` viene vacío y la pantalla usa solo los pesos).
 export interface BlDetalle {
     ticker: string;
     peso_actual: number;

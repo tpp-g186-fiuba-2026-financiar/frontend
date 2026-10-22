@@ -1,5 +1,3 @@
-// Formatos numéricos en es-AR usados en toda la interfaz nueva.
-
 export function usd(v: number, decimals = 2): string {
     return (
         '$' +
@@ -14,7 +12,6 @@ export function usd0(v: number): string {
     return '$' + Math.round(v).toLocaleString('es-AR');
 }
 
-// Porcentaje con signo: +1,23%
 export function pct(v: number, decimals = 2): string {
     return (
         (v >= 0 ? '+' : '−') +
@@ -23,7 +20,6 @@ export function pct(v: number, decimals = 2): string {
     );
 }
 
-// Porcentaje sin signo: 12,3%
 export function pct1(v: number): string {
     return v.toFixed(1).replace('.', ',') + '%';
 }
@@ -40,8 +36,6 @@ export function tone(v: number): 'nx-up' | 'nx-down' {
     return v >= 0 ? 'nx-up' : 'nx-down';
 }
 
-// "2026-09-28" sola se interpreta como medianoche UTC, que en Argentina es el
-// día anterior: se toma el mediodía para que la fecha no se corra.
 function toDate(d: Date | string): Date {
     if (typeof d !== 'string') return d;
     return new Date(/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T12:00:00` : d);
@@ -61,8 +55,6 @@ export function longDate(d: Date | string): string {
     });
 }
 
-// Explica por qué una probabilidad alta puede dar "neutral": el modelo solo
-// opina en los extremos donde, medido con datos que no vio, le gana a lo normal.
 export function signalRule(
     alzaFrom: number | null,
     bajaTo: number | null,
@@ -77,9 +69,6 @@ export function signalRule(
     return `El modelo solo opina en los casos extremos: dice ${parts.join(' y ')}. En el medio queda en neutral, porque ahí no acierta más que lo normal.`;
 }
 
-// Por qué un 70% de XGBoost no es "alza": la probabilidad y la señal
-// son dos cosas distintas. El 70% es "en situaciones parecidas, subió
-// 7 de cada 10 veces"; la señal solo se enciende en los extremos.
 export function xgbProbabilityNote(
     p: number,
     signal: 'alza' | 'baja' | 'neutral',
@@ -112,7 +101,6 @@ export function xgbProbabilityNote(
     return `${head}${surprise}${rule}`;
 }
 
-// Valor de una variable del modelo en palabras (unit viene de api-ml).
 export function featureValue(value: number | null, unit?: string): string {
     if (value == null) return 'sin dato';
     const signed = (v: number, d = 1) =>

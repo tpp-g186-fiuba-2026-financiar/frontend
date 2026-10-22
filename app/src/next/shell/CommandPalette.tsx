@@ -12,7 +12,6 @@ interface Command {
     run: () => void;
 }
 
-// Buscador ⌘K: secciones, acciones de la cartera y comandos rápidos.
 export default function CommandPalette({
     admin,
     isAdmin,

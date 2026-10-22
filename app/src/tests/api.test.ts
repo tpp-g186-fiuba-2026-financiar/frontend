@@ -152,7 +152,6 @@ describe('endpoints de FinanciAr Next', () => {
         await expect(next.getExplainEndpoint('GGAL')).resolves.toEqual({
             symbol: 'GGAL',
         });
-        // sin acciones el backend responde {signals: []}
         get.mockResolvedValueOnce({ data: { signals: [] } });
         await expect(next.getSignalHistoryEndpoint()).resolves.toEqual({
             rows: [],

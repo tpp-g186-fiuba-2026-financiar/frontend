@@ -32,7 +32,6 @@ interface Row {
     det: BlDetalle | null;
 }
 
-// Volatilidad anual de un reparto con la covarianza de los retornos diarios.
 function portfolioVol(
     weights: Record<string, number>,
     rets: Record<string, number[]>,
@@ -166,7 +165,6 @@ export default function Rebalanceo() {
                 {pct1(r.est * 100)}.
             </em>
         ) : null;
-    // ejemplos que cumplen la regla: más que lo normal y crece / menos y se achica
     const gap = (r: Row) => r.det!.q - r.det!.pi;
     const withDet = rows.filter((r) => r.det);
     const upEx = withDet

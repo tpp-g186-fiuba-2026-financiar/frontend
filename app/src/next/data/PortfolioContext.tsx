@@ -36,11 +36,6 @@ import {
     type DefaultModelsConfig,
 } from '../../utils/defaultModels';
 
-// Estado de la cartera compartido por todas las páginas del shell: se carga
-// una sola vez y se refresca con reload() (por ejemplo, al editar la cartera).
-// Cada servicio puede fallar sin bloquear al resto: la tabla aparece apenas
-// llegan las acciones y lo demás se completa a medida que responde.
-
 export interface Holding {
     ticker: string;
     shareId: number;
@@ -50,7 +45,6 @@ export interface Holding {
     pnlAmount: number | null;
     pnlPercentage: number | null;
     weight: number | null;
-    // tendencia del modelo elegido por el usuario (o la del backend)
     trend: ShareTrend | null;
 }
 
@@ -74,14 +68,11 @@ interface PortfolioState {
     reload: () => Promise<void>;
     retryUser: () => void;
     patchUser: (patch: Partial<UserResponse>) => void;
-    // vuelve a leer qué modelo eligió el usuario en Ajustes
     refreshModelConfig: () => void;
 }
 
 const PortfolioContext = createContext<PortfolioState | null>(null);
 
-// Los modelos se calculan al pedir la pantalla y a veces tardan mucho: pasado
-// este tiempo esa acción queda "sin datos" en vez de quedar esperando.
 const COMPARE_TIMEOUT_MS = 90_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -122,7 +113,6 @@ function toHoldings(
     });
 }
 
-// Reemplaza la tendencia por la del modelo que eligió el usuario en Ajustes.
 function withPreferred(
     h: Holding,
     config: DefaultModelsConfig | null,
@@ -240,21 +230,17 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        // carga inicial: reload() pide la cartera y actualiza el estado al llegar
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void reload();
     }, [reload]);
 
     const tickersKey = base.map((h) => h.ticker).join(',');
 
-    // Comparación de modelos e historial de precios: en segundo plano.
     useEffect(() => {
         if (!tickersKey) return;
         let cancelled = false;
         const tickers = tickersKey.split(',');
         loadConfig().then((c) => !cancelled && setModelConfig(c));
-        // Cada acción se muestra apenas llega su comparación: una que tarde (o
-        // que el servidor deje colgada) no traba a las demás.
         tickers.forEach((t) => {
             withTimeout(
                 getShareTrendCompareEndpoint(t),

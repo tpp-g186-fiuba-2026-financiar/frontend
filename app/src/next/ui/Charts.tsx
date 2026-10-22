@@ -1,7 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
-// Gráficos SVG livianos (sin chart.js) con tooltip al pasar el mouse.
-
 function useWidth<T extends HTMLElement>(fallback = 600) {
     const ref = useRef<T>(null);
     const [width, setWidth] = useState(fallback);
@@ -71,7 +69,6 @@ export function LineChart({
     height?: number;
     yFmt?: (v: number) => string;
     xFmt?: (label: string) => string;
-    /** Fecha del cartel al pasar el mouse (por defecto, la del eje). */
     tipFmt?: (label: string) => string;
     vline?: number;
     vlineLabel?: string;
@@ -541,7 +538,6 @@ export function CandleChart({
     );
 }
 
-// Medidor semicircular de probabilidad de suba.
 export function Gauge({
     p,
     label = 'PROB. SUBA',
@@ -549,7 +545,6 @@ export function Gauge({
 }: {
     p: number;
     label?: string;
-    /** Si no viene, no inventamos alza/baja con un corte de 55/45. */
     signal?: 'alza' | 'baja' | 'neutral';
 }) {
     const size = 200;

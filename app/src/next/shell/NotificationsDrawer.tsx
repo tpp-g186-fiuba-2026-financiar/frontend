@@ -4,8 +4,6 @@ import {
     type AlertSubscriptions,
 } from '../../api/subscriptions/getUserAlertSubscriptions';
 
-// Panel de notificaciones: muestra a qué alertas está suscripto el usuario.
-// Las alertas llegan por mail cuando cambia la señal de una acción.
 export default function NotificationsDrawer({
     onGoAlerts,
 }: {

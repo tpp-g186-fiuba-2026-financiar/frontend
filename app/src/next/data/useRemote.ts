@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 
-// Carga un recurso una vez y lo comparte entre páginas (caché en memoria por
-// clave). Si falla, `error` queda en true y la página muestra un estado vacío.
-
 const cache = new Map<string, unknown>();
 
 export function clearRemoteCache() {
     cache.clear();
 }
 
-// Olvida un recurso para que la próxima pantalla lo vuelva a pedir.
 export function forgetRemote(key: string) {
     cache.delete(key);
 }

@@ -54,7 +54,7 @@ import {
     type Signal,
 } from '../finance';
 
-const HN = 70; // ruedas de historia en el gráfico
+const HN = 70;
 
 const SIGNAL_COLOR: Record<Signal, string> = {
     alza: 'var(--nx-up)',
@@ -90,7 +90,6 @@ export default function Accion() {
     const [mode, setMode] = useState<'linea' | 'velas'>('linea');
     const [alertMsg, setAlertMsg] = useState<string | null>(null);
     const subs = useRemote('alert-subs', getUserAlertSubscriptionsEndpoint);
-    // cambios hechos en esta pantalla, por encima de lo que vino del backend
     const [followed, setFollowed] = useState<Record<string, boolean>>({});
 
     const ticker = param?.toUpperCase() ?? rows[0]?.ticker;
@@ -130,7 +129,6 @@ export default function Accion() {
     const xgbHorizon = xgb?.horizon_days ?? 20;
     const { parts, score } = consensusParts(compare);
     const conf = confidenceLevel(compare, prob, row?.base ?? 0.5);
-    // La lectura de la pantalla es la combinada, no la de un modelo solo.
     const signal: Signal | null = compare?.consensus
         ? consensusSignal(compare)
         : (row?.signal ?? null);
@@ -143,7 +141,6 @@ export default function Accion() {
         compare?.predictions['garch-modal'] ??
         compare?.predictions['garch-ann-modal'];
 
-    // proyección: retorno del consenso llevado a ruedas + cono de volatilidad
     const proj = (() => {
         if (last == null) return null;
         const avgH = parts.length
@@ -153,8 +150,6 @@ export default function Accion() {
                   0,
               ) / parts.length
             : 10;
-        // Si la lectura combinada es neutral, el centro del cono se queda
-        // en el precio de hoy: no inventamos una suba o baja.
         const daily =
             score != null && signal && signal !== 'neutral'
                 ? score / Math.max(1, avgH)
@@ -188,8 +183,6 @@ export default function Accion() {
             lo95.push(m * Math.exp(-1.96 * s));
             hi95.push(m * Math.exp(1.96 * s));
         }
-        // sin GARCH ni historia suficiente no hay volatilidad que mostrar
-        // (el 2% de respaldo solo sirve para dibujar el cono)
         const annual = fc.length
             ? (fc[0].volatility_pct / 100) * Math.sqrt(252)
             : rets.length > 20
@@ -249,7 +242,6 @@ export default function Accion() {
                 );
             }
         } catch (err) {
-            // 409: la alerta ya existía (por ejemplo, creada desde Alertas)
             if (
                 (err as { response?: { status?: number } }).response?.status ===
                 409
@@ -266,12 +258,10 @@ export default function Accion() {
         }
     };
 
-    // SHAP: se lleva cada aporte (en log-odds) a puntos de probabilidad,
-    // repartiendo la diferencia entre "lo normal" y el resultado.
     const shap = (() => {
         const e = explain.data;
         if (!e || !e.contributions.length) return null;
-        const baseP = sigmoid(e.base_value); // base_value viene en log-odds
+        const baseP = sigmoid(e.base_value);
         const total = e.contributions.reduce((s, c) => s + c.contribution, 0);
         const diff = e.probability_up - baseP;
         const toPts = (c: number) =>

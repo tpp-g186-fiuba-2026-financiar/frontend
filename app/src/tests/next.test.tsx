@@ -54,7 +54,6 @@ vi.mock('../api/next/endpoints', () => ({
     getAdminModelsEndpoint: vi.fn(),
     getBlackLittermanEndpoint: vi.fn(),
 }));
-// Componentes con tests propios: acá alcanza con saber que se abren.
 vi.mock('../components/Portfolio/PortfolioBuilder', () => ({
     default: ({ isOpen }: { isOpen: boolean }) =>
         isOpen ? <div>editor de cartera</div> : null,
@@ -115,8 +114,6 @@ import {
 import { AppRoutes } from '../next/routes';
 import { clearRemoteCache } from '../next/data/useRemote';
 
-// Las páginas se cargan en diferido (lazy): con toda la suite corriendo a la
-// vez pueden tardar más que el segundo por defecto.
 configure({ asyncUtilTimeout: 5000 });
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -642,7 +639,6 @@ describe('Análisis de acción', () => {
         expect(
             await screen.findByText('Distancia al máximo de 3 meses'),
         ).toBeInTheDocument();
-        // todos los modelos lado a lado, incluidas las versiones de la nube
         expect(screen.getByText('Qué predice cada modelo')).toBeInTheDocument();
         expect(screen.getByText('LSTM (nube)')).toBeInTheDocument();
         expect(
@@ -666,7 +662,6 @@ describe('Análisis de acción', () => {
         await waitFor(() =>
             expect(getCandlesEndpoint).toHaveBeenCalledWith('GGAL'),
         );
-        // GGAL ya tiene alerta: el botón lo dice y permite sacarla
         fireEvent.click(
             await screen.findByRole('button', {
                 name: /Te avisamos si cambia/,
@@ -705,7 +700,6 @@ describe('Análisis de acción', () => {
         expect(
             await screen.findByText(/No pudimos guardar la alerta/),
         ).toBeInTheDocument();
-        // si ya existía (409), se toma como suscripto
         m(subscribeToTickerAlertEndpoint).mockRejectedValueOnce({
             response: { status: 409 },
         });
@@ -772,12 +766,10 @@ describe('Rebalanceo', () => {
 describe('Historial, Riesgo y Mercado', () => {
     test('historial cuenta aciertos y filtra por acción', async () => {
         renderApp('/historial');
-        // con pocos casos se muestra "aciertos/total" y el rango, no un porcentaje
         expect((await screen.findAllByText('2/3')).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/2 de 3 · entre/).length).toBeGreaterThan(0);
         expect(screen.getAllByText(/pocos casos/).length).toBeGreaterThan(0);
         expect(screen.getAllByText('✓ acertó').length).toBe(2);
-        // la señal pendiente aparece en curso o, si ya pasó su plazo, vencida
         expect(
             screen.getAllByText(/en curso|vencida, sin evaluar/).length,
         ).toBeGreaterThan(0);
@@ -953,7 +945,6 @@ describe('Shell', () => {
     test('buscador, guía, notificaciones, aviso legal y menú', async () => {
         renderApp('/home');
         await screen.findByRole('heading', { name: /Ana/ });
-        // buscador con ⌘K y teclado
         fireEvent.keyDown(document, { key: 'k', metaKey: true });
         const search = screen.getByPlaceholderText(/Escribí un ticker/);
         fireEvent.change(search, { target: { value: 'zzz' } });
@@ -977,13 +968,11 @@ describe('Shell', () => {
         });
         fireEvent.click(await screen.findByRole('option', { name: /GGAL/ }));
         expect(where()).toBe('/accion/GGAL');
-        // tema claro/oscuro, terminal y guía
         fireEvent.click(
             screen.getByRole('button', { name: 'Cambiar tema claro u oscuro' }),
         );
         fireEvent.click(screen.getByRole('button', { name: 'Modo terminal' }));
         fireEvent.click(screen.getByRole('button', { name: /Guía (ON|OFF)/ }));
-        // recorrido a demanda, al lado de notificaciones
         fireEvent.click(screen.getByRole('button', { name: 'Guía de uso' }));
         const tour = await screen.findByRole('dialog', { name: 'Guía de uso' });
         expect(where()).toBe('/home');
@@ -1005,7 +994,6 @@ describe('Shell', () => {
         ).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Guía de uso' }));
         fireEvent.keyDown(document, { key: 'Escape' });
-        // notificaciones y aviso legal
         fireEvent.click(screen.getByRole('button', { name: 'Notificaciones' }));
         expect(await screen.findByText('Toda la cartera')).toBeInTheDocument();
         fireEvent.click(
@@ -1019,7 +1007,6 @@ describe('Shell', () => {
             screen.getByRole('complementary', { name: 'Aviso legal' }),
         ).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
-        // menú del usuario
         fireEvent.click(screen.getByRole('button', { name: 'Ana Pérez' }));
         fireEvent.click(screen.getByRole('menuitem', { name: /Ajustes/ }));
         expect(where()).toBe('/ajustes');
@@ -1071,7 +1058,6 @@ describe('Administración', () => {
         expect(
             await screen.findByText('¿Cuando está seguro, acierta más?'),
         ).toBeInTheDocument();
-        // vuelta a la vista de usuario desde el menú
         fireEvent.click(screen.getByRole('button', { name: 'Ana Pérez' }));
         fireEvent.click(
             screen.getByRole('menuitem', { name: /Ver como usuario/ }),

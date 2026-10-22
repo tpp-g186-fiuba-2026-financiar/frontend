@@ -4,7 +4,6 @@ import { UiProvider } from './data/UiContext';
 import { PortfolioProvider } from './data/PortfolioContext';
 import AppShell from './shell/AppShell';
 
-// Cada página se descarga recién cuando se abre.
 const Resumen = lazy(() => import('./pages/Resumen'));
 const Cartera = lazy(() => import('./pages/Cartera'));
 const Accion = lazy(() => import('./pages/Accion'));
@@ -20,9 +19,6 @@ const Servicios = lazy(() => import('./pages/admin/Servicios'));
 const Modelos = lazy(() => import('./pages/admin/Modelos'));
 const Confiabilidad = lazy(() => import('./pages/admin/Confiabilidad'));
 
-// Rutas de la app logueada: un layout (shell) con las páginas adentro. El
-// panel de administración usa el mismo shell en modo admin, que redirige a
-// /home si el usuario no tiene rol de administrador.
 export function AppRoutes(RequireAuth: ComponentType<{ children: ReactNode }>) {
     const shell = (admin: boolean) => (
         <RequireAuth>

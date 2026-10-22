@@ -1,6 +1,3 @@
-// Cálculos puros que usan las páginas: señales, confianza, riesgo y
-// correlaciones. Sin dependencias de React para poder testearlos directo.
-
 import type {
     CompareTrendsResponse,
     ModelPrediction,
@@ -15,7 +12,6 @@ export function normalizeSignal(raw: string | null | undefined): Signal {
     return 'neutral';
 }
 
-// Retorno esperado al horizonte del modelo (precio estimado vs último cierre).
 export function expectedReturn(
     p:
         | Pick<ModelPrediction, 'last_close' | 'predicted_close'>
@@ -45,7 +41,6 @@ export function accuracyOf(
     return v <= 1 ? v : v / 100;
 }
 
-// Nombres legibles de los modelos que devuelve el comparador.
 const MODEL_LABELS: Record<string, string> = {
     lstm: 'LSTM',
     'lstm-modal': 'LSTM',
@@ -66,7 +61,6 @@ export function modelLabel(key: string): string {
     return MODEL_LABELS[key] ?? key;
 }
 
-// Modelos que dan dirección (GARCH solo da volatilidad y queda afuera).
 export function directionalModels(
     compare: CompareTrendsResponse | undefined,
 ): Array<[string, ModelPrediction]> {
@@ -79,12 +73,9 @@ export function directionalModels(
     );
 }
 
-// Qué tan firme es la lectura: 3 alta, 2 media, 1 baja.
 export function confidenceLevel(
     compare: CompareTrendsResponse | undefined,
     probability: number | null,
-    // tasa base de suba de esa accion: en pesos, con inflacion, "lo normal"
-    // no es 50% sino bastante mas; la confianza se mide contra eso
     base = 0.5,
 ): 1 | 2 | 3 {
     const models = directionalModels(compare);
@@ -113,7 +104,6 @@ export function confidenceLevel(
     return c.aggregate_confidence >= 0.55 && agreement >= 0.6 ? 3 : 2;
 }
 
-// Señal combinada a partir de la clasificación del consenso de api-ml.
 export function consensusSignal(
     compare: CompareTrendsResponse | undefined,
 ): Signal {
@@ -122,8 +112,6 @@ export function consensusSignal(
     if (c === 'sobreventa') return 'baja';
     return 'neutral';
 }
-
-/* ---------------- riesgo ---------------- */
 
 export function logReturns(prices: number[]): number[] {
     const out: number[] = [];
@@ -144,7 +132,6 @@ export function std(a: number[]): number {
     return Math.sqrt(mean(a.map((x) => (x - m) ** 2)));
 }
 
-// VaR y CVaR históricos al 95% (como pérdida positiva, en fracción).
 export function valueAtRisk(
     returns: number[],
 ): { var95: number; cvar95: number } | null {
@@ -184,8 +171,6 @@ export function annualizedVol(returns: number[]): number {
     return std(returns) * Math.sqrt(252);
 }
 
-// Variación cada `step` ruedas (por defecto una semana hábil) para un gráfico
-// que se lee como "esta semana subió o bajó tanto".
 export function steppedReturns(values: number[], step = 5): number[] {
     const out: number[] = [];
     for (let i = step; i < values.length; i += step) {
@@ -194,11 +179,6 @@ export function steppedReturns(values: number[], step = 5): number[] {
     return out;
 }
 
-/* ---------------- consenso ---------------- */
-
-// Misma cuenta que api-ml (src/consensus.py): cada modelo aporta su retorno
-// esperado (log), pesado por su acierto histórico ajustado por cantidad de
-// casos (q) y por si su señal coincide con el signo de su retorno (a).
 export interface ConsensusPart {
     model: string;
     ret: number;
@@ -221,7 +201,6 @@ export function consensusParts(compare: CompareTrendsResponse | undefined): {
     parts: ConsensusPart[];
     score: number | null;
 } {
-    // si api-ml manda los componentes, esa es la cuenta oficial
     const comps = compare?.consensus?.components;
     if (comps && comps.length) {
         return {
@@ -253,8 +232,6 @@ export function consensusParts(compare: CompareTrendsResponse | undefined): {
     return { parts, score };
 }
 
-// Probabilidad de suba de una acción: la de XGBoost (único modelo que la da
-// directamente) o, si no está, la de la tendencia que se muestra.
 export function probabilityUp(
     compare: CompareTrendsResponse | undefined,
     trend?: unknown,
@@ -270,7 +247,6 @@ export function probabilityUp(
     return probabilityOf(trend);
 }
 
-// Variación de los últimos `days` cierres, en %.
 export function changeOver(closes: number[], days = 5): number | null {
     if (closes.length <= days) return null;
     const a = closes[closes.length - 1 - days];
@@ -278,8 +254,6 @@ export function changeOver(closes: number[], days = 5): number | null {
     return a > 0 ? (b / a - 1) * 100 : null;
 }
 
-// Confianza de una señal guardada en el historial: qué tanto se separaba la
-// predicción del precio de ese día, por raíz del plazo (para comparar plazos).
 export function signalLevel(r: {
     last_close: number;
     predicted_close: number;
@@ -292,8 +266,6 @@ export function signalLevel(r: {
     return move >= 0.006 ? 3 : move >= 0.003 ? 2 : 1;
 }
 
-// Riesgo de la cartera con las cantidades de hoy aplicadas al último año de
-// precios (como si siempre hubieras tenido lo que tenés ahora).
 export function portfolioSeries(
     holdings: Array<{ ticker: string; quantity: number }>,
     history: Record<string, Array<{ ts: number; close: number }>>,
@@ -323,9 +295,6 @@ export function portfolioSeries(
     };
 }
 
-// Un modelo por nombre: el comparador trae versiones locales y remotas
-// (sufijo -modal) del mismo modelo. Se queda con la que tiene más historia de
-// aciertos medida y, si empatan, con la local.
 export function uniqueModels(
     compare: CompareTrendsResponse | undefined,
 ): Array<[string, ModelPrediction]> {
@@ -345,8 +314,6 @@ export function uniqueModels(
     return [...best.values()];
 }
 
-// Cuantas veces subio la accion en `horizon` ruedas durante los ultimos
-// `lookback` dias (la tasa base contra la que hay que leer una probabilidad).
 export function upBaseRate(
     closes: number[],
     horizon = 20,

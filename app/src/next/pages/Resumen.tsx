@@ -66,9 +66,6 @@ function Kpi({
     );
 }
 
-// ¿Te fue mejor que un plazo fijo o que el dólar? Toma la evolución del valor
-// de la cartera y la compara con haber puesto la misma plata a la tasa BADLAR
-// (capitalizando día a día) o en dólar MEP.
 function Comparison() {
     const { points, simulated } = useValueSeries();
     const [range, setRange] = useState(126);
@@ -97,8 +94,6 @@ function Comparison() {
         const mep = byKey.get('MEP');
         const badlar = byKey.get('BADLAR');
         const mep0 = near(mep, t0);
-        // aportes: si el usuario sumó plata en el medio, se descuenta con el costo
-        // con historia real se usa valor/costo, así los aportes nuevos no cuentan como ganancia
         const ratio = (p: (typeof slice)[number]) =>
             p.cost ? p.value / p.cost : p.value;
         const acc = slice.map((p) => (ratio(p) / ratio(slice[0])) * 100);
@@ -401,8 +396,6 @@ export default function Resumen() {
     const [range, setRange] = useState(126);
 
     const ups = rows.filter((r) => r.signal === 'alza').length;
-    // acciones con una señal real (las que los modelos todavía no
-    // respondieron no cuentan como "neutral")
     const withSignal = rows.filter((r) => r.signal != null).length;
     const signalText = withSignal ? `${ups} de ${withSignal}` : '—';
     const sig = {

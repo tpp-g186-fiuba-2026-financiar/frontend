@@ -21,8 +21,6 @@ const SIG: Record<string, string> = {
     neutral: 'Neutral',
 };
 
-// Informe para imprimir o guardar como PDF (window.print). En pantalla está
-// oculto; el CSS de impresión oculta la app y muestra solo esto.
 export default function Report() {
     const { user, history, compare, balanceHistory } = usePortfolio();
     const { rows, totalValue, totalCost, weekPct } = useHoldingsView();

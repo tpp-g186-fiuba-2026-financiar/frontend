@@ -30,7 +30,6 @@ function landingNotice(state: LandingState): string | undefined {
     return undefined;
 }
 
-// Acciones que se muestran en la portada (cotizaciones del ultimo cierre).
 const LEADERS = ['GGAL', 'YPFD', 'PAMP', 'BMA', 'TXAR', 'CEPU'];
 
 interface Quote {

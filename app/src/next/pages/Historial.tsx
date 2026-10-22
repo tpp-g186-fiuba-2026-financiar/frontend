@@ -29,7 +29,6 @@ import {
 
 const DAY = 86_400_000;
 
-// Fecha (mediodía local) a partir de "2026-09-28".
 function dateOf(iso: string): Date {
     return new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00` : iso);
 }
@@ -54,8 +53,6 @@ function businessDaysBetween(from: Date, to: Date): number {
     return n;
 }
 
-// Una señal sin resultado cuyo plazo ya pasó (con un día de margen) no está
-// "en curso": quedó sin resolver porque el job diario no la evaluó.
 function isOverdue(r: SignalHistoryRow, now: Date): boolean {
     return (
         r.hit == null &&
@@ -63,7 +60,6 @@ function isOverdue(r: SignalHistoryRow, now: Date): boolean {
     );
 }
 
-// "xgb-20260829T024049Z" o "2026-08-12T23:44:08+00:00" -> "versión del 29 ago".
 function versionText(version: string | null | undefined): string {
     if (!version) return '';
     const m = version.match(/(\d{4})-?(\d{2})-?(\d{2})/);
@@ -72,7 +68,6 @@ function versionText(version: string | null | undefined): string {
     return ` · versión del ${d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}`;
 }
 
-// Acierto con su margen. Con pocos casos el porcentaje solo no dice nada.
 function RateText({ hits, n }: { hits: number; n: number }) {
     if (!n) return <>sin señales evaluadas</>;
     const [lo, hi] = wilsonInterval(hits / n, n);
@@ -120,9 +115,6 @@ export default function Historial() {
     });
     const hi = byLvl[0];
 
-    // Cada modelo, versión y horizonte por separado: un XGBoost de 5 ruedas y
-    // otro de 20 no son el mismo modelo, y dos modelos sobre la misma acción y
-    // el mismo día no son dos pruebas independientes del "sistema".
     const byModel = (() => {
         const groups = new Map<
             string,

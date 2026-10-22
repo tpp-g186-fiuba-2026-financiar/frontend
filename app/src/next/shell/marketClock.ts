@@ -1,5 +1,3 @@
-// Estado de una bolsa (abierta/cerrada) según la hora local de su ciudad.
-
 export interface MarketStatus {
     isOpen: boolean;
     time: string;
