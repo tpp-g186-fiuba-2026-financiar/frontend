@@ -15,6 +15,7 @@ import {
     subscribeToTickerAlertEndpoint,
     unsubscribeFromTickerAlertEndpoint,
 } from '../api/subscriptions/tickerAlertSubscription';
+import { deleteUserPreferenceEndpoint } from '../api/user/deleteUserPreference';
 import { getUserEndpoint } from '../api/user/getUser';
 import { updateProfileEndpoint } from '../api/user/updateProfile';
 import { deleteUserShareEndpoint } from '../api/userShares/deleteUserShare';
@@ -61,7 +62,9 @@ describe('API adapters', () => {
         vi.spyOn(authAxios, 'post').mockResolvedValue({ data: payload });
         vi.spyOn(authAxios, 'put').mockResolvedValue({ data: payload });
         vi.spyOn(authAxios, 'patch').mockResolvedValue({ data: payload });
-        vi.spyOn(authAxios, 'delete').mockResolvedValue({ data: undefined });
+        const remove = vi
+            .spyOn(authAxios, 'delete')
+            .mockResolvedValue({ data: undefined });
 
         await expect(
             addUserShareEndpoint({ ticker: 'GGAL', quantity: 2 }),
@@ -85,6 +88,12 @@ describe('API adapters', () => {
             unsubscribeFromTickerAlertEndpoint('GGAL'),
         ).resolves.toBeUndefined();
         await expect(deleteUserShareEndpoint(7)).resolves.toBeUndefined();
+        await expect(
+            deleteUserPreferenceEndpoint('GGAL'),
+        ).resolves.toBeUndefined();
+        expect(remove).toHaveBeenCalledWith(
+            `${import.meta.env.VITE_SERVER_API}/user/preferences/GGAL`,
+        );
     });
 
     test('adapts public API calls', async () => {
@@ -131,24 +140,50 @@ describe('endpoints de FinanciAr Next', () => {
         const next = await import('../api/next/endpoints');
         const get = vi.spyOn(authAxios, 'get');
         get.mockResolvedValueOnce({ data: { ticker: 'GGAL', candles: [] } });
-        await expect(next.getCandlesEndpoint('GGAL')).resolves.toEqual({ ticker: 'GGAL', candles: [] });
+        await expect(next.getCandlesEndpoint('GGAL')).resolves.toEqual({
+            ticker: 'GGAL',
+            candles: [],
+        });
         get.mockResolvedValueOnce({ data: { series: [] } });
-        await expect(next.getMarketSeriesEndpoint()).resolves.toEqual({ series: [] });
+        await expect(next.getMarketSeriesEndpoint()).resolves.toEqual({
+            series: [],
+        });
         get.mockResolvedValueOnce({ data: { symbol: 'GGAL' } });
-        await expect(next.getExplainEndpoint('GGAL')).resolves.toEqual({ symbol: 'GGAL' });
+        await expect(next.getExplainEndpoint('GGAL')).resolves.toEqual({
+            symbol: 'GGAL',
+        });
         // sin acciones el backend responde {signals: []}
         get.mockResolvedValueOnce({ data: { signals: [] } });
-        await expect(next.getSignalHistoryEndpoint()).resolves.toEqual({ rows: [], summary: { evaluated: 0, hits: 0, hit_rate: null } });
-        get.mockResolvedValueOnce({ data: { services: [] } });
-        await expect(next.getAdminHealthEndpoint()).resolves.toEqual({ services: [] });
-        get.mockResolvedValueOnce({
-            data: { backtest: { run_at: 'r', results: { lstm: {} } }, xgboost: { version: 'v', metrics: { oos_auc: 0.5, nota: 'x' } } },
+        await expect(next.getSignalHistoryEndpoint()).resolves.toEqual({
+            rows: [],
+            summary: { evaluated: 0, hits: 0, hit_rate: null },
         });
-        await expect(next.getAdminModelsEndpoint()).resolves.toEqual({ run_at: 'r', results: { lstm: {} }, xgboost_oos: { oos_auc: 0.5 }, xgboost_version: 'v' });
+        get.mockResolvedValueOnce({ data: { services: [] } });
+        await expect(next.getAdminHealthEndpoint()).resolves.toEqual({
+            services: [],
+        });
+        get.mockResolvedValueOnce({
+            data: {
+                backtest: { run_at: 'r', results: { lstm: {} } },
+                xgboost: { version: 'v', metrics: { oos_auc: 0.5, nota: 'x' } },
+            },
+        });
+        await expect(next.getAdminModelsEndpoint()).resolves.toEqual({
+            run_at: 'r',
+            results: { lstm: {} },
+            xgboost_oos: { oos_auc: 0.5 },
+            xgboost_version: 'v',
+        });
         get.mockResolvedValueOnce({ data: {} });
-        await expect(next.getAdminModelsEndpoint()).resolves.toMatchObject({ results: {}, xgboost_oos: null });
+        await expect(next.getAdminModelsEndpoint()).resolves.toMatchObject({
+            results: {},
+            xgboost_oos: null,
+        });
         get.mockResolvedValueOnce({ data: { pesos_recomendados: {} } });
         await next.getBlackLittermanEndpoint('equal_weight');
-        expect(get).toHaveBeenLastCalledWith(expect.stringContaining('/user/shares/portfolio/recomendacion'), { params: { cartera_ancla: 'equal_weight' } });
+        expect(get).toHaveBeenLastCalledWith(
+            expect.stringContaining('/user/shares/portfolio/recomendacion'),
+            { params: { cartera_ancla: 'equal_weight' } },
+        );
     });
 });

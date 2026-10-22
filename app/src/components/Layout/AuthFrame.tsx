@@ -4,14 +4,24 @@ import Icon from '../../next/ui/Icon';
 
 // Marco de las páginas sueltas a las que se llega desde un mail (verificar la
 // cuenta, restablecer la contraseña), con el mismo diseño que la portada.
-function AuthFrame({ title, children }: { title: string; children: ReactNode }) {
+function AuthFrame({
+    title,
+    children,
+}: {
+    title: string;
+    children: ReactNode;
+}) {
     const navigate = useNavigate();
     return (
         <div className="nx-landing">
             <div className="nx-bg-glow" />
             <div className="nx-bg-grid" />
             <header className="nx-land-top">
-                <button type="button" className="nx-brand" onClick={() => navigate('/')}>
+                <button
+                    type="button"
+                    className="nx-brand"
+                    onClick={() => navigate('/')}
+                >
                     <span className="nx-brand-mark">
                         <Icon name="trend" />
                     </span>

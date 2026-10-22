@@ -39,26 +39,69 @@ interface Quote {
 }
 
 const STEPS: Array<[string, string]> = [
-    ['Contás cómo invertís', `${questions.length} preguntas cortas definen tu perfil: conservador, moderado o agresivo.`],
-    ['Cargás tu cartera', 'Elegís las acciones del Merval que tenés y cuántas. Se puede cambiar cuando quieras.'],
-    ['Mirás qué estiman los modelos', 'Para cada acción ves si los modelos esperan suba o baja, con qué confianza y por qué.'],
+    [
+        'Contás cómo invertís',
+        `${questions.length} preguntas cortas definen tu perfil: conservador, moderado o agresivo.`,
+    ],
+    [
+        'Cargás tu cartera',
+        'Elegís las acciones del Merval que tenés y cuántas. Se puede cambiar cuando quieras.',
+    ],
+    [
+        'Mirás qué estiman los modelos',
+        'Para cada acción ves si los modelos esperan suba o baja, con qué confianza y por qué.',
+    ],
 ];
 
 const FEATURES: Array<[IconName, string, string]> = [
-    ['home', 'Resumen de tu cartera', 'Cuánto vale, cuánto ganaste y cómo te fue contra un plazo fijo o el dólar.'],
-    ['candle', 'Análisis de cada acción', 'Precio, proyección con su rango probable y qué dice cada modelo, explicado.'],
-    ['scale', 'Rebalanceo', 'Cómo podría reacomodarse tu plata según Black-Litterman, con la cuenta paso a paso.'],
-    ['list', 'Historial de señales', 'Qué dijeron los modelos en el pasado y si acertaron. Sin esconder los errores.'],
-    ['shield', 'Riesgo', 'Cuánto podrías perder en un día malo y qué acciones se mueven juntas.'],
-    ['bell', 'Alertas por mail', 'Te avisamos cuando un modelo cambia de opinión sobre una acción que seguís.'],
+    [
+        'home',
+        'Resumen de tu cartera',
+        'Cuánto vale, cuánto ganaste y cómo te fue contra un plazo fijo o el dólar.',
+    ],
+    [
+        'candle',
+        'Análisis de cada acción',
+        'Precio, proyección con su rango probable y qué dice cada modelo, explicado.',
+    ],
+    [
+        'scale',
+        'Rebalanceo',
+        'Cómo podría reacomodarse tu plata según Black-Litterman, con la cuenta paso a paso.',
+    ],
+    [
+        'list',
+        'Historial de señales',
+        'Qué dijeron los modelos en el pasado y si acertaron. Sin esconder los errores.',
+    ],
+    [
+        'shield',
+        'Riesgo',
+        'Cuánto podrías perder en un día malo y qué acciones se mueven juntas.',
+    ],
+    [
+        'bell',
+        'Alertas por mail',
+        'Te avisamos cuando un modelo cambia de opinión sobre una acción que seguís.',
+    ],
 ];
 
-const MODELS = ['LSTM', 'XGBoost', 'Transformer', 'ARIMA', 'Contexto', 'Macro', 'GARCH'];
+const MODELS = [
+    'LSTM',
+    'XGBoost',
+    'Transformer',
+    'ARIMA',
+    'Contexto',
+    'Macro',
+    'GARCH',
+];
 
 function useLandingTheme() {
     const [theme, setTheme] = useState<'dark' | 'light'>(() => {
         try {
-            return window.localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
+            return window.localStorage.getItem('theme') === 'light'
+                ? 'light'
+                : 'dark';
         } catch {
             return 'dark';
         }
@@ -96,10 +139,13 @@ function App() {
     useEffect(() => {
         helloEndpoint(setIntroduction, setError, setLoading);
         getAllSharesEndpoint().then(
-            (res) => setTickers(res.shares.map((s) => s.ticker).filter(Boolean)),
+            (res) =>
+                setTickers(res.shares.map((s) => s.ticker).filter(Boolean)),
             () => setTickers([]),
         );
-        Promise.allSettled(LEADERS.map((t) => shareInfoEndpoint({ share: t }))).then((res) => {
+        Promise.allSettled(
+            LEADERS.map((t) => shareInfoEndpoint({ share: t })),
+        ).then((res) => {
             const out: Quote[] = [];
             res.forEach((r, k) => {
                 if (r.status !== 'fulfilled') return;
@@ -124,21 +170,36 @@ function App() {
               const prev = q.closes[q.closes.length - 6];
               return { t: q.ticker, last, chg: ((last - prev) / prev) * 100 };
           })
-        : tickers.map((t) => ({ t, last: null as number | null, chg: null as number | null }));
+        : tickers.map((t) => ({
+              t,
+              last: null as number | null,
+              chg: null as number | null,
+          }));
     const tapeRow = (suffix: string) =>
         tape.map((i) => (
             <span className="nx-tape-item" key={i.t + suffix}>
                 <b>{i.t}</b>
-                {i.last != null && <span>{i.last.toLocaleString('es-AR', { maximumFractionDigits: 2 })}</span>}
+                {i.last != null && (
+                    <span>
+                        {i.last.toLocaleString('es-AR', {
+                            maximumFractionDigits: 2,
+                        })}
+                    </span>
+                )}
                 {i.chg != null && (
                     <span className={i.chg >= 0 ? 'nx-up' : 'nx-down'}>
-                        {i.chg >= 0 ? '▲' : '▼'} {Math.abs(i.chg).toFixed(1).replace('.', ',')}%
+                        {i.chg >= 0 ? '▲' : '▼'}{' '}
+                        {Math.abs(i.chg).toFixed(1).replace('.', ',')}%
                     </span>
                 )}
             </span>
         ));
 
-    const status = loading ? 'Conectando…' : error ? 'Servidor sin respuesta' : (introduction?.message ?? 'En línea');
+    const status = loading
+        ? 'Conectando…'
+        : error
+          ? 'Servidor sin respuesta'
+          : (introduction?.message ?? 'En línea');
 
     return (
         <div className="nx-landing">
@@ -153,7 +214,10 @@ function App() {
                         Financi<b>Ar</b>
                     </span>
                 </span>
-                <nav className="nx-land-nav" aria-label="Secciones de la portada">
+                <nav
+                    className="nx-land-nav"
+                    aria-label="Secciones de la portada"
+                >
                     <a href="#como-funciona">Cómo funciona</a>
                     <a href="#que-vas-a-ver">Qué vas a ver</a>
                     <a href="#modelos">Los modelos</a>
@@ -163,21 +227,35 @@ function App() {
                     type="button"
                     className="nx-icon-btn"
                     aria-label="Cambiar tema claro u oscuro"
-                    onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                    onClick={() =>
+                        setTheme(theme === 'light' ? 'dark' : 'light')
+                    }
                 >
                     <Icon name={theme === 'light' ? 'moon' : 'sun'} />
                 </button>
-                <button type="button" className="nx-btn" onClick={() => setIsLoginOpen(true)}>
+                <button
+                    type="button"
+                    className="nx-btn"
+                    onClick={() => setIsLoginOpen(true)}
+                >
                     Ingresar
                 </button>
-                <button type="button" className="nx-btn primary" onClick={() => setIsSignUpOpen(true)}>
+                <button
+                    type="button"
+                    className="nx-btn primary"
+                    onClick={() => setIsSignUpOpen(true)}
+                >
                     Crear cuenta
                 </button>
             </header>
 
             {tape.length > 0 && (
                 <div className="nx-tape" aria-label="Acciones del Merval">
-                    <div className="nx-tape-lbl">{quotes.length ? 'ÚLTIMO CIERRE · SEMANA' : 'S&P MERVAL'}</div>
+                    <div className="nx-tape-lbl">
+                        {quotes.length
+                            ? 'ÚLTIMO CIERRE · SEMANA'
+                            : 'S&P MERVAL'}
+                    </div>
                     <div className="nx-tape-win">
                         <div className="nx-tape-track">
                             {tapeRow('a')}
@@ -190,21 +268,46 @@ function App() {
             <main className="nx-land-main">
                 <section className="nx-card nx-hero nx-land-hero nx-rv">
                     <Suspense fallback={<div className="nx-hero-orb" />}>
-                        <HeroMonitor series={quotes.length ? quotes.map((q) => ({ name: q.ticker, closes: q.closes })) : LEADERS.map((t) => ({ name: t, closes: [] }))} />
+                        <HeroMonitor
+                            series={
+                                quotes.length
+                                    ? quotes.map((q) => ({
+                                          name: q.ticker,
+                                          closes: q.closes,
+                                      }))
+                                    : LEADERS.map((t) => ({
+                                          name: t,
+                                          closes: [],
+                                      }))
+                            }
+                        />
                     </Suspense>
                     <div className="nx-hero-txt">
-                        <div className="nx-eyebrow">Trabajo Profesional · Ingeniería en Informática · FIUBA</div>
+                        <div className="nx-eyebrow">
+                            Trabajo Profesional · Ingeniería en Informática ·
+                            FIUBA
+                        </div>
                         <h1>Señales de tendencia para el S&amp;P Merval</h1>
                         <p>
-                            FinanciAr cruza precios históricos, indicadores técnicos y el contexto del mercado argentino con varios
-                            modelos de machine learning para mostrarte, acción por acción, qué esperan los modelos y qué tan seguido
-                            acertaron en el pasado.
+                            FinanciAr cruza precios históricos, indicadores
+                            técnicos y el contexto del mercado argentino con
+                            varios modelos de machine learning para mostrarte,
+                            acción por acción, qué esperan los modelos y qué tan
+                            seguido acertaron en el pasado.
                         </p>
                         <div className="nx-actions">
-                            <button type="button" className="nx-btn primary" onClick={() => setIsSignUpOpen(true)}>
+                            <button
+                                type="button"
+                                className="nx-btn primary"
+                                onClick={() => setIsSignUpOpen(true)}
+                            >
                                 <Icon name="plus" /> Crear cuenta gratis
                             </button>
-                            <button type="button" className="nx-btn" onClick={() => setIsLoginOpen(true)}>
+                            <button
+                                type="button"
+                                className="nx-btn"
+                                onClick={() => setIsLoginOpen(true)}
+                            >
                                 Ya tengo cuenta
                             </button>
                         </div>
@@ -216,7 +319,10 @@ function App() {
                     <h2>En tres pasos</h2>
                     <div className="nx-grid">
                         {STEPS.map(([t, d], k) => (
-                            <article className="nx-card s4 nx-rv nx-land-step" key={t}>
+                            <article
+                                className="nx-card s4 nx-rv nx-land-step"
+                                key={t}
+                            >
                                 <span className="nx-land-num">{k + 1}</span>
                                 <h3>{t}</h3>
                                 <p>{d}</p>
@@ -229,11 +335,15 @@ function App() {
                     <div className="nx-eyebrow">Qué vas a ver</div>
                     <h2>Todo explicado, sin caja negra</h2>
                     <p className="nx-land-lead">
-                        Cada número tiene una "i" que explica qué significa en palabras simples. No hace falta saber de finanzas.
+                        Cada número tiene una "i" que explica qué significa en
+                        palabras simples. No hace falta saber de finanzas.
                     </p>
                     <div className="nx-grid">
                         {FEATURES.map(([icon, t, d]) => (
-                            <article className="nx-card s4 nx-rv nx-land-feat" key={t}>
+                            <article
+                                className="nx-card s4 nx-rv nx-land-feat"
+                                key={t}
+                            >
                                 <span className="nx-land-ic">
                                     <Icon name={icon} />
                                 </span>
@@ -250,8 +360,9 @@ function App() {
                             <div className="nx-eyebrow">Los modelos</div>
                             <h2>Varios modelos, una lectura combinada</h2>
                             <p className="nx-land-lead">
-                                Cada modelo mira la acción de una forma distinta. Después se combinan, pesando más a los que mejor
-                                acertaron con esa acción en el pasado.
+                                Cada modelo mira la acción de una forma
+                                distinta. Después se combinan, pesando más a los
+                                que mejor acertaron con esa acción en el pasado.
                             </p>
                             <div className="nx-chips">
                                 {MODELS.map((m) => (
@@ -262,12 +373,16 @@ function App() {
                             </div>
                         </article>
                         <article className="nx-card s5 nx-rv">
-                            <div className="nx-eyebrow">Con los pies en la tierra</div>
+                            <div className="nx-eyebrow">
+                                Con los pies en la tierra
+                            </div>
                             <h2>Medimos cuánto aciertan</h2>
                             <p className="nx-land-lead">
-                                Antes de mostrar una señal, cada modelo se prueba contra el pasado, como si no supiera qué pasó
-                                después. Predecir la bolsa es difícil: por eso te mostramos la probabilidad y el historial de
-                                aciertos, no solo una palabra.
+                                Antes de mostrar una señal, cada modelo se
+                                prueba contra el pasado, como si no supiera qué
+                                pasó después. Predecir la bolsa es difícil: por
+                                eso te mostramos la probabilidad y el historial
+                                de aciertos, no solo una palabra.
                             </p>
                         </article>
                     </div>
@@ -276,7 +391,9 @@ function App() {
                 <div className="nx-legal" role="note">
                     <Icon name="alert" size={22} />
                     <div>
-                        <b className="t">No es una recomendación de inversión.</b>
+                        <b className="t">
+                            No es una recomendación de inversión.
+                        </b>
                         {LEGAL_TEXT}
                     </div>
                 </div>
@@ -284,17 +401,24 @@ function App() {
 
             <footer className="nx-land-foot">
                 <div>
-                    <b>FinanciAr</b> — Trabajo Profesional de Ingeniería en Informática, FIUBA · Grupo 186
+                    <b>FinanciAr</b> — Trabajo Profesional de Ingeniería en
+                    Informática, FIUBA · Grupo 186
                     <br />
-                    Amigo Rey · Torres · Valsagna Indri · Morales — Director: Ing. Diego García Jaime
+                    Amigo Rey · Torres · Valsagna Indri · Morales — Director:
+                    Ing. Diego García Jaime
                 </div>
                 <span className="nx-land-status">
-                    <span className={`nx-dot ${error ? 'err' : loading ? 'off' : ''}`} />
+                    <span
+                        className={`nx-dot ${error ? 'err' : loading ? 'off' : ''}`}
+                    />
                     {status}
                 </span>
             </footer>
 
-            <SignUpPopUp isOpen={isSignUpOpen} onClose={() => setIsSignUpOpen(false)} />
+            <SignUpPopUp
+                isOpen={isSignUpOpen}
+                onClose={() => setIsSignUpOpen(false)}
+            />
             <LoginPopUp
                 isOpen={isLoginOpen}
                 onClose={() => setIsLoginOpen(false)}

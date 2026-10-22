@@ -45,9 +45,14 @@ function Questionnaire({ questions, finishQuestionarie }: QuestionnaireProps) {
             </div>
             <h5 className="nx-quiz-q">{currentQuestion.text}</h5>
 
-            <div className="nx-quiz-opts" role="radiogroup" aria-label={currentQuestion.text}>
+            <div
+                className="nx-quiz-opts"
+                role="radiogroup"
+                aria-label={currentQuestion.text}
+            >
                 {currentQuestion.options.map((option) => {
-                    const selected = answers[currentQuestion.id] === option.score;
+                    const selected =
+                        answers[currentQuestion.id] === option.score;
                     return (
                         <button
                             key={option.text}

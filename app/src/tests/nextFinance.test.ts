@@ -240,9 +240,9 @@ describe('riesgo', () => {
     });
 
     test('steppedReturns agrupa cada N ruedas', () => {
-        expect(steppedReturns([100, 101, 102, 103, 104, 110], 5)[0]).toBeCloseTo(
-            0.1,
-        );
+        expect(
+            steppedReturns([100, 101, 102, 103, 104, 110], 5)[0],
+        ).toBeCloseTo(0.1);
         expect(steppedReturns([100, 90], 5)).toEqual([]);
     });
 });

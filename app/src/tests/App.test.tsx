@@ -9,12 +9,20 @@ test('la portada se ve enseguida y muestra el estado del servidor', async () => 
         </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: /Señales de tendencia/ })).toBeInTheDocument();
+    expect(
+        screen.getByRole('heading', { name: /Señales de tendencia/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Conectando…')).toBeInTheDocument();
-    expect(await screen.findByText('Hello from Financiar backend!')).toBeInTheDocument();
-    expect(screen.getByText('Cómo funciona', { selector: 'a' })).toBeInTheDocument();
+    expect(
+        await screen.findByText('Hello from Financiar backend!'),
+    ).toBeInTheDocument();
+    expect(
+        screen.getByText('Cómo funciona', { selector: 'a' }),
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar tema claro u oscuro' }));
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Cambiar tema claro u oscuro' }),
+    );
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
 
     fireEvent.click(screen.getByRole('button', { name: 'Ya tengo cuenta' }));
@@ -27,6 +35,8 @@ test('abre el registro desde la portada', () => {
             <App />
         </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Crear cuenta gratis/ }));
+    fireEvent.click(
+        screen.getByRole('button', { name: /Crear cuenta gratis/ }),
+    );
     expect(screen.getByText(/Pregunta 1 de/)).toBeInTheDocument();
 });
