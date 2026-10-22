@@ -24,11 +24,7 @@ const URL = 'http://localhost:8500/user/shares/trends';
 
 function answerQuestionnaire() {
     for (let index = 0; index < 9; index += 1) {
-        const options = screen
-            .getAllByRole('button')
-            .filter((button) =>
-                button.className.includes('btn-outline-secondary'),
-            );
+        const options = screen.getAllByRole('radio');
         fireEvent.click(options[options.length - 1]);
         fireEvent.click(
             screen.getByRole('button', {

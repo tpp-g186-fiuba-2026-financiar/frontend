@@ -12,6 +12,7 @@ function Questionnaire({ questions, finishQuestionarie }: QuestionnaireProps) {
 
     const currentQuestion = questions[currentIndex];
     const isLast = currentIndex === questions.length - 1;
+    const progress = ((currentIndex + 1) / questions.length) * 100;
 
     const handleSelect = (score: number) => {
         setAnswers((prev) => ({ ...prev, [currentQuestion.id]: score }));
@@ -32,26 +33,45 @@ function Questionnaire({ questions, finishQuestionarie }: QuestionnaireProps) {
     };
 
     return (
-        <div>
-            <p className="text-secondary mb-1">
-                Pregunta {currentIndex + 1} de {questions.length}
-            </p>
-            <h5 className="mb-3">{currentQuestion.text}</h5>
+        <div className="modal-body nx-quiz">
+            <div className="nx-quiz-top">
+                <span>
+                    Pregunta {currentIndex + 1} de {questions.length}
+                </span>
+                <span>Tu perfil de inversor</span>
+            </div>
+            <div className="nx-quiz-bar" aria-hidden="true">
+                <i style={{ width: `${progress}%` }} />
+            </div>
+            <h5 className="nx-quiz-q">{currentQuestion.text}</h5>
 
-            <div className="d-flex flex-column gap-2 mb-4">
-                {currentQuestion.options.map((option) => (
-                    <button
-                        key={option.text}
-                        className={`btn ${answers[currentQuestion.id] === option.score ? 'btn-primary' : 'btn-outline-secondary'}`}
-                        onClick={() => handleSelect(option.score)}
-                    >
-                        {option.text}
-                    </button>
-                ))}
+            <div
+                className="nx-quiz-opts"
+                role="radiogroup"
+                aria-label={currentQuestion.text}
+            >
+                {currentQuestion.options.map((option) => {
+                    const selected =
+                        answers[currentQuestion.id] === option.score;
+                    return (
+                        <button
+                            key={option.text}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            className={`nx-quiz-opt ${selected ? 'on' : ''}`}
+                            onClick={() => handleSelect(option.score)}
+                        >
+                            <span className="nx-quiz-radio" />
+                            {option.text}
+                        </button>
+                    );
+                })}
             </div>
 
-            <div className="d-flex justify-content-end gap-3">
+            <div className="nx-quiz-nav">
                 <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={handlePrevious}
                     disabled={currentIndex === 0}
@@ -59,6 +79,7 @@ function Questionnaire({ questions, finishQuestionarie }: QuestionnaireProps) {
                     Anterior
                 </button>
                 <button
+                    type="button"
                     className="btn btn-primary"
                     onClick={handleNext}
                     disabled={answers[currentQuestion.id] === undefined}

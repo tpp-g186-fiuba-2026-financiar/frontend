@@ -26,7 +26,7 @@ Given(
         });
         await this.page.goto(`${appUrl}/home`);
         await expect(
-            this.page.getByRole('button', { name: 'Editar mi cartera' }),
+            this.page.getByRole('button', { name: 'Armar mi cartera' }),
         ).toBeVisible();
     },
 );
@@ -50,8 +50,8 @@ Given(
             })),
             trends: [],
         });
-        await this.page.goto(`${appUrl}/home`);
-        await expect(this.page.locator('.t-ticker')).toHaveCount(
+        await this.page.goto(`${appUrl}/cartera`);
+        await expect(this.page.locator('table.nx-table tbody tr')).toHaveCount(
             tickers.length,
         );
     },
@@ -98,14 +98,16 @@ When(
     'I add {int} units of {string} to my portfolio',
     async function (this: AppWorld, quantity: number, ticker: string) {
         await this.page
-            .getByRole('button', { name: 'Editar mi cartera' })
+            .getByRole('button', { name: 'Armar mi cartera' })
             .click();
         const stockRow = this.page
             .locator('.builder-row')
             .filter({ hasText: ticker });
         await stockRow.getByRole('checkbox').check();
         await stockRow.locator('.builder-qty').fill(String(quantity));
-        await this.page.getByRole('button', { name: 'Guardar cartera' }).click();
+        await this.page
+            .getByRole('button', { name: 'Guardar cartera' })
+            .click();
     },
 );
 
@@ -119,11 +121,14 @@ When(
 Then(
     'my portfolio should show {string} with {int} units',
     async function (this: AppWorld, ticker: string, quantity: number) {
+        await this.page.getByRole('link', { name: 'Cartera' }).click();
         const row = this.page
-            .locator('tbody tr')
-            .filter({ has: this.page.locator('.t-ticker', { hasText: ticker }) });
-        await expect(row.locator('.t-ticker')).toHaveText(ticker);
-        await expect(row.locator('.t-qty')).toHaveText(String(quantity));
+            .locator('table.nx-table tbody tr')
+            .filter({ hasText: ticker });
+        await expect(row.locator('.nx-tk b')).toHaveText(ticker);
+        await expect(row.locator('.nx-tk span')).toHaveText(
+            `${quantity} acciones`,
+        );
     },
 );
 
@@ -132,13 +137,12 @@ Then(
     async function (this: AppWorld, count: number, tickerList: string) {
         const tickers = tickerList.split(',').map((ticker) => ticker.trim());
         expect(tickers).toHaveLength(count);
+        await this.page.getByRole('link', { name: 'Resumen' }).click();
         await expect(
-            this.page.getByRole('img', {
-                name: 'Distribución de acciones de mi cartera por cantidad',
-            }),
+            this.page.getByRole('img', { name: /^Composición de la cartera/ }),
         ).toHaveAttribute(
             'aria-label',
-            `Distribución de acciones de mi cartera por cantidad: ${tickers.join(', ')}`,
+            `Composición de la cartera: ${tickers.join(', ')}`,
         );
     },
 );
@@ -155,18 +159,11 @@ Then(
 Then(
     'I should see predictions from {int} models',
     async function (this: AppWorld, count: number) {
-        const comparisonPanel = this.page
-            .locator('.panel')
-            .filter({
-                has: this.page.getByRole('heading', {
-                    name: 'Qué predice cada modelo',
-                }),
-            });
-        const predictionRows = comparisonPanel.locator('tbody tr');
-        await expect(predictionRows).toHaveCount(count);
-        await expect(predictionRows.nth(0)).toContainText('xgboost');
-        await expect(predictionRows.nth(0)).toContainText('$110');
-        await expect(predictionRows.nth(1)).toContainText('lstm');
-        await expect(predictionRows.nth(1)).toContainText('$120');
+        const rows = this.page.locator('.nx-models-table tbody tr');
+        await expect(rows).toHaveCount(count);
+        await expect(rows.nth(0)).toContainText('LSTM');
+        await expect(rows.nth(0)).toContainText('+20,0%');
+        await expect(rows.nth(1)).toContainText('XGBoost');
+        await expect(rows.nth(1)).toContainText('+10,0%');
     },
 );

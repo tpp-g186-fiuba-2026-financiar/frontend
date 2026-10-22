@@ -21,9 +21,7 @@ test('cerrar sesion vuelve a la landing y borra el token', async ({ page }) => {
     });
 
     await page.goto('/home');
-    await expect(page.getByText('Usuaria Test')).toBeVisible();
-
-    await page.getByRole('button', { name: /Usuaria Test/ }).click();
+    await page.getByRole('button', { name: 'Usuaria Test' }).click();
     await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click();
 
     await expect(page).toHaveURL('/');

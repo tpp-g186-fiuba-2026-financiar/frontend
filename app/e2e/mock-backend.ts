@@ -98,6 +98,12 @@ export async function mockBackend(page: Page, opts: MockBackendOptions = {}) {
             (route) => route.fulfill({ json: opts.comparison }),
         );
     }
+    await page.route(`${API}/user/shares/*/history`, (route) =>
+        route.fulfill({ json: { ticker: '', prices: [] } }),
+    );
+    await page.route(`${API}/user/shares/balance/history`, (route) =>
+        route.fulfill({ json: [] }),
+    );
     // El P&L es best-effort en Home (fetchPnl atrapa el error y sigue sin esa
     // columna), asi que un 404 acá es una respuesta valida a probar, no un mock.
     await page.route(`${API}/user/shares/pnl`, (route) =>
