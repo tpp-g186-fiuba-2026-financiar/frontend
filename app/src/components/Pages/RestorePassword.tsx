@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import AuthFrame from '../Layout/AuthFrame';
 import { resetPasswordEndpoint } from '../../api/passwordReset';
 import PasswordInput from '../SignUp/PasswordInput';
 import ConfirmPasswordInput from '../SignUp/ConfirmPasswordInput';
@@ -75,64 +76,48 @@ function RestorePassword() {
     };
 
     return (
-        <div className="container py-4">
-            <div className="topbar">
-                <button
-                    type="button"
-                    className="wordmark wordmark-link"
-                    onClick={() => navigate('/')}
-                >
-                    Financi<span className="accent">Ar</span>
-                </button>
-            </div>
-
-            <div className="panel">
-                <h2 className="mb-3">Restablecer contraseña</h2>
-                {invalidToken ? (
-                    <>
-                        <p>
-                            El link para restablecer la contraseña no es válido
-                            o ya venció. Recordá que vence en 1 hora y solo se
-                            puede usar una vez.
-                        </p>
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={requestNewLink}
-                        >
-                            Pedir un nuevo link
-                        </button>
-                    </>
-                ) : (
-                    <>
-                        <p>Elegí una nueva contraseña para tu cuenta.</p>
-                        <PasswordInput
-                            field={password}
-                            setField={setPassword}
+        <AuthFrame title="Restablecer contraseña">
+            {invalidToken ? (
+                <>
+                    <p>
+                        El link para restablecer la contraseña no es válido o ya
+                        venció. Recordá que vence en 1 hora y solo se puede usar
+                        una vez.
+                    </p>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={requestNewLink}
+                    >
+                        Pedir un nuevo link
+                    </button>
+                </>
+            ) : (
+                <>
+                    <p>Elegí una nueva contraseña para tu cuenta.</p>
+                    <PasswordInput field={password} setField={setPassword} />
+                    <ConfirmPasswordInput
+                        field={passwordConfirmation}
+                        setField={setPasswordConfirmation}
+                    />
+                    <div className="mb-3">
+                        <ErrorSpan
+                            errorMsg="Las contraseñas no coinciden."
+                            condition={passwordsMatch}
                         />
-                        <ConfirmPasswordInput
-                            field={passwordConfirmation}
-                            setField={setPasswordConfirmation}
-                        />
-                        <div className="mb-3">
-                            <ErrorSpan
-                                errorMsg="Las contraseñas no coinciden."
-                                condition={passwordsMatch}
-                            />
-                            <ErrorSpan errorMsg={error} condition={!error} />
-                        </div>
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={handleSubmit}
-                            disabled={!canSubmit}
-                        >
-                            Cambiar contraseña
-                        </button>
-                    </>
-                )}
-            </div>
-        </div>
+                        <ErrorSpan errorMsg={error} condition={!error} />
+                    </div>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={handleSubmit}
+                        disabled={!canSubmit}
+                    >
+                        Cambiar contraseña
+                    </button>
+                </>
+            )}
+        </AuthFrame>
     );
 }
 

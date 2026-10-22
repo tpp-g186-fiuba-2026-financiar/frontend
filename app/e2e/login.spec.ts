@@ -49,8 +49,8 @@ test('login exitoso lleva a /home y muestra la cartera', async ({ page }) => {
     await dialog.getByRole('button', { name: 'Ingresar' }).click();
 
     await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByText('Usuaria Test')).toBeVisible();
-    await expect(page.locator('.t-ticker')).toContainText('GGAL');
+    await expect(page.getByRole('heading', { name: /Usuaria/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^GGAL/ })).toBeVisible();
 });
 
 test('login con credenciales invalidas muestra el error y no navega', async ({

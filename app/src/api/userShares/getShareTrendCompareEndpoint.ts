@@ -22,6 +22,11 @@ export interface ModelPrediction {
         folds?: number;
         mae?: number;
         observations?: number;
+        // casos evaluados en total (observations = en los que el modelo opino)
+        cases?: number;
+        // de donde sale el acierto: casos nuevos desde el entrenamiento, o lo
+        // medido fuera de muestra al entrenar con todas las acciones
+        scope?: 'live_post_training' | 'oos_global';
         series?: Array<{
             date: string;
             predicted: number;
@@ -55,6 +60,15 @@ export interface ConsensusReading {
     models_considered: number;
     explanation: string;
     track_record: ConsensusTrackRecord | null;
+    // aporte de cada modelo a la cuenta (api-ml src/consensus.py)
+    components?: Array<{
+        model: string;
+        expected_return: number;
+        quality: number;
+        agreement: number;
+        signal: string | null;
+    }>;
+    confidence_min?: number;
 }
 
 export interface CompareTrendsResponse {

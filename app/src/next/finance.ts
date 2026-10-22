@@ -1,0 +1,365 @@
+// Cálculos puros que usan las páginas: señales, confianza, riesgo y
+// correlaciones. Sin dependencias de React para poder testearlos directo.
+
+import type {
+    CompareTrendsResponse,
+    ModelPrediction,
+} from '../api/userShares/getShareTrendCompareEndpoint';
+
+export type Signal = 'alza' | 'baja' | 'neutral';
+
+export function normalizeSignal(raw: string | null | undefined): Signal {
+    const s = (raw ?? '').toLowerCase();
+    if (s.includes('alza') || s === 'buy' || s === 'up') return 'alza';
+    if (s.includes('baja') || s === 'sell' || s === 'down') return 'baja';
+    return 'neutral';
+}
+
+// Retorno esperado al horizonte del modelo (precio estimado vs último cierre).
+export function expectedReturn(
+    p:
+        | Pick<ModelPrediction, 'last_close' | 'predicted_close'>
+        | null
+        | undefined,
+): number | null {
+    if (
+        !p ||
+        p.last_close == null ||
+        p.predicted_close == null ||
+        p.last_close <= 0
+    )
+        return null;
+    return p.predicted_close / p.last_close - 1;
+}
+
+export function probabilityOf(p: unknown): number | null {
+    const v = (p as { probability_up?: number | null } | null)?.probability_up;
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+export function accuracyOf(
+    p: ModelPrediction | null | undefined,
+): number | null {
+    const v = p?.backtest?.directional_accuracy;
+    if (v == null) return null;
+    return v <= 1 ? v : v / 100;
+}
+
+// Nombres legibles de los modelos que devuelve el comparador.
+const MODEL_LABELS: Record<string, string> = {
+    lstm: 'LSTM',
+    'lstm-modal': 'LSTM',
+    xgboost: 'XGBoost',
+    'xgboost-modal': 'XGBoost',
+    transformer: 'Transformer',
+    'transformer-modal': 'Transformer',
+    arima: 'ARIMA',
+    'arima-modal': 'ARIMA',
+    contexto: 'Contexto',
+    macro: 'Macro',
+    'svm-modal': 'SVM',
+    'garch-modal': 'GARCH',
+    'garch-ann-modal': 'GARCH-ANN',
+};
+
+export function modelLabel(key: string): string {
+    return MODEL_LABELS[key] ?? key;
+}
+
+// Modelos que dan dirección (GARCH solo da volatilidad y queda afuera).
+export function directionalModels(
+    compare: CompareTrendsResponse | undefined,
+): Array<[string, ModelPrediction]> {
+    if (!compare) return [];
+    return Object.entries(compare.predictions).filter(
+        ([key, p]) =>
+            p.available &&
+            !key.startsWith('garch') &&
+            p.predicted_close != null,
+    );
+}
+
+// Qué tan firme es la lectura: 3 alta, 2 media, 1 baja.
+export function confidenceLevel(
+    compare: CompareTrendsResponse | undefined,
+    probability: number | null,
+    // tasa base de suba de esa accion: en pesos, con inflacion, "lo normal"
+    // no es 50% sino bastante mas; la confianza se mide contra eso
+    base = 0.5,
+): 1 | 2 | 3 {
+    const models = directionalModels(compare);
+    const signals = models.map(([, p]) => normalizeSignal(p.signal));
+    const dominant =
+        signals.filter((s) => s === 'alza').length >=
+        signals.filter((s) => s === 'baja').length
+            ? 'alza'
+            : 'baja';
+    const agreement = signals.length
+        ? signals.filter((s) => s === dominant).length / signals.length
+        : 0;
+    if (probability != null) {
+        const d = Math.abs(probability - base);
+        if (d >= 0.1 && agreement >= 0.6) return 3;
+        if (d >= 0.05) return 2;
+        return 1;
+    }
+    const c = compare?.consensus;
+    if (
+        !c ||
+        c.classification === 'neutral' ||
+        c.classification === 'sin_datos'
+    )
+        return 1;
+    return c.aggregate_confidence >= 0.55 && agreement >= 0.6 ? 3 : 2;
+}
+
+// Señal combinada a partir de la clasificación del consenso de api-ml.
+export function consensusSignal(
+    compare: CompareTrendsResponse | undefined,
+): Signal {
+    const c = compare?.consensus?.classification;
+    if (c === 'sobrecompra') return 'alza';
+    if (c === 'sobreventa') return 'baja';
+    return 'neutral';
+}
+
+/* ---------------- riesgo ---------------- */
+
+export function logReturns(prices: number[]): number[] {
+    const out: number[] = [];
+    for (let i = 1; i < prices.length; i++) {
+        if (prices[i - 1] > 0 && prices[i] > 0)
+            out.push(Math.log(prices[i] / prices[i - 1]));
+    }
+    return out;
+}
+
+export function mean(a: number[]): number {
+    return a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
+}
+
+export function std(a: number[]): number {
+    if (a.length < 2) return 0;
+    const m = mean(a);
+    return Math.sqrt(mean(a.map((x) => (x - m) ** 2)));
+}
+
+// VaR y CVaR históricos al 95% (como pérdida positiva, en fracción).
+export function valueAtRisk(
+    returns: number[],
+): { var95: number; cvar95: number } | null {
+    if (returns.length < 20) return null;
+    const sorted = [...returns].sort((a, b) => a - b);
+    const k = Math.max(1, Math.floor(sorted.length * 0.05));
+    return { var95: -sorted[k - 1], cvar95: -mean(sorted.slice(0, k)) };
+}
+
+export function drawdownSeries(values: number[]): number[] {
+    let peak = -Infinity;
+    return values.map((v) => {
+        peak = Math.max(peak, v);
+        return peak > 0 ? v / peak - 1 : 0;
+    });
+}
+
+export function correlation(a: number[], b: number[]): number | null {
+    const n = Math.min(a.length, b.length);
+    if (n < 10) return null;
+    const x = a.slice(-n);
+    const y = b.slice(-n);
+    const mx = mean(x);
+    const my = mean(y);
+    let sxy = 0;
+    let sxx = 0;
+    let syy = 0;
+    for (let i = 0; i < n; i++) {
+        sxy += (x[i] - mx) * (y[i] - my);
+        sxx += (x[i] - mx) ** 2;
+        syy += (y[i] - my) ** 2;
+    }
+    return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null;
+}
+
+export function annualizedVol(returns: number[]): number {
+    return std(returns) * Math.sqrt(252);
+}
+
+// Variación cada `step` ruedas (por defecto una semana hábil) para un gráfico
+// que se lee como "esta semana subió o bajó tanto".
+export function steppedReturns(values: number[], step = 5): number[] {
+    const out: number[] = [];
+    for (let i = step; i < values.length; i += step) {
+        if (values[i - step] > 0) out.push(values[i] / values[i - step] - 1);
+    }
+    return out;
+}
+
+/* ---------------- consenso ---------------- */
+
+// Misma cuenta que api-ml (src/consensus.py): cada modelo aporta su retorno
+// esperado (log), pesado por su acierto histórico ajustado por cantidad de
+// casos (q) y por si su señal coincide con el signo de su retorno (a).
+export interface ConsensusPart {
+    model: string;
+    ret: number;
+    quality: number;
+    agreement: number;
+    signal: Signal;
+}
+
+const PRIOR_CASES = 50;
+
+export function modelQuality(p: ModelPrediction): number {
+    const acc = accuracyOf(p);
+    if (acc == null) return 0.5;
+    const n = p.backtest?.observations;
+    if (!n || n <= 0) return acc;
+    return 0.5 + (acc - 0.5) * (n / (n + PRIOR_CASES));
+}
+
+export function consensusParts(compare: CompareTrendsResponse | undefined): {
+    parts: ConsensusPart[];
+    score: number | null;
+} {
+    // si api-ml manda los componentes, esa es la cuenta oficial
+    const comps = compare?.consensus?.components;
+    if (comps && comps.length) {
+        return {
+            parts: comps.map((c) => ({
+                model: c.model,
+                ret: c.expected_return,
+                quality: c.quality,
+                agreement: c.agreement,
+                signal: normalizeSignal(c.signal),
+            })),
+            score: compare!.consensus!.composite_score,
+        };
+    }
+    const parts: ConsensusPart[] = [];
+    for (const [model, p] of uniqueModels(compare)) {
+        if (!p.last_close || !p.predicted_close || p.last_close <= 0) continue;
+        const ret = Math.log(p.predicted_close / p.last_close);
+        const signal = normalizeSignal(p.signal);
+        const sign = ret > 0 ? 'alza' : ret < 0 ? 'baja' : 'neutral';
+        const agreement = signal === sign || ret === 0 ? 1 : 0.5;
+        parts.push({ model, ret, quality: modelQuality(p), agreement, signal });
+    }
+    const sq = parts.reduce((s, x) => s + x.quality, 0);
+    const score =
+        sq > 0
+            ? parts.reduce((s, x) => s + x.quality * x.ret * x.agreement, 0) /
+              sq
+            : null;
+    return { parts, score };
+}
+
+// Probabilidad de suba de una acción: la de XGBoost (único modelo que la da
+// directamente) o, si no está, la de la tendencia que se muestra.
+export function probabilityUp(
+    compare: CompareTrendsResponse | undefined,
+    trend?: unknown,
+): number | null {
+    if (compare) {
+        for (const [key, p] of Object.entries(compare.predictions)) {
+            if (key.startsWith('xgboost') && p.available) {
+                const v = probabilityOf(p);
+                if (v != null) return v;
+            }
+        }
+    }
+    return probabilityOf(trend);
+}
+
+// Variación de los últimos `days` cierres, en %.
+export function changeOver(closes: number[], days = 5): number | null {
+    if (closes.length <= days) return null;
+    const a = closes[closes.length - 1 - days];
+    const b = closes[closes.length - 1];
+    return a > 0 ? (b / a - 1) * 100 : null;
+}
+
+// Confianza de una señal guardada en el historial: qué tanto se separaba la
+// predicción del precio de ese día, por raíz del plazo (para comparar plazos).
+export function signalLevel(r: {
+    last_close: number;
+    predicted_close: number;
+    horizon_days: number;
+}): 1 | 2 | 3 {
+    if (!r.last_close || !r.predicted_close) return 1;
+    const move =
+        Math.abs(r.predicted_close / r.last_close - 1) /
+        Math.sqrt(Math.max(1, r.horizon_days));
+    return move >= 0.006 ? 3 : move >= 0.003 ? 2 : 1;
+}
+
+// Riesgo de la cartera con las cantidades de hoy aplicadas al último año de
+// precios (como si siempre hubieras tenido lo que tenés ahora).
+export function portfolioSeries(
+    holdings: Array<{ ticker: string; quantity: number }>,
+    history: Record<string, Array<{ ts: number; close: number }>>,
+): { dates: number[]; values: number[] } {
+    const withData = holdings.filter(
+        (h) => (history[h.ticker]?.length ?? 0) > 1,
+    );
+    if (!withData.length) return { dates: [], values: [] };
+    const maps = withData.map(
+        (h) =>
+            new Map(
+                history[h.ticker].map((p) => [
+                    new Date(p.ts).toISOString().slice(0, 10),
+                    p.close,
+                ]),
+            ),
+    );
+    const days = [...maps[0].keys()]
+        .filter((d) => maps.every((m) => m.has(d)))
+        .sort()
+        .slice(-253);
+    return {
+        dates: days.map((d) => new Date(d).getTime()),
+        values: days.map((d) =>
+            withData.reduce((s, h, i) => s + h.quantity * maps[i].get(d)!, 0),
+        ),
+    };
+}
+
+// Un modelo por nombre: el comparador trae versiones locales y remotas
+// (sufijo -modal) del mismo modelo. Se queda con la que tiene más historia de
+// aciertos medida y, si empatan, con la local.
+export function uniqueModels(
+    compare: CompareTrendsResponse | undefined,
+): Array<[string, ModelPrediction]> {
+    const best = new Map<string, [string, ModelPrediction]>();
+    for (const entry of directionalModels(compare)) {
+        const label = modelLabel(entry[0]);
+        const cur = best.get(label);
+        const obs = (e: [string, ModelPrediction]) =>
+            e[1].backtest?.observations ?? 0;
+        if (
+            !cur ||
+            obs(entry) > obs(cur) ||
+            (obs(entry) === obs(cur) && !entry[0].endsWith('-modal'))
+        )
+            best.set(label, entry);
+    }
+    return [...best.values()];
+}
+
+// Cuantas veces subio la accion en `horizon` ruedas durante los ultimos
+// `lookback` dias (la tasa base contra la que hay que leer una probabilidad).
+export function upBaseRate(
+    closes: number[],
+    horizon = 20,
+    lookback = 750,
+): number | null {
+    const c = closes.slice(-(lookback + horizon));
+    let ups = 0;
+    let n = 0;
+    for (let i = 0; i + horizon < c.length; i++) {
+        if (c[i] > 0 && c[i + horizon] !== c[i]) {
+            n++;
+            if (c[i + horizon] > c[i]) ups++;
+        }
+    }
+    return n >= 60 ? ups / n : null;
+}

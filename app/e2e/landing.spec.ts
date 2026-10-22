@@ -11,7 +11,7 @@ test('la landing carga y muestra los accesos a crear cuenta / ingresar', async (
         page.getByRole('heading', { name: /Señales de tendencia/ }),
     ).toBeVisible();
     await expect(
-        page.getByRole('button', { name: 'Crear cuenta' }),
+        page.getByRole('button', { name: 'Crear cuenta', exact: true }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ingresar' })).toBeVisible();
 });
