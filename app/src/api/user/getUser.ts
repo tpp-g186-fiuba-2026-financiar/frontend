@@ -11,6 +11,7 @@ export interface UserResponse {
     is_active: boolean;
     two_factor_enabled: boolean;
     created_at: string;
+    role?: 'user' | 'admin';
 }
 
 export async function getUserEndpoint(): Promise<UserResponse> {

@@ -22,9 +22,6 @@ vi.mock('../api/userShares/getUserSharesTrendsEndpoint', () => ({
 vi.mock('../api/userShares/getUserSharesPnlEndpoint', () => ({
     getUserSharesPnlEndpoint: vi.fn(),
 }));
-vi.mock('../api/userShares/getUserSharesBalanceEndpoint', () => ({
-    getUserSharesBalanceEndpoint: vi.fn(),
-}));
 vi.mock('../api/userShares/getUserSharesBalanceHistoryEndpoint', () => ({
     getUserSharesBalanceHistoryEndpoint: vi.fn().mockResolvedValue([]),
 }));
@@ -34,14 +31,8 @@ vi.mock('../api/userShares/getShareHistoryEndpoint', () => ({
 vi.mock('../api/user/postUserPreference', () => ({
     postUserPreferenceEndpoint: vi.fn(),
 }));
-vi.mock('../api/user/deleteUserPreference', () => ({
-    deleteUserPreferenceEndpoint: vi.fn(),
-}));
 vi.mock('../api/userShares/getShareTrendCompareEndpoint', () => ({
     getShareTrendCompareEndpoint: vi.fn(),
-}));
-vi.mock('../api/userShares/getPortfolioRecomendacionEndpoint', () => ({
-    getPortfolioRecomendacionEndpoint: vi.fn(),
 }));
 vi.mock('../api/userShares/postUserShare', () => ({
     addUserShareEndpoint: vi.fn(),
@@ -75,12 +66,9 @@ import { shareInfoEndpoint } from '../api/shares/getShareInfo';
 import { getUserSharesEndpoint } from '../api/userShares/getUserSharesEndpoint';
 import { getUserSharesTrendsEndpoint } from '../api/userShares/getUserSharesTrendsEndpoint';
 import { getUserSharesPnlEndpoint } from '../api/userShares/getUserSharesPnlEndpoint';
-import { getUserSharesBalanceEndpoint } from '../api/userShares/getUserSharesBalanceEndpoint';
 import { getShareHistoryEndpoint } from '../api/userShares/getShareHistoryEndpoint';
 import { postUserPreferenceEndpoint } from '../api/user/postUserPreference';
-import { deleteUserPreferenceEndpoint } from '../api/user/deleteUserPreference';
 import { getShareTrendCompareEndpoint } from '../api/userShares/getShareTrendCompareEndpoint';
-import { getPortfolioRecomendacionEndpoint } from '../api/userShares/getPortfolioRecomendacionEndpoint';
 import { addUserShareEndpoint } from '../api/userShares/postUserShare';
 import { updateUserShareEndpoint } from '../api/userShares/putUserShare';
 import { deleteUserShareEndpoint } from '../api/userShares/deleteUserShare';
@@ -97,15 +85,10 @@ import { updateProfileEndpoint } from '../api/user/updateProfile';
 import { loginEndpoint } from '../api/login';
 import { registerEndpoint } from '../api/register';
 
-import Home from '../components/Pages/Home';
-import Settings from '../components/Pages/Settings';
 import PortfolioBuilder from '../components/Portfolio/PortfolioBuilder';
-import TickerDetail from '../components/Portfolio/TickerDetail';
-import EstimacionBlackLitterman from '../components/Portfolio/EstimacionBlackLitterman';
 import LoginPopUp from '../components/Login/LoginPopUp';
 import SignUpPopUp from '../components/SignUp/SignUpPopUp';
 import TickerTape from '../components/Layout/TickerTape';
-import AccountBalance from '../components/Layout/AccountBalance';
 
 const mocked = <T,>(value: T) => vi.mocked(value);
 
@@ -208,19 +191,11 @@ function setupHappyApis() {
             total_pnl_percentage: 20,
         },
     });
-    mocked(getUserSharesBalanceEndpoint).mockResolvedValue({
-        shares: [],
-        total_cost_basis: 1000,
-        total_current_value: 1600,
-        total_profit_loss: 600,
-        total_profit_loss_percent: 60,
-    });
     mocked(getShareHistoryEndpoint).mockResolvedValue({
         ticker: 'GGAL',
         prices: history,
     });
     mocked(postUserPreferenceEndpoint).mockResolvedValue(undefined);
-    mocked(deleteUserPreferenceEndpoint).mockResolvedValue(undefined);
     mocked(shareInfoEndpoint).mockResolvedValue({
         cached: true,
         data: [],
@@ -314,9 +289,6 @@ function setupHappyApis() {
             },
         },
     });
-    mocked(getPortfolioRecomendacionEndpoint).mockResolvedValue({
-        pesos_recomendados: { GGAL: 0.7, YPFD: 0.3 },
-    });
     mocked(addUserShareEndpoint).mockResolvedValue({
         id: 3,
         user_id: 7,
@@ -384,177 +356,6 @@ beforeEach(() => {
     } as unknown as CanvasRenderingContext2D);
 });
 
-test('Home loads a rich portfolio and opens the ticker detail', async () => {
-    render(
-        <MemoryRouter>
-            <Home />
-        </MemoryRouter>,
-    );
-
-    expect(await screen.findByText(/Ana Pérez/)).toBeInTheDocument();
-    expect(screen.getByText(/2 acciones/)).toBeInTheDocument();
-    expect(screen.getAllByText('GGAL').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/\+\$200/).length).toBeGreaterThan(0);
-
-    const tickerCells = screen.getAllByText('GGAL');
-    fireEvent.click(tickerCells[tickerCells.length - 1]);
-    expect(
-        await screen.findByText('Grupo Financiero Galicia S.A.'),
-    ).toBeInTheDocument();
-    expect(
-        await screen.findByText(/Qué predice cada modelo/),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Horizonte')).toBeInTheDocument();
-    expect(screen.getAllByText('5 ruedas').length).toBeGreaterThan(0);
-
-    fireEvent.click(screen.getByRole('button', { name: /volver/i }));
-    await waitFor(() =>
-        expect(screen.getByText(/Mi cartera/)).toBeInTheDocument(),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Ana Pérez/ }));
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-    fireEvent.mouseDown(document.body);
-    await waitFor(() =>
-        expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
-    );
-});
-
-test('Home asks to redo an expired risk profile and reloads the portfolio', async () => {
-    mocked(getUserEndpoint).mockResolvedValueOnce({
-        id: 7,
-        email: 'ana@example.com',
-        full_name: 'Ana Pérez',
-        risk_profile: 'moderate',
-        has_to_redo_risk_profile: true,
-        is_active: true,
-        two_factor_enabled: false,
-        created_at: '2026-01-01',
-    });
-    render(
-        <MemoryRouter>
-            <Home />
-        </MemoryRouter>,
-    );
-
-    expect(
-        await screen.findByText('Tu perfil de inversor venció'),
-    ).toBeInTheDocument();
-    const sharesCalls = mocked(getUserSharesEndpoint).mock.calls.length;
-    for (let index = 0; index < 9; index += 1) {
-        const options = within(screen.getByRole('dialog'))
-            .getAllByRole('button')
-            .filter((button) =>
-                button.className.includes('btn-outline-secondary'),
-            );
-        fireEvent.click(options[0]);
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: index === 8 ? 'Finalizar' : 'Siguiente',
-            }),
-        );
-    }
-
-    await waitFor(() =>
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
-    );
-    expect(updateProfileEndpoint).toHaveBeenCalledWith({
-        risk_profile: 'conservative',
-    });
-    expect(mocked(getUserSharesEndpoint).mock.calls.length).toBeGreaterThan(
-        sharesCalls,
-    );
-});
-
-test('Home exposes fallback states and retry actions', async () => {
-    mocked(getUserEndpoint).mockRejectedValueOnce(new Error('offline'));
-    mocked(getUserSharesEndpoint).mockRejectedValueOnce(new Error('offline'));
-    render(
-        <MemoryRouter>
-            <Home />
-        </MemoryRouter>,
-    );
-    expect(await screen.findByText(/No pudimos conectar/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Reintentar ahora/ }));
-    expect(await screen.findByText(/Ana Pérez/)).toBeInTheDocument();
-});
-
-test('TickerDetail renders projections, results and range controls', async () => {
-    const onBack = vi.fn();
-    const onModelApplied = vi.fn();
-    render(
-        <TickerDetail
-            row={{
-                ticker: 'GGAL',
-                quantity: 10,
-                trend: { ...trend, model: 'transformer-modal' },
-            }}
-            onBack={onBack}
-            onModelApplied={onModelApplied}
-        />,
-    );
-    expect(
-        await screen.findByText('Grupo Financiero Galicia S.A.'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Banco argentino de prueba')).toBeInTheDocument();
-    expect(
-        await screen.findByText(/Volatilidad GARCH \(2\s+ruedas\)/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/±5\.0%/)).toBeInTheDocument();
-    expect(screen.getByText(/La banda sombreada/)).toBeInTheDocument();
-    const defaultModelRadio = screen.getByRole('radio', {
-        name: 'Seleccionar modelo transformer-modal',
-    });
-    const otherModelRadio = screen.getByRole('radio', {
-        name: 'Seleccionar modelo lstm-modal',
-    });
-    expect(
-        screen.queryByRole('radio', { name: 'Seleccionar modelo garch' }),
-    ).not.toBeInTheDocument();
-    expect(defaultModelRadio).toBeChecked();
-    fireEvent.click(otherModelRadio);
-    expect(otherModelRadio).toBeChecked();
-    expect(defaultModelRadio).not.toBeChecked();
-    fireEvent.click(screen.getByRole('button', { name: 'Usar este modelo' }));
-    expect(postUserPreferenceEndpoint).toHaveBeenCalledWith({
-        model: 'lstm-modal',
-        stock: 'GGAL',
-    });
-    expect(await screen.findByRole('status')).toHaveTextContent(
-        'Modelo guardado para este ticker.',
-    );
-    expect(screen.getAllByText('lstm-modal')).toHaveLength(2);
-    expect(onModelApplied).toHaveBeenCalledWith(
-        expect.objectContaining({
-            ticker: 'GGAL',
-            model: 'lstm-modal',
-            predicted_close: 132,
-        }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Restablecer modelo' }));
-    await waitFor(() =>
-        expect(deleteUserPreferenceEndpoint).toHaveBeenCalledWith('GGAL'),
-    );
-    expect(await screen.findByRole('status')).toHaveTextContent(
-        'Modelo restablecido para este ticker.',
-    );
-    expect(onModelApplied).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-            ticker: 'GGAL',
-            model: 'lstm-modal',
-            predicted_close: 132,
-        }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: '1M' }));
-    fireEvent.click(screen.getByRole('tab', { name: /Resultados/ }));
-    expect(
-        await screen.findByText(/Se equivocó en promedio/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Siguiendo la señal/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Volver/ }));
-    expect(onBack).toHaveBeenCalled();
-});
-
 test('PortfolioBuilder validates, adds, updates, removes and clears positions', async () => {
     const onClose = vi.fn();
     const onSaved = vi.fn();
@@ -597,55 +398,9 @@ test('PortfolioBuilder validates, adds, updates, removes and clears positions', 
     await waitFor(() => expect(deleteUserShareEndpoint).toHaveBeenCalled());
 });
 
-test('Settings toggles theme and notification subscriptions', async () => {
-    render(
-        <MemoryRouter>
-            <Settings />
-        </MemoryRouter>,
-    );
-    fireEvent.click(
-        screen.getByRole('switch', {
-            name: /Cambiar entre modo claro y oscuro/i,
-        }),
-    );
-    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
-    fireEvent.click(screen.getByRole('button', { name: 'Notificaciones' }));
-    expect(await screen.findByText('Alertas de portfolio')).toBeInTheDocument();
-    fireEvent.click(
-        screen.getByRole('switch', { name: /notificaciones de portfolio/ }),
-    );
-    await waitFor(() =>
-        expect(subscribeToPortfolioAlertsEndpoint).toHaveBeenCalled(),
-    );
-    fireEvent.click(
-        screen.getByRole('switch', { name: /notificaciones de GGAL/ }),
-    );
-    await waitFor(() =>
-        expect(unsubscribeFromTickerAlertEndpoint).toHaveBeenCalledWith('GGAL'),
-    );
-});
-
-test('recommendation, ticker tape and balance render their successful states', async () => {
-    const onBack = vi.fn();
-    const { unmount } = render(<EstimacionBlackLitterman onBack={onBack} />);
-    expect(await screen.findByText('70.0%')).toBeInTheDocument();
-    // Peso actual (75%) y diferencia contra la recomendación (70% - 75%).
-    expect(screen.getByText('75.0%')).toBeInTheDocument();
-    expect(screen.getByText('-5.0 pp')).toBeInTheDocument();
-    fireEvent.click(
-        screen.getByRole('button', { name: /Volver a mi cartera/ }),
-    );
-    expect(onBack).toHaveBeenCalled();
-    unmount();
-
-    render(
-        <>
-            <TickerTape />
-            <AccountBalance />
-        </>,
-    );
+test('ticker tape renders the portfolio tickers', async () => {
+    render(<TickerTape />);
     expect((await screen.findAllByText('GGAL')).length).toBeGreaterThan(0);
-    expect(await screen.findByText('1.600')).toBeInTheDocument();
 });
 
 describe('authentication popups', () => {
@@ -671,11 +426,7 @@ describe('authentication popups', () => {
         const onClose = vi.fn();
         render(<SignUpPopUp isOpen={true} onClose={onClose} />);
         for (let index = 0; index < 9; index += 1) {
-            const options = screen
-                .getAllByRole('button')
-                .filter((button) =>
-                    button.className.includes('btn-outline-secondary'),
-                );
+            const options = screen.getAllByRole('radio');
             fireEvent.click(options[0]);
             fireEvent.click(
                 screen.getByRole('button', {

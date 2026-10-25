@@ -50,7 +50,9 @@ When('I submit invalid credentials', async function (this: AppWorld) {
 
 Then('I should see my portfolio', async function (this: AppWorld) {
     await expect(this.page).toHaveURL(/\/home$/);
-    await expect(this.page.getByText('Usuaria Test')).toBeVisible();
+    await expect(
+        this.page.getByRole('heading', { name: /Usuaria/ }),
+    ).toBeVisible();
 });
 
 Then(

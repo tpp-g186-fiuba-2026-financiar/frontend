@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import AuthFrame from '../Layout/AuthFrame';
 import { verifyEmailEndpoint } from '../../api/verifyEmail';
 
 type VerificationStatus = 'loading' | 'success' | 'error';
@@ -25,45 +26,31 @@ function VerifyEmail() {
     }, [token]);
 
     return (
-        <div className="container py-4">
-            <div className="topbar">
+        <AuthFrame title="Verificación de cuenta">
+            {status === 'loading' && <p>Verificando tu cuenta...</p>}
+            {status === 'success' && (
+                <p>
+                    ¡Listo! Tu cuenta quedó verificada. Ya podés ingresar con tu
+                    mail y contraseña.
+                </p>
+            )}
+            {status === 'error' && (
+                <p>
+                    El link de verificación no es válido o ya venció. Si ya
+                    verificaste tu cuenta, podés ingresar normalmente; si no,
+                    intentá ingresar y pedí un nuevo mail de verificación.
+                </p>
+            )}
+            {status !== 'loading' && (
                 <button
                     type="button"
-                    className="wordmark wordmark-link"
+                    className="btn btn-primary"
                     onClick={() => navigate('/')}
                 >
-                    Financi<span className="accent">Ar</span>
+                    Ir al inicio
                 </button>
-            </div>
-
-            <div className="panel">
-                <h2 className="mb-3">Verificación de cuenta</h2>
-                {status === 'loading' && <p>Verificando tu cuenta...</p>}
-                {status === 'success' && (
-                    <p>
-                        ¡Listo! Tu cuenta quedó verificada. Ya podés ingresar
-                        con tu mail y contraseña.
-                    </p>
-                )}
-                {status === 'error' && (
-                    <p>
-                        El link de verificación no es válido o ya venció. Si ya
-                        verificaste tu cuenta, podés ingresar normalmente; si
-                        no, intentá ingresar y pedí un nuevo mail de
-                        verificación.
-                    </p>
-                )}
-                {status !== 'loading' && (
-                    <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => navigate('/')}
-                    >
-                        Ir al inicio
-                    </button>
-                )}
-            </div>
-        </div>
+            )}
+        </AuthFrame>
     );
 }
 

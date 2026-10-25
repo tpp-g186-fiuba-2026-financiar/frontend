@@ -4,6 +4,7 @@ import { getUserSharesEndpoint } from '../../api/userShares/getUserSharesEndpoin
 import { addUserShareEndpoint } from '../../api/userShares/postUserShare';
 import { updateUserShareEndpoint } from '../../api/userShares/putUserShare';
 import { deleteUserShareEndpoint } from '../../api/userShares/deleteUserShare';
+import Icon from '../../next/ui/Icon';
 
 interface Share {
     id: number;
@@ -239,7 +240,10 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                     </span>
                     <span className="builder-ticker-label">{share.ticker}</span>
                     {!share.predictable && (
-                        <span className="builder-hint">
+                        <span
+                            className="builder-badge"
+                            title="Todavía no hay suficientes precios guardados para que los modelos opinen sobre esta acción."
+                        >
                             Sin histórico suficiente
                         </span>
                     )}
@@ -313,13 +317,15 @@ function PortfolioBuilder({ isOpen, onClose, onSaved }: PortfolioBuilderProps) {
                             onClick={closePopUp}
                             aria-label="Cerrar"
                         >
-                            ✕
+                            <Icon name="x" size={16} />
                         </button>
                     </div>
                     <div className="builder-body">
                         <p className="builder-hint mb-0">
-                            Marcá las acciones que tenés y cuántas comprate.
-                            Desmarcá una para sacarla de tu cartera.
+                            Marcá las acciones que tenés, cuántas y a qué precio
+                            las compraste. Si no ponés el precio, tomamos el
+                            último cierre (como si la compraras hoy). Desmarcá
+                            una para sacarla de tu cartera.
                         </p>
                         <div className="builder-search-row">
                             <svg

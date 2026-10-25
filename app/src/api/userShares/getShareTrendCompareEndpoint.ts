@@ -22,6 +22,8 @@ export interface ModelPrediction {
         folds?: number;
         mae?: number;
         observations?: number;
+        cases?: number;
+        scope?: 'live_post_training' | 'oos_global';
         series?: Array<{
             date: string;
             predicted: number;
@@ -55,6 +57,14 @@ export interface ConsensusReading {
     models_considered: number;
     explanation: string;
     track_record: ConsensusTrackRecord | null;
+    components?: Array<{
+        model: string;
+        expected_return: number;
+        quality: number;
+        agreement: number;
+        signal: string | null;
+    }>;
+    confidence_min?: number;
 }
 
 export interface CompareTrendsResponse {
