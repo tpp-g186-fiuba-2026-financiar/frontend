@@ -3345,3 +3345,41 @@ button.nx-brand {
     grid-column: 2;
     color: var(--nx-ink-2);
 }
+
+.nx-stat-grid .nx-stat-wide {
+    grid-column: 1 / -1;
+}
+
+.nx-ranking tbody tr {
+    cursor: pointer;
+}
+.nx-ranking tbody tr:hover {
+    background: color-mix(in oklab, var(--nx-accent) 6%, transparent);
+}
+.nx-mine {
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    color: var(--nx-accent);
+    border: 1px solid color-mix(in oklab, var(--nx-accent) 40%, transparent);
+}
+.nx-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.nx-score i {
+    width: 7px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--nx-line);
+}
+.nx-score i.on {
+    background: var(--nx-accent);
+}
+.nx-score b {
+    margin-left: 8px;
+    font: 600 12px var(--nx-mono, monospace);
+    color: var(--nx-ink);
+}

@@ -241,3 +241,68 @@ export async function getFairValueEndpoint(
     );
     return res.data;
 }
+
+export interface TrackRecordModel {
+    model: string;
+    model_version: string;
+    horizon_days: number;
+    casos: number;
+    desde: string;
+    hasta: string;
+    tasa_suba: number;
+    alza: { n: number; acierto: number | null; retorno_medio: number | null };
+    baja: { n: number; acierto: number | null };
+    retorno_medio_todas: number;
+    curva: Array<{
+        mes: string;
+        sigue: number;
+        todas: number;
+        senales: number;
+    }>;
+}
+
+export async function getTrackRecordEndpoint(): Promise<{
+    updated_at: string | null;
+    modelos: TrackRecordModel[];
+}> {
+    const res = await authAxios.get(`${base()}/user/signals/track-record`);
+    return res.data;
+}
+
+export interface VolatilityForecast {
+    symbol: string;
+    horizon_days: number;
+    daily_volatility_pct: number[];
+    cumulative_volatility_pct: number;
+    last_close: number;
+    as_of: string;
+}
+
+export async function getVolatilityEndpoint(
+    ticker: string,
+    horizon = 20,
+): Promise<VolatilityForecast> {
+    const res = await authAxios.get(
+        `${base()}/user/shares/${encodeURIComponent(ticker)}/volatility`,
+        { params: { horizon } },
+    );
+    return res.data;
+}
+
+export interface RankingRow {
+    symbol: string;
+    as_of: string;
+    probability_up: number;
+    signal: 'alza' | 'baja' | 'neutral';
+    puesto: number;
+    puntaje: number;
+}
+
+export async function getRankingEndpoint(): Promise<{
+    model_version: string;
+    horizon_days: number;
+    acciones: RankingRow[];
+}> {
+    const res = await authAxios.get(`${base()}/user/ranking`);
+    return res.data;
+}

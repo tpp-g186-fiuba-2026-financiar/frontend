@@ -27,6 +27,10 @@ export const GLOSSARY = {
         'Cantidad de pruebas',
         'Cuántas veces se puso a prueba este modelo con datos del pasado. Mientras más, más confiable es el porcentaje de acierto.',
     ],
+    tasabase: [
+        'Tasa base',
+        'Qué tan seguido subieron las acciones en esas mismas fechas, sin que nadie elija nada. Es la vara: un modelo que dice "alza" sirve si acierta más que eso, no más que 50%.',
+    ],
     tendencia: [
         'Precio estimado por la tendencia',
         'Una regresión lineal del precio (en escala logarítmica) contra el tiempo, con el último año de ruedas. El valor de esa recta hoy es el precio "que marca la tendencia". Si el precio real se aparta más de un desvío estándar, decimos que está por encima o por debajo. El R² dice cuánto del movimiento explica la recta: si es bajo, la acción se movió sin una tendencia clara y el estimado pesa poco.',

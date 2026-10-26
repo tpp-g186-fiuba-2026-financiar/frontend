@@ -7,6 +7,8 @@ import {
     getCandlesEndpoint,
     getExplainEndpoint,
     getFairValueEndpoint,
+    getMarketSeriesEndpoint,
+    getVolatilityEndpoint,
     type FairValueChannelPoint,
 } from '../../api/next/endpoints';
 import { getShareTrendCompareEndpoint } from '../../api/userShares/getShareTrendCompareEndpoint';
@@ -128,6 +130,15 @@ export default function Accion() {
         getFairValueEndpoint(ticker!),
     );
     const [showTrend, setShowTrend] = useState<'off' | 'on'>('off');
+    const [moneda, setMoneda] = useState<'ars' | 'usd'>('ars');
+    const market = useRemote(
+        moneda === 'usd' ? 'market-series' : null,
+        getMarketSeriesEndpoint,
+    );
+    // GARCH local a 20 ruedas: lo que mejor se predice es cuanto se mueve.
+    const vol = useRemote(ticker ? `vol:${ticker}` : null, () =>
+        getVolatilityEndpoint(ticker!, 20),
+    );
     const explain = useRemote(ticker ? `explain:${ticker}` : null, () =>
         getExplainEndpoint(ticker!),
     );
@@ -248,7 +259,9 @@ export default function Accion() {
             garch?.volatility_forecast
                 ?.filter((p) => p.volatility_pct > 0)
                 .sort((a, b) => a.horizon_days - b.horizon_days) ?? [];
+        const local = vol.data?.daily_volatility_pct ?? [];
         const sigmaDay = (k: number) => {
+            if (local.length) return local[Math.min(k, local.length) - 1] / 100;
             const p = fc.find((f) => f.horizon_days >= k) ?? fc[fc.length - 1];
             return p ? p.volatility_pct / 100 : realized;
         };
@@ -268,11 +281,13 @@ export default function Accion() {
             lo95.push(m * Math.exp(-1.96 * s));
             hi95.push(m * Math.exp(1.96 * s));
         }
-        const annual = fc.length
-            ? (fc[0].volatility_pct / 100) * Math.sqrt(252)
-            : rets.length > 20
-              ? annualizedVol(rets)
-              : null;
+        const annual = local.length
+            ? (local[0] / 100) * Math.sqrt(252)
+            : fc.length
+              ? (fc[0].volatility_pct / 100) * Math.sqrt(252)
+              : rets.length > 20
+                ? annualizedVol(rets)
+                : null;
         return {
             mid,
             lo68,
@@ -280,7 +295,7 @@ export default function Accion() {
             lo95,
             hi95,
             annual,
-            fromGarch: fc.length > 0,
+            fromGarch: local.length > 0 || fc.length > 0,
             hasView: score != null && signal != null && signal !== 'neutral',
         };
     })();
@@ -416,6 +431,27 @@ export default function Accion() {
                     : thresholds
                       ? `La lectura combinada (${pct(score * 100, 1)}) queda en la zona neutral: para alza hace falta ${pct(thresholds.buy * 100, 1)} o más y para baja ${pct(thresholds.sell * 100, 1)} o menos.`
                       : `La lectura combinada es ${pct(score * 100, 1)}.`);
+    // En dolares CCL: cada cierre se divide por el CCL de ese dia; lo que esta
+    // a la derecha de HOY, por el de hoy (supone que el dolar no se mueve).
+    const cclPts =
+        market.data?.series.find((x) => x.key === 'CCL')?.points ?? [];
+    const enDolares = moneda === 'usd' && cclPts.length > 0;
+    const cclAt = (ts: number) => {
+        let v = cclPts[0]?.value ?? 1;
+        for (const p of cclPts) {
+            if (p.ts <= ts) v = p.value;
+            else break;
+        }
+        return v;
+    };
+    const fxHoy =
+        enDolares && histSlice.length
+            ? cclAt(histSlice[histSlice.length - 1].ts)
+            : 1;
+    const fx = (i: number) =>
+        !enDolares ? 1 : i < histSlice.length ? cclAt(histSlice[i].ts) : fxHoy;
+    const conv = (arr: Array<number | null>) =>
+        arr.map((v, i) => (v == null ? null : v / fx(i)));
     const forecast: Forecast | undefined =
         last != null
             ? {
@@ -440,6 +476,23 @@ export default function Accion() {
                       : undefined,
               }
             : undefined;
+    const forecastView: Forecast | undefined =
+        forecast && enDolares
+            ? {
+                  ...forecast,
+                  start: forecast.start / fxHoy,
+                  rays: forecast.rays.map((r) => ({ ...r, v: r.v / fxHoy })),
+                  main: forecast.main && {
+                      ...forecast.main,
+                      v: forecast.main.v / fxHoy,
+                      sublabel: `combinada ${pct((score ?? 0) * 100, 1)}`,
+                  },
+                  thresholds: forecast.thresholds && {
+                      up: forecast.thresholds.up / fxHoy,
+                      down: forecast.thresholds.down / fxHoy,
+                  },
+              }
+            : forecast;
     const name = info.data?.nombre_largo || info.data?.nombre_corto || '';
     const sumQ = parts.reduce((s, p) => s + p.quality, 0);
 
@@ -610,7 +663,9 @@ export default function Accion() {
                         hint={
                             mode === 'velas'
                                 ? 'Cada vela = una rueda. A la derecha de HOY, hasta dónde predice cada modelo que llegue el precio y, en grueso, la lectura combinada.'
-                                : 'Cierre de cada rueda. A la derecha de HOY, hasta dónde predice cada modelo que llegue el precio (cada uno en su plazo) y, en grueso, la lectura combinada.'
+                                : enDolares
+                                  ? 'Cierre de cada rueda dividido por el dólar CCL de ese día: así se ve cuánto subió o bajó sin la inflación. A la derecha de HOY se supone que el CCL no cambia.'
+                                  : 'Cierre de cada rueda. A la derecha de HOY, hasta dónde predice cada modelo que llegue el precio (cada uno en su plazo) y, en grueso, la lectura combinada.'
                         }
                         right={
                             <div
@@ -635,6 +690,17 @@ export default function Accion() {
                                     value={span}
                                     onChange={setSpan}
                                 />
+                                {mode === 'linea' && (
+                                    <Seg
+                                        label="Moneda"
+                                        options={[
+                                            ['ars', 'pesos'],
+                                            ['usd', 'US$ CCL'],
+                                        ]}
+                                        value={moneda}
+                                        onChange={setMoneda}
+                                    />
+                                )}
                                 {mode === 'linea' && fair.data && (
                                     <Seg
                                         label="Canal de tendencia"
@@ -679,33 +745,42 @@ export default function Accion() {
                             height={340}
                             labels={labels}
                             xFmt={shortDate}
-                            yFmt={(v) => '$' + v.toFixed(v > 100 ? 0 : 1)}
+                            yFmt={(v) =>
+                                enDolares
+                                    ? 'US$' + v.toFixed(2)
+                                    : '$' + v.toFixed(v > 100 ? 0 : 1)
+                            }
                             vline={histSlice.length - 1}
                             splitAt={histSlice.length - 1}
                             vlineLabel="HOY"
-                            forecast={forecast}
+                            forecast={forecastView}
                             bands={[
                                 {
-                                    lo: pad(proj.lo95),
-                                    hi: pad(proj.hi95),
+                                    lo: conv(pad(proj.lo95)),
+                                    hi: conv(pad(proj.hi95)),
                                     color: 'var(--nx-ink-2)',
                                     opacity: 0.06,
                                 },
                                 {
-                                    lo: pad(proj.lo68),
-                                    hi: pad(proj.hi68),
+                                    lo: conv(pad(proj.lo68)),
+                                    hi: conv(pad(proj.hi68)),
                                     color: 'var(--nx-ink-2)',
                                     opacity: 0.1,
                                 },
                             ]}
                             series={[
-                                ...trendSeries,
+                                ...trendSeries.map((t) => ({
+                                    ...t,
+                                    values: conv(t.values),
+                                })),
                                 {
-                                    label: 'Cierre',
-                                    values: [
+                                    label: enDolares
+                                        ? 'Cierre en US$ CCL'
+                                        : 'Cierre',
+                                    values: conv([
                                         ...histSlice.map((c) => c.close),
                                         ...Array(reach).fill(null),
-                                    ],
+                                    ]),
                                     color: 'var(--nx-accent)',
                                     area: true,
                                 },
@@ -982,6 +1057,39 @@ export default function Accion() {
                                 {proj && !proj.fromGarch ? ', histórico' : ''}
                             </div>
                         </div>
+                        {vol.data && last != null && (
+                            <div className="nx-stat nx-stat-wide">
+                                <div className="k">
+                                    Rango probable en {vol.data.horizon_days}{' '}
+                                    ruedas <Tip k="garch" />
+                                </div>
+                                <div className="v">
+                                    {usd0(
+                                        last *
+                                            Math.exp(
+                                                -vol.data
+                                                    .cumulative_volatility_pct /
+                                                    100,
+                                            ),
+                                    )}{' '}
+                                    –{' '}
+                                    {usd0(
+                                        last *
+                                            Math.exp(
+                                                vol.data
+                                                    .cumulative_volatility_pct /
+                                                    100,
+                                            ),
+                                    )}
+                                </div>
+                                <div className="d nx-muted">
+                                    ±{pct1(vol.data.cumulative_volatility_pct)}{' '}
+                                    con 68% de probabilidad (GARCH). A
+                                    diferencia de la dirección, cuánto se mueve
+                                    una acción sí se predice bien.
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </Card>
             </div>

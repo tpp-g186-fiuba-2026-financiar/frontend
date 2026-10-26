@@ -20,6 +20,25 @@ const RISK_LABEL: Record<string, string> = {
     aggressive: 'Agresivo',
 };
 const YEAR = 252;
+
+// Backtest 2017-2026 del rebalanceo actual (tus acciones + hasta 2 nuevas,
+// con comision): 40 carteras iniciales de 5 lideres al azar, rebalanceo cada
+// 20 ruedas, contra no tocar nada. Mediana del retorno anual de mas.
+const BACKTEST = [
+    {
+        perfil: 'Conservador',
+        extra: '+5,7%',
+        gana: '39 de 40',
+        rotacion: '2,7%',
+    },
+    { perfil: 'Moderado', extra: '+3,4%', gana: '39 de 40', rotacion: '1,5%' },
+    {
+        perfil: 'Arriesgado',
+        extra: '+1,2%',
+        gana: '25 de 40',
+        rotacion: '1,2%',
+    },
+];
 const CAP = 0.2;
 
 type Ancla = 'propia' | 'equal_weight';
@@ -672,6 +691,73 @@ export default function Rebalanceo() {
                                     </div>
                                 </div>
                             </div>
+                            <b
+                                className="nx-ink"
+                                style={{
+                                    display: 'block',
+                                    margin: '18px 0 6px',
+                                }}
+                            >
+                                ¿Funcionó en el pasado?
+                            </b>
+                            <p className="nx-bl-intro">
+                                Lo probamos de 2017 a 2026 con 40 carteras de 5
+                                acciones elegidas al azar, rebalanceando una vez
+                                por mes y pagando 0,6% de comisión por punta.
+                                Comparado con no tocar nada:
+                            </p>
+                            <div className="nx-table-wrap">
+                                <table
+                                    className="nx-table"
+                                    aria-label="Resultado en el pasado"
+                                >
+                                    <thead>
+                                        <tr>
+                                            <th>Perfil</th>
+                                            <th className="r">
+                                                Rinde más por año
+                                            </th>
+                                            <th className="r">
+                                                Carteras que mejoraron
+                                            </th>
+                                            <th className="r">
+                                                Plata que se mueve por mes
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {BACKTEST.map((b) => (
+                                            <tr key={b.perfil}>
+                                                <td>{b.perfil}</td>
+                                                <td className="r nx-mono">
+                                                    {b.extra}
+                                                </td>
+                                                <td className="r nx-mono">
+                                                    {b.gana}
+                                                </td>
+                                                <td className="r nx-mono">
+                                                    {b.rotacion}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p
+                                className="nx-bl-intro"
+                                style={{ marginTop: 10 }}
+                            >
+                                Ojo: casi toda la mejora viene de{' '}
+                                <b>repartir mejor el riesgo</b>, no de adivinar
+                                qué acción va a subir. Sin las estimaciones de
+                                los modelos el resultado es casi el mismo. Y la
+                                versión anterior, que rearmaba toda la cartera
+                                sin mirar comisiones, con las estimaciones de
+                                los modelos rendía{' '}
+                                <b>hasta 11% menos por año</b> que no tocar
+                                nada: por eso ahora solo se mueve plata cuando
+                                la mejora paga el costo.
+                            </p>
                         </Card>
                         {hasDet && selected?.det && (
                             <Card i={5}>
@@ -711,7 +797,10 @@ export default function Rebalanceo() {
                                     hint="Tocá una fila para verla paso a paso"
                                 />
                                 <div className="nx-table-wrap">
-                                    <table className="nx-table">
+                                    <table
+                                        className="nx-table"
+                                        aria-label="Cuenta por acción"
+                                    >
                                         <thead>
                                             <tr>
                                                 <th>Acción</th>

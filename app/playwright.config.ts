@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Puerto propio para no reusar un `npm run dev` que apunte a otro backend.
+const PORT = process.env.E2E_PORT ?? '5173';
+
 // Los tests interceptan el backend con page.route() (ver e2e/mock-backend.ts),
 // asi que no hace falta levantar api-ml/backend-website: alcanza con el
 // front. VITE_SERVER_API igual tiene que estar seteada para que axios arme
@@ -11,7 +14,7 @@ export default defineConfig({
     retries: process.env.CI ? 2 : 0,
     reporter: 'html',
     use: {
-        baseURL: 'http://localhost:5173',
+        baseURL: `http://localhost:${PORT}`,
         trace: 'on-first-retry',
     },
     projects: [
@@ -21,8 +24,8 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: 'npm run dev',
-        url: 'http://localhost:5173',
+        command: `npm run dev -- --port ${PORT} --strictPort`,
+        url: `http://localhost:${PORT}`,
         reuseExistingServer: !process.env.CI,
         env: { VITE_SERVER_API: 'http://localhost:8000' },
     },
