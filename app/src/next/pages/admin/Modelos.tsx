@@ -1,8 +1,14 @@
+import { useEffect, useState } from 'react';
 import { useRemote } from '../../data/useRemote';
+import {
+    hiddenModels,
+    hideModelEndpoint,
+    showModelEndpoint,
+} from '../../../api/hiddenModels';
 import { getAdminModelsEndpoint } from '../../../api/next/endpoints';
 import { Card, CardHead, Empty, PageHead, Tip } from '../../ui/Blocks';
 import { longDate, num, pct1 } from '../../format';
-import { modelLabel } from '../../finance';
+import { MODEL_KEYS, modelFullLabel, modelLabel } from '../../finance';
 
 const ARCH: Record<string, string> = {
     ensemble: 'Promedio de los modelos',
@@ -29,6 +35,77 @@ function fmtMetric(key: string, v: number): string {
     return num(v, 3);
 }
 
+/** El admin elige que modelos ven los usuarios (los ocultos no aparecen en ninguna pantalla). */
+function VisibleModels() {
+    const [hidden, setHidden] = useState<Set<string> | null>(null);
+    const [busy, setBusy] = useState<string | null>(null);
+    const [error, setError] = useState(false);
+    useEffect(() => {
+        let vivo = true;
+        hiddenModels().then((h) => vivo && setHidden(new Set(h)));
+        return () => {
+            vivo = false;
+        };
+    }, []);
+    const keys = [...new Set([...MODEL_KEYS, ...(hidden ?? [])])];
+
+    const toggle = async (key: string) => {
+        if (!hidden) return;
+        setBusy(key);
+        setError(false);
+        try {
+            const list = hidden.has(key)
+                ? await showModelEndpoint(key)
+                : await hideModelEndpoint(key);
+            setHidden(new Set(list));
+        } catch {
+            setError(true);
+        } finally {
+            setBusy(null);
+        }
+    };
+
+    return (
+        <Card i={0}>
+            <CardHead
+                title="Qué modelos ven los usuarios"
+                hint="Apagá un modelo para ocultarlo en todas las pantallas (señal, gráfico, historial, ajustes). No se borra nada: lo podés volver a prender."
+            />
+            {!hidden ? (
+                <Empty>Cargando…</Empty>
+            ) : (
+                <div className="nx-visible-models">
+                    {keys.map((key) => {
+                        const on = !hidden.has(key);
+                        return (
+                            <label key={key} className={on ? '' : 'off'}>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={on}
+                                    aria-label={`Mostrar ${modelFullLabel(key)}`}
+                                    className="nx-switch"
+                                    disabled={busy === key}
+                                    onClick={() => toggle(key)}
+                                />
+                                <span>
+                                    <b>{modelFullLabel(key)}</b>
+                                    <small>{on ? 'visible' : 'oculto'}</small>
+                                </span>
+                            </label>
+                        );
+                    })}
+                </div>
+            )}
+            {error && (
+                <p className="nx-why" role="alert">
+                    No se pudo guardar el cambio. Probá de nuevo.
+                </p>
+            )}
+        </Card>
+    );
+}
+
 export default function Modelos() {
     const diag = useRemote('admin-models', getAdminModelsEndpoint);
     const results = Object.entries(diag.data?.results ?? {});
@@ -48,6 +125,7 @@ export default function Modelos() {
                 <Empty>No se pudieron leer las métricas de los modelos.</Empty>
             )}
             <div className="nx-grid">
+                <VisibleModels />
                 {results.length > 0 && (
                     <Card i={1}>
                         <CardHead

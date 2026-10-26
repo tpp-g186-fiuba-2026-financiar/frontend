@@ -3383,3 +3383,106 @@ button.nx-brand {
     font: 600 12px var(--nx-mono, monospace);
     color: var(--nx-ink);
 }
+
+.nx-replay-score {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+.nx-replay-score b {
+    font-size: 22px;
+    display: block;
+    color: var(--nx-ink);
+}
+.nx-replay-score span {
+    font-size: 12px;
+    color: var(--nx-ink-3);
+}
+.nx-replay-chart {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.nx-replay-draw .real {
+    stroke-dasharray: 900;
+    stroke-dashoffset: 900;
+    animation: nx-replay-in 0.9s ease-out forwards;
+}
+.nx-replay-draw .pred {
+    animation: nx-replay-fade 0.5s ease-out;
+}
+@keyframes nx-replay-in {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+@keyframes nx-replay-fade {
+    from {
+        opacity: 0;
+    }
+}
+.nx-replay-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 8px 0;
+}
+.nx-replay-controls input[type='range'] {
+    flex: 1;
+}
+.nx-replay-case {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 8px 0 12px;
+}
+.nx-replay-case > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.nx-replay-case .k {
+    font-size: 12px;
+    color: var(--nx-ink-3);
+}
+.nx-replay-case b {
+    font-size: 16px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .nx-replay-draw .real,
+    .nx-replay-draw .pred {
+        animation: none;
+        stroke-dashoffset: 0;
+    }
+}
+.nx-replay-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.nx-visible-models {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
+}
+.nx-visible-models label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--nx-line);
+    border-radius: 10px;
+}
+.nx-visible-models label.off {
+    opacity: 0.55;
+}
+.nx-visible-models span {
+    display: flex;
+    flex-direction: column;
+}
+.nx-visible-models small {
+    color: var(--nx-ink-3);
+    font-size: 11.5px;
+}

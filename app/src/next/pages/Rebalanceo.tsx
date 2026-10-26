@@ -27,17 +27,12 @@ const YEAR = 252;
 const BACKTEST = [
     {
         perfil: 'Conservador',
-        extra: '+5,7%',
-        gana: '39 de 40',
-        rotacion: '2,7%',
+        extra: '+8,6%',
+        gana: '40 de 40',
+        rotacion: '5,8%',
     },
-    { perfil: 'Moderado', extra: '+3,4%', gana: '39 de 40', rotacion: '1,5%' },
-    {
-        perfil: 'Arriesgado',
-        extra: '+1,2%',
-        gana: '25 de 40',
-        rotacion: '1,2%',
-    },
+    { perfil: 'Moderado', extra: '+2,0%', gana: '38 de 40', rotacion: '5,5%' },
+    { perfil: 'Arriesgado', extra: '−7,4%', gana: '0 de 40', rotacion: '8,9%' },
 ];
 const CAP = 0.2;
 
@@ -300,6 +295,16 @@ export default function Rebalanceo() {
                             Son estimaciones con datos del pasado: no son una
                             promesa ni una recomendación.
                         </p>
+                        {risk === 'aggressive' && (
+                            <p className="nx-why" role="note">
+                                <b>Ojo con el perfil agresivo:</b> probado de
+                                2017 a 2026, seguir este cálculo rindió en
+                                promedio 7,4% menos por año que no tocar la
+                                cartera. Al aceptar más riesgo concentra la
+                                plata en 2 o 3 acciones, y eso en el pasado no
+                                pagó. Mirá "¿Funcionó en el pasado?" más abajo.
+                            </p>
+                        )}
                         <div
                             className="nx-grid"
                             style={{ gap: 10, marginTop: 16 }}
@@ -715,7 +720,7 @@ export default function Rebalanceo() {
                                         <tr>
                                             <th>Perfil</th>
                                             <th className="r">
-                                                Rinde más por año
+                                                Diferencia por año
                                             </th>
                                             <th className="r">
                                                 Carteras que mejoraron
@@ -749,14 +754,12 @@ export default function Rebalanceo() {
                             >
                                 Ojo: casi toda la mejora viene de{' '}
                                 <b>repartir mejor el riesgo</b>, no de adivinar
-                                qué acción va a subir. Sin las estimaciones de
-                                los modelos el resultado es casi el mismo. Y la
-                                versión anterior, que rearmaba toda la cartera
-                                sin mirar comisiones, con las estimaciones de
-                                los modelos rendía{' '}
-                                <b>hasta 11% menos por año</b> que no tocar
-                                nada: por eso ahora solo se mueve plata cuando
-                                la mejora paga el costo.
+                                qué acción va a subir: sin las estimaciones de
+                                los modelos el resultado es casi el mismo. Con
+                                el perfil arriesgado sale <b>peor</b> que no
+                                tocar nada: al aceptar más riesgo concentra la
+                                cartera en 2 o 3 acciones, y eso en el pasado no
+                                pagó.
                             </p>
                         </Card>
                         {hasDet && selected?.det && (
