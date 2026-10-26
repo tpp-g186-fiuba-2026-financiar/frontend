@@ -3165,62 +3165,183 @@ button.nx-brand {
     border-bottom: 0;
 }
 
-.nx-signal-hero {
+.nx-sig {
+    --sig: var(--nx-neu);
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin: 4px 0 16px;
-    padding: 16px 18px;
-    border-radius: 16px;
-    border: 1px solid var(--nx-line);
-    background: var(--nx-panel-2);
+    gap: 12px;
 }
-.nx-signal-hero.alza {
-    border-color: color-mix(in oklab, var(--nx-up) 45%, transparent);
-    background: color-mix(in oklab, var(--nx-up) 12%, var(--nx-panel-2));
+.nx-sig.alza {
+    --sig: var(--nx-up);
 }
-.nx-signal-hero.baja {
-    border-color: color-mix(in oklab, var(--nx-down) 45%, transparent);
-    background: color-mix(in oklab, var(--nx-down) 12%, var(--nx-panel-2));
+.nx-sig.baja {
+    --sig: var(--nx-down);
 }
-.nx-signal-hero.neutral,
-.nx-signal-hero.nodata {
-    border-color: color-mix(in oklab, var(--nx-neu) 40%, transparent);
-    background: color-mix(in oklab, var(--nx-neu) 10%, var(--nx-panel-2));
+.nx-sig-arrow {
+    width: 46px;
+    height: 46px;
+    flex: none;
+    fill: var(--sig);
+    filter: drop-shadow(
+        0 0 10px color-mix(in oklab, var(--sig) 55%, transparent)
+    );
 }
-.nx-signal-arrow {
-    font: 700 42px/1 var(--nx-display);
-    width: 52px;
+.nx-sig.alza .nx-sig-arrow {
+    animation: nx-sig-up 2.4s ease-in-out infinite;
+}
+.nx-sig.baja .nx-sig-arrow {
+    animation: nx-sig-down 2.4s ease-in-out infinite;
+}
+@keyframes nx-sig-up {
+    50% {
+        transform: translateY(-4px);
+    }
+}
+@keyframes nx-sig-down {
+    50% {
+        transform: translateY(4px);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .nx-sig .nx-sig-arrow {
+        animation: none;
+    }
+}
+.nx-sig-word {
+    font: 700 26px/1 var(--nx-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sig);
+}
+.nx-sig-line {
+    margin-top: 5px;
+    font-size: 12.5px;
+    color: var(--nx-ink-2);
+    max-width: 34ch;
+}
+
+.nx-strip-head {
+    margin: 22px 0 6px;
+    padding-top: 16px;
+    border-top: 1px solid var(--nx-line);
+}
+.nx-strip-head h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+}
+.nx-strip-head p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+/* Accesibilidad: atajo al contenido y foco visible al navegar con teclado */
+.nx-skip {
+    position: fixed;
+    left: 12px;
+    top: -60px;
+    z-index: 5000;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--nx-accent);
+    color: var(--nx-bg, #05080a);
+    font-weight: 700;
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+.nx-skip:focus {
+    top: 12px;
+}
+.nx-view:focus {
+    outline: none;
+}
+.nx-shell
+    :is(
+        a,
+        button,
+        summary,
+        select,
+        [role='button'],
+        [tabindex]:not([tabindex='-1'])
+    ):focus-visible {
+    outline: 2px solid var(--nx-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.nx-crash {
+    max-width: 560px;
+    margin: 40px auto;
+    padding: 28px;
     text-align: center;
 }
-.nx-signal-hero.alza .nx-signal-arrow {
-    color: var(--nx-up);
+.nx-crash h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
 }
-.nx-signal-hero.baja .nx-signal-arrow {
-    color: var(--nx-down);
+.nx-crash .nx-actions {
+    justify-content: center;
+    margin-top: 18px;
 }
-.nx-signal-hero.neutral .nx-signal-arrow,
-.nx-signal-hero.nodata .nx-signal-arrow {
-    color: var(--nx-neu);
+
+.nx-reb-scope {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 0 0 16px;
+    padding: 14px 18px;
+    border: 1px solid var(--nx-line);
+    border-radius: 14px;
+    background: var(--nx-panel);
 }
-.nx-signal-word {
-    font: 700 28px/1.1 var(--nx-display);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+.nx-reb-scope > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-width: 52ch;
+    font-size: 13px;
+}
+
+.nx-tech-sum {
+    display: flex;
+    gap: 12px;
+    font: 600 12px var(--nx-mono, monospace);
+}
+.nx-checks {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px 22px;
+}
+.nx-checks li {
+    display: grid;
+    grid-template-columns: 10px 1fr;
+    column-gap: 10px;
+    align-items: baseline;
+    font-size: 13px;
+    line-height: 1.45;
+}
+.nx-checks li i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--nx-neu);
+    transform: translateY(-1px);
+}
+.nx-checks li.up i {
+    background: var(--nx-up);
+}
+.nx-checks li.down i {
+    background: var(--nx-down);
+}
+.nx-checks li b {
     color: var(--nx-ink);
 }
-.nx-signal-hero.alza .nx-signal-word {
-    color: var(--nx-up);
-}
-.nx-signal-hero.baja .nx-signal-word {
-    color: var(--nx-down);
-}
-.nx-signal-hero.neutral .nx-signal-word,
-.nx-signal-hero.nodata .nx-signal-word {
-    color: var(--nx-neu);
-}
-.nx-signal-line {
-    margin-top: 4px;
-    font-size: 13px;
+.nx-checks li span {
+    grid-column: 2;
     color: var(--nx-ink-2);
 }

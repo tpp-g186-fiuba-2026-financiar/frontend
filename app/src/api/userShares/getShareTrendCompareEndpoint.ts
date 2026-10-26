@@ -65,6 +65,8 @@ export interface ConsensusReading {
         signal: string | null;
     }>;
     confidence_min?: number;
+    threshold_buy?: number;
+    threshold_sell?: number;
 }
 
 export interface CompareTrendsResponse {

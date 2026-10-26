@@ -88,6 +88,13 @@ export default function ModelsPanel({
         if (m) measured.push([k, m]);
     });
     const winner = pickClearWinner(measured);
+    // Los que no respondieron se juntan en una sola fila al final.
+    const isDown = ([key, p]: [string, ModelPrediction]) =>
+        !(p.available && p.predicted_close != null) &&
+        !volatilityText(key, p) &&
+        friendlyReason(p).startsWith('No respondió');
+    const predEntries = entries.filter((e) => !isDown(e));
+    const downNames = entries.filter(isDown).map(([k]) => displayName(k));
     const withSeries = entries
         .filter(([, p]) => (p.backtest?.series?.length ?? 0) > 1)
         .map(([k]) => k);
@@ -152,7 +159,7 @@ export default function ModelsPanel({
                             </tr>
                         </thead>
                         <tbody>
-                            {entries.map(([key, p]) => {
+                            {predEntries.map(([key, p]) => {
                                 const delta =
                                     p.available &&
                                     p.last_close &&
@@ -272,6 +279,17 @@ export default function ModelsPanel({
                                     </tr>
                                 );
                             })}
+                            {downNames.length > 0 && (
+                                <tr className="is-off">
+                                    <td colSpan={9} className="nx-muted">
+                                        <b className="nx-ink">
+                                            No respondieron ahora:
+                                        </b>{' '}
+                                        {downNames.join(', ')}. Pueden estar
+                                        arrancando; probá de nuevo en un rato.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

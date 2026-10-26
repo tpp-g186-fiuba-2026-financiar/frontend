@@ -169,14 +169,75 @@ export interface BlResponse {
     detalle?: BlDetalle[];
     tickers_excluidos?: Record<string, string>;
     cartera_ancla?: string;
+    // acciones que la recomendacion suma y no estaban en la cartera
+    acciones_nuevas?: string[];
+    // fraccion de la cartera que cambia de manos
+    rotacion?: number;
+    // costo de hacer los movimientos, como fraccion del valor de la cartera
+    costo_estimado?: number;
+    costo_operacion?: number;
 }
+
+// Cuanto puede mover la recomendacion: solo las acciones del usuario, sumar
+// hasta 2 nuevas (default de api-ml) o usar todo el panel.
+export type BlAlcance = 'mias' | 'pocas' | 'todas';
 
 export async function getBlackLittermanEndpoint(
     carteraAncla?: 'propia' | 'equal_weight',
+    alcance: BlAlcance = 'pocas',
 ): Promise<BlResponse> {
+    const params: Record<string, string | number | boolean> = {};
+    if (carteraAncla) params.cartera_ancla = carteraAncla;
+    if (alcance === 'mias') params.max_nuevas = 0;
+    if (alcance === 'todas') params.todas = true;
     const res = await authAxios.get(
         `${base()}/user/shares/portfolio/recomendacion`,
-        { params: carteraAncla ? { cartera_ancla: carteraAncla } : undefined },
+        { params: Object.keys(params).length ? params : undefined },
+    );
+    return res.data;
+}
+
+export interface FairValueChannelPoint {
+    date: string;
+    estimado: number;
+    lo1: number;
+    hi1: number;
+    lo2: number;
+    hi2: number;
+}
+
+export interface FairValueResponse {
+    symbol: string;
+    as_of: string;
+    ventana: number;
+    precio_actual: number;
+    precio_estimado: number;
+    diferencia: number;
+    desvios: number;
+    posicion: 'por_encima' | 'por_debajo' | 'en_linea';
+    tendencia_anual: number;
+    r2: number;
+    // desvio estandar de los residuos de la recta, en log
+    desvio_log: number;
+    historico: FairValueTramo & { horizonte: number };
+    // que paso en el panel en las ruedas siguientes, por distancia a la tendencia
+    evidencia: { horizonte: number; casos: number; tramos: FairValueTramo[] };
+    canal: FairValueChannelPoint[];
+}
+
+export interface FairValueTramo {
+    desde: number | null;
+    hasta: number | null;
+    sube: number;
+    relativo: number;
+    casos: number;
+}
+
+export async function getFairValueEndpoint(
+    ticker: string,
+): Promise<FairValueResponse> {
+    const res = await authAxios.get(
+        `${base()}/user/shares/${encodeURIComponent(ticker)}/fair-value`,
     );
     return res.data;
 }

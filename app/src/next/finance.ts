@@ -48,6 +48,7 @@ const MODEL_LABELS: Record<string, string> = {
     'xgboost-modal': 'XGBoost',
     transformer: 'Transformer',
     'transformer-modal': 'Transformer',
+    'transformer-v1': 'Transformer v1',
     arima: 'ARIMA',
     'arima-modal': 'ARIMA',
     contexto: 'Contexto',
@@ -329,4 +330,107 @@ export function upBaseRate(
         }
     }
     return n >= 60 ? ups / n : null;
+}
+
+export interface TechCheck {
+    label: string;
+    detail: string;
+    tone: 'up' | 'down' | 'neutral';
+}
+
+function smaLast(prices: number[], n: number): number | null {
+    if (prices.length < n) return null;
+    return mean(prices.slice(-n));
+}
+
+function rsiLast(prices: number[], n = 14): number | null {
+    if (prices.length <= n) return null;
+    let gain = 0;
+    let loss = 0;
+    for (let i = prices.length - n; i < prices.length; i++) {
+        const d = prices[i] - prices[i - 1];
+        if (d > 0) gain += d;
+        else loss -= d;
+    }
+    if (gain + loss === 0) return 50;
+    return (100 * gain) / (gain + loss);
+}
+
+const pctTxt = (v: number) =>
+    (v >= 0 ? '+' : '−') +
+    Math.abs(v * 100)
+        .toFixed(1)
+        .replace('.', ',') +
+    '%';
+
+// Chequeos técnicos de una línea sobre los cierres diarios (estilo "due
+// diligence checks"). No son un modelo: describen dónde está el precio.
+// `rsi` permite usar el mismo RSI que ya muestra la pantalla (el de los
+// modelos), para no mostrar dos números distintos.
+export function technicalChecks(
+    closes: number[],
+    rsiOverride?: number | null,
+): TechCheck[] {
+    const last = closes[closes.length - 1];
+    if (!last || closes.length < 30) return [];
+    const out: TechCheck[] = [];
+    const sma50 = smaLast(closes, 50);
+    const sma200 = smaLast(closes, 200);
+    if (sma50 != null)
+        out.push({
+            label: 'Media de 50 ruedas',
+            detail: `El precio está ${pctTxt(last / sma50 - 1)} respecto de su promedio de 50 ruedas.`,
+            tone: last >= sma50 ? 'up' : 'down',
+        });
+    if (sma200 != null)
+        out.push({
+            label: 'Media de 200 ruedas',
+            detail: `El precio está ${pctTxt(last / sma200 - 1)} respecto de su promedio de 200 ruedas.`,
+            tone: last >= sma200 ? 'up' : 'down',
+        });
+    if (sma50 != null && sma200 != null)
+        out.push({
+            label: 'Cruce de medias',
+            detail:
+                sma50 >= sma200
+                    ? 'La media de 50 está arriba de la de 200 (cruce dorado): tendencia de fondo alcista.'
+                    : 'La media de 50 está abajo de la de 200 (cruce de la muerte): tendencia de fondo bajista.',
+            tone: sma50 >= sma200 ? 'up' : 'down',
+        });
+    const year = closes.slice(-252);
+    const hi = Math.max(...year);
+    const lo = Math.min(...year);
+    const fromHi = last / hi - 1;
+    out.push({
+        label: 'Máximo del año',
+        detail: `Está ${pctTxt(fromHi)} de su máximo de las últimas ${year.length} ruedas.`,
+        tone: fromHi > -0.05 ? 'up' : fromHi < -0.3 ? 'down' : 'neutral',
+    });
+    const fromLo = last / lo - 1;
+    out.push({
+        label: 'Mínimo del año',
+        detail: `Está ${pctTxt(fromLo)} por encima de su mínimo del mismo período.`,
+        tone: fromLo < 0.05 ? 'down' : 'neutral',
+    });
+    const rsi = rsiOverride ?? rsiLast(closes);
+    if (rsi != null)
+        out.push({
+            label: 'RSI (14)',
+            detail:
+                rsi > 70
+                    ? `RSI ${Math.round(rsi)}: subió mucho y rápido (sobrecompra).`
+                    : rsi < 30
+                      ? `RSI ${Math.round(rsi)}: cayó mucho y rápido (sobreventa).`
+                      : `RSI ${Math.round(rsi)}: sin excesos.`,
+            tone: rsi > 70 ? 'down' : rsi < 30 ? 'up' : 'neutral',
+        });
+    if (closes.length > 63) {
+        const m3 = last / closes[closes.length - 64] - 1;
+        out.push({
+            label: 'Momentum de 3 meses',
+            detail: `Rindió ${pctTxt(m3)} en las últimas 63 ruedas.`,
+            tone: m3 > 0.05 ? 'up' : m3 < -0.05 ? 'down' : 'neutral',
+        });
+    }
+    return out;
 }

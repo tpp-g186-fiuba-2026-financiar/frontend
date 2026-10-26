@@ -123,46 +123,47 @@ export function SignalPill({ signal }: { signal: Signal | null }) {
     return <span className={`nx-pill ${signal}`}>{SIGNAL_LABEL[signal]}</span>;
 }
 
-const SIGNAL_HERO: Record<Signal, { arrow: string; line: string }> = {
-    alza: { arrow: '▲', line: 'Los modelos juntos esperan que suba.' },
-    baja: { arrow: '▼', line: 'Los modelos juntos esperan que baje.' },
-    neutral: {
-        arrow: '●',
-        line: 'Los modelos juntos no se juegan por un lado.',
-    },
+const SIGNAL_LINE: Record<Signal, string> = {
+    alza: 'Los modelos juntos esperan que suba.',
+    baja: 'Los modelos juntos esperan que baje.',
+    neutral: 'Los modelos juntos no se juegan por un lado.',
 };
 
-export function SignalBanner({
+const ARROW_ROTATION: Record<Signal, number> = {
+    alza: 0,
+    baja: 180,
+    neutral: 90,
+};
+
+export function SignalArrow({
     signal,
     detail,
 }: {
     signal: Signal | null;
     detail?: string;
 }) {
-    if (!signal) {
-        return (
-            <div className="nx-signal-hero nodata">
-                <span className="nx-signal-arrow" aria-hidden>
-                    ·
-                </span>
-                <div>
-                    <div className="nx-signal-word">Sin lectura</div>
-                    <div className="nx-signal-line">
-                        Los modelos todavía no respondieron para esta acción.
-                    </div>
-                </div>
-            </div>
-        );
-    }
-    const copy = SIGNAL_HERO[signal];
+    const kind = signal ?? 'nodata';
     return (
-        <div className={`nx-signal-hero ${signal}`}>
-            <span className="nx-signal-arrow" aria-hidden>
-                {copy.arrow}
-            </span>
+        <div className={`nx-sig ${kind}`} role="status">
+            <svg viewBox="0 0 24 24" className="nx-sig-arrow" aria-hidden>
+                {signal ? (
+                    <path
+                        d="M12 2.5 21 12.5h-5.5V21.5h-7V12.5H3z"
+                        transform={`rotate(${ARROW_ROTATION[signal]} 12 12)`}
+                    />
+                ) : (
+                    <circle cx="12" cy="12" r="3" />
+                )}
+            </svg>
             <div>
-                <div className="nx-signal-word">{SIGNAL_LABEL[signal]}</div>
-                <div className="nx-signal-line">{detail ?? copy.line}</div>
+                <div className="nx-sig-word">
+                    {signal ? SIGNAL_LABEL[signal] : 'Sin lectura'}
+                </div>
+                <div className="nx-sig-line">
+                    {signal
+                        ? (detail ?? SIGNAL_LINE[signal])
+                        : 'Los modelos todavía no respondieron para esta acción.'}
+                </div>
             </div>
         </div>
     );

@@ -53,6 +53,41 @@ vi.mock('../api/next/endpoints', () => ({
     getAdminHealthEndpoint: vi.fn(),
     getAdminModelsEndpoint: vi.fn(),
     getBlackLittermanEndpoint: vi.fn(),
+    getFairValueEndpoint: vi.fn(async () => ({
+        symbol: 'GGAL',
+        as_of: '2026-10-21',
+        ventana: 252,
+        precio_actual: 120,
+        precio_estimado: 110,
+        diferencia: 0.09,
+        desvios: 1.2,
+        posicion: 'por_encima',
+        tendencia_anual: 0.2,
+        r2: 0.6,
+        desvio_log: 0.07,
+        historico: {
+            desde: 1,
+            hasta: 2,
+            sube: 0.594,
+            relativo: -0.0056,
+            casos: 1123,
+            horizonte: 20,
+        },
+        evidencia: {
+            horizonte: 20,
+            casos: 1123,
+            tramos: [
+                {
+                    desde: 1,
+                    hasta: 2,
+                    sube: 0.594,
+                    relativo: -0.0056,
+                    casos: 1123,
+                },
+            ],
+        },
+        canal: [],
+    })),
 }));
 vi.mock('../components/Portfolio/PortfolioBuilder', () => ({
     default: ({ isOpen }: { isOpen: boolean }) =>
@@ -657,7 +692,7 @@ describe('Análisis de acción', () => {
         );
         expect(screen.getByText(/no dio ninguna señal/)).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Predicción' }));
-        fireEvent.click(screen.getByRole('button', { name: '20d' }));
+        fireEvent.click(screen.getByRole('button', { name: '1A' }));
         fireEvent.click(screen.getByRole('button', { name: 'velas' }));
         await waitFor(() =>
             expect(getCandlesEndpoint).toHaveBeenCalledWith('GGAL'),
@@ -746,6 +781,16 @@ describe('Rebalanceo', () => {
         await waitFor(() =>
             expect(getBlackLittermanEndpoint).toHaveBeenCalledWith(
                 'equal_weight',
+                'pocas',
+            ),
+        );
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Solo mis acciones' }),
+        );
+        await waitFor(() =>
+            expect(getBlackLittermanEndpoint).toHaveBeenCalledWith(
+                'equal_weight',
+                'mias',
             ),
         );
         fireEvent.click(

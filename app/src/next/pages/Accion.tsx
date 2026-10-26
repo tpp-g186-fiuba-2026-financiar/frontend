@@ -6,6 +6,8 @@ import { useRemote } from '../data/useRemote';
 import {
     getCandlesEndpoint,
     getExplainEndpoint,
+    getFairValueEndpoint,
+    type FairValueChannelPoint,
 } from '../../api/next/endpoints';
 import { getShareTrendCompareEndpoint } from '../../api/userShares/getShareTrendCompareEndpoint';
 import { getShareInfo, getShareSector } from '../data/shareInfo';
@@ -22,11 +24,19 @@ import {
     Explain,
     Legal,
     Seg,
-    SignalBanner,
+    SignalArrow,
     SignalPill,
     Tip,
 } from '../ui/Blocks';
-import { CandleChart, Gauge, LineChart } from '../ui/Charts';
+import {
+    CandleChart,
+    Gauge,
+    LineChart,
+    PredictionStrip,
+    type Forecast,
+    type ForecastRay,
+    type PredictionRow,
+} from '../ui/Charts';
 import ModelsPanel from '../ui/ModelsPanel';
 import Icon from '../ui/Icon';
 import {
@@ -38,6 +48,7 @@ import {
     signalRule,
     tone,
     usd,
+    usd0,
     xgbProbabilityNote,
 } from '../format';
 import InfoTip from '../../components/Layout/InfoTip';
@@ -50,11 +61,19 @@ import {
     modelLabel,
     normalizeSignal,
     probabilityUp,
+    technicalChecks,
     uniqueModels,
     type Signal,
 } from '../finance';
 
-const HN = 70;
+// Cuanto historico mostrar (en ruedas): no cambia la prediccion.
+const SPANS: Array<[number, string]> = [
+    [21, '1M'],
+    [63, '3M'],
+    [126, '6M'],
+    [252, '1A'],
+    [1260, '5A'],
+];
 
 const SIGNAL_COLOR: Record<Signal, string> = {
     alza: 'var(--nx-up)',
@@ -86,7 +105,7 @@ export default function Accion() {
     const navigate = useNavigate();
     const { history, compare: allCompare } = usePortfolio();
     const { rows } = useHoldingsView();
-    const [horizon, setHorizon] = useState(10);
+    const [span, setSpan] = useState(63);
     const [mode, setMode] = useState<'linea' | 'velas'>('linea');
     const [alertMsg, setAlertMsg] = useState<string | null>(null);
     const subs = useRemote('alert-subs', getUserAlertSubscriptionsEndpoint);
@@ -105,6 +124,10 @@ export default function Accion() {
         ticker && mode === 'velas' ? `candles:${ticker}` : null,
         () => getCandlesEndpoint(ticker!),
     );
+    const fair = useRemote(ticker ? `fair:${ticker}` : null, () =>
+        getFairValueEndpoint(ticker!),
+    );
+    const [showTrend, setShowTrend] = useState<'off' | 'on'>('off');
     const explain = useRemote(ticker ? `explain:${ticker}` : null, () =>
         getExplainEndpoint(ticker!),
     );
@@ -141,19 +164,81 @@ export default function Accion() {
         compare?.predictions['garch-modal'] ??
         compare?.predictions['garch-ann-modal'];
 
+    const horizons = parts
+        .map((p) => compare?.predictions[p.model]?.horizon_days)
+        .filter((h): h is number => h != null && h > 0);
+    const horizon = horizons.length
+        ? Math.min(
+              20,
+              Math.max(
+                  5,
+                  Math.round(
+                      horizons.reduce((s, h) => s + h, 0) / horizons.length,
+                  ),
+              ),
+          )
+        : 5;
+    const thresholds =
+        compare?.consensus?.threshold_buy != null &&
+        compare.consensus.threshold_sell != null
+            ? {
+                  buy: compare.consensus.threshold_buy,
+                  sell: compare.consensus.threshold_sell,
+              }
+            : null;
+
+    const rays: ForecastRay[] =
+        last == null
+            ? []
+            : models.flatMap(([key, p]) => {
+                  if (!p.predicted_close || !p.last_close || !p.horizon_days)
+                      return [];
+                  const ratio = p.predicted_close / p.last_close;
+                  const change = pct((ratio - 1) * 100, 1);
+                  const name = modelLabel(key);
+                  return [
+                      {
+                          label: `${name} ${change}`,
+                          short: `${name.slice(0, 4)} ${change}`,
+                          h: p.horizon_days,
+                          v: last * ratio,
+                          color:
+                              ratio > 1.001
+                                  ? SIGNAL_COLOR.alza
+                                  : ratio < 0.999
+                                    ? SIGNAL_COLOR.baja
+                                    : SIGNAL_COLOR.neutral,
+                      },
+                  ];
+              });
+    const reach = Math.max(horizon, ...rays.map((r) => r.h));
+    const predictionRows: PredictionRow[] = models
+        .flatMap(([key, p]) =>
+            p.predicted_close && p.last_close && p.horizon_days
+                ? [
+                      {
+                          label: modelLabel(key),
+                          ret: p.predicted_close / p.last_close - 1,
+                          h: p.horizon_days,
+                          color: '',
+                      },
+                  ]
+                : [],
+        )
+        .map((r) => ({
+            ...r,
+            color:
+                r.ret > 0.001
+                    ? SIGNAL_COLOR.alza
+                    : r.ret < -0.001
+                      ? SIGNAL_COLOR.baja
+                      : SIGNAL_COLOR.neutral,
+        }))
+        .sort((a, b) => b.ret - a.ret);
+
     const proj = (() => {
         if (last == null) return null;
-        const avgH = parts.length
-            ? parts.reduce(
-                  (s, p) =>
-                      s + (compare?.predictions[p.model]?.horizon_days ?? 10),
-                  0,
-              ) / parts.length
-            : 10;
-        const daily =
-            score != null && signal && signal !== 'neutral'
-                ? score / Math.max(1, avgH)
-                : 0;
+        const daily = score != null ? score / horizon : 0;
         const rets = logReturns(closes.map((c) => c.close).slice(-120));
         const realized =
             rets.length > 10
@@ -173,7 +258,7 @@ export default function Accion() {
         const lo95: number[] = [];
         const hi95: number[] = [];
         let variance = 0;
-        for (let k = 1; k <= horizon; k++) {
+        for (let k = 1; k <= reach; k++) {
             variance += sigmaDay(k) ** 2;
             const m = last * Math.exp(daily * k);
             const s = Math.sqrt(variance);
@@ -206,11 +291,11 @@ export default function Accion() {
         ) : null;
     if (!param && ticker) return <Navigate to={`/accion/${ticker}`} replace />;
 
-    const histSlice = closes.slice(-HN);
+    const histSlice = closes.slice(-span);
     const lastDate = histSlice.length
         ? new Date(histSlice[histSlice.length - 1].ts)
         : new Date();
-    const projDates = Array.from({ length: horizon }, (_, k) =>
+    const projDates = Array.from({ length: reach }, (_, k) =>
         addBusinessDays(lastDate, k + 1).toISOString(),
     );
     const labels = [
@@ -222,7 +307,139 @@ export default function Accion() {
         last,
         ...arr,
     ];
-    const predicted = proj?.hasView ? proj.mid[proj.mid.length - 1] : null;
+    const predicted = proj?.hasView ? proj.mid[horizon - 1] : null;
+    const shown =
+        mode === 'velas'
+            ? (candles.data?.candles.slice(-span) ?? [])
+            : histSlice;
+    const today = shown.length - 1;
+    const target = proj && score != null ? proj.mid[horizon - 1] : null;
+    const projColor = SIGNAL_COLOR[signal ?? 'neutral'];
+    const outside =
+        thresholds != null &&
+        score != null &&
+        (score > thresholds.buy || score < thresholds.sell);
+    const verdict =
+        signal === 'alza'
+            ? 'SUBE'
+            : signal === 'baja'
+              ? 'BAJA'
+              : outside
+                ? 'NEUTRAL (poca confianza)'
+                : 'NEUTRAL';
+    // La distancia a la tendencia se mide con el mismo precio que muestra la
+    // pantalla (api-ml puede tener la ultima rueda de otra fuente).
+    const fv = (() => {
+        const f = fair.data;
+        if (!f) return null;
+        const precio = last ?? f.precio_actual;
+        const z =
+            f.desvio_log > 0
+                ? Math.log(precio / f.precio_estimado) / f.desvio_log
+                : 0;
+        const tramos = f.evidencia?.tramos ?? [];
+        const tramo =
+            tramos.find(
+                (t) =>
+                    (t.desde == null || z >= t.desde) &&
+                    (t.hasta == null || z < t.hasta),
+            ) ?? f.historico;
+        const casos = tramos.reduce((acc, t) => acc + t.casos, 0);
+        return {
+            ...f,
+            precio_actual: precio,
+            diferencia: precio / f.precio_estimado - 1,
+            desvios: z,
+            posicion: z > 1 ? 'por_encima' : z < -1 ? 'por_debajo' : 'en_linea',
+            sube: tramo.sube,
+            horizonte: f.evidencia?.horizonte ?? f.historico.horizonte,
+            promedio: casos
+                ? tramos.reduce((acc, t) => acc + t.sube * t.casos, 0) / casos
+                : null,
+        };
+    })();
+    const canal = new Map(
+        (fair.data?.canal ?? []).map((p) => [p.date.slice(0, 10), p]),
+    );
+    const onHist = (pick: (p: FairValueChannelPoint) => number) => [
+        ...histSlice.map((c) => {
+            const p = canal.get(new Date(c.ts).toISOString().slice(0, 10));
+            return p ? pick(p) : null;
+        }),
+        ...Array(reach).fill(null),
+    ];
+    const trendSeries =
+        showTrend === 'on' && mode === 'linea' && fair.data
+            ? [
+                  {
+                      label: 'Tendencia (regresión)',
+                      values: onHist((p) => p.estimado),
+                      color: 'var(--nx-warn)',
+                      dash: '6 4',
+                      width: 1.6,
+                  },
+                  {
+                      label: '+1 desvío',
+                      values: onHist((p) => p.hi1),
+                      color: 'var(--nx-warn)',
+                      dash: '2 4',
+                      width: 1,
+                  },
+                  {
+                      label: '−1 desvío',
+                      values: onHist((p) => p.lo1),
+                      color: 'var(--nx-warn)',
+                      dash: '2 4',
+                      width: 1,
+                  },
+              ]
+            : [];
+    const checks = technicalChecks(
+        closes.map((c) => c.close),
+        rsi,
+    );
+    const checkCount = {
+        up: checks.filter((c) => c.tone === 'up').length,
+        neutral: checks.filter((c) => c.tone === 'neutral').length,
+        down: checks.filter((c) => c.tone === 'down').length,
+    };
+    const ups = predictionRows.filter((r) => r.ret > 0.001).length;
+    const downs = predictionRows.filter((r) => r.ret < -0.001).length;
+    const stripSummary =
+        score == null
+            ? 'Todavía no hay predicciones para esta acción.'
+            : `${ups} ${ups === 1 ? 'modelo espera' : 'modelos esperan'} suba y ${downs} baja. ` +
+              (signal === 'alza' || signal === 'baja'
+                  ? `La lectura combinada (${pct(score * 100, 1)}) cruza el umbral de ${signal} de tu perfil.`
+                  : thresholds && outside
+                    ? `La lectura combinada (${pct(score * 100, 1)}) pasa el umbral, pero los modelos no acertaron lo suficiente en el pasado: queda neutral.`
+                    : thresholds
+                      ? `La lectura combinada (${pct(score * 100, 1)}) queda en la zona neutral: para alza hace falta ${pct(thresholds.buy * 100, 1)} o más y para baja ${pct(thresholds.sell * 100, 1)} o menos.`
+                      : `La lectura combinada es ${pct(score * 100, 1)}.`);
+    const forecast: Forecast | undefined =
+        last != null
+            ? {
+                  from: today,
+                  start: last,
+                  rays,
+                  main:
+                      target != null && score != null
+                          ? {
+                                h: horizon,
+                                v: target,
+                                color: projColor,
+                                label: verdict,
+                                sublabel: `combinada ${pct(score * 100, 1)} · ${usd0(target)}`,
+                            }
+                          : undefined,
+                  thresholds: thresholds
+                      ? {
+                            up: last * Math.exp(thresholds.buy),
+                            down: last * Math.exp(thresholds.sell),
+                        }
+                      : undefined,
+              }
+            : undefined;
     const name = info.data?.nombre_largo || info.data?.nombre_corto || '';
     const sumQ = parts.reduce((s, p) => s + p.quality, 0);
 
@@ -286,6 +503,21 @@ export default function Accion() {
 
     return (
         <>
+            <Explain
+                title={`Todo lo que sabemos de ${ticker}, en una pantalla`}
+            >
+                <p>
+                    Arriba ves el <b>precio de cada rueda</b> <Tip k="ohlc" />{' '}
+                    y, a la derecha de "HOY", la <b>lectura combinada</b> de
+                    todos los modelos (no de uno solo), con un <b>cono</b>{' '}
+                    <Tip k="cono" /> del rango probable.
+                </p>
+                <p>
+                    Más abajo, <b>qué dice cada modelo</b> y qué tan seguido le
+                    acertó a esta acción en el pasado. Al final, <b>por qué</b>{' '}
+                    XGBoost dice lo que dice <Tip k="shap" />.
+                </p>
+            </Explain>
             <div className="nx-chips nx-rv">
                 {rows.map((r) => (
                     <button
@@ -325,7 +557,14 @@ export default function Accion() {
                                 <span className="nx-muted">semana</span>
                             </div>
                         )}
-                        <SignalPill signal={signal} />
+                        <SignalArrow
+                            signal={signal}
+                            detail={
+                                score != null
+                                    ? `Los modelos juntos esperan ${pct(score * 100, 1)} en ~${horizon} ruedas.`
+                                    : undefined
+                            }
+                        />
                         <ConfidenceBadge level={conf} />
                     </div>
                 </div>
@@ -364,30 +603,14 @@ export default function Accion() {
                     {alertMsg}
                 </p>
             )}
-            <Legal />
-            <Explain
-                title={`Todo lo que sabemos de ${ticker}, en una pantalla`}
-            >
-                <p>
-                    Arriba ves el <b>precio de cada rueda</b> <Tip k="ohlc" />{' '}
-                    y, a la derecha de "HOY", la <b>lectura combinada</b> de
-                    todos los modelos (no de uno solo), con un <b>cono</b>{' '}
-                    <Tip k="cono" /> del rango probable.
-                </p>
-                <p>
-                    Más abajo, <b>qué dice cada modelo</b> y qué tan seguido le
-                    acertó a esta acción en el pasado. Al final, <b>por qué</b>{' '}
-                    XGBoost dice lo que dice <Tip k="shap" />.
-                </p>
-            </Explain>
             <div className="nx-grid" style={{ alignItems: 'start' }}>
                 <Card span="s8" i={2}>
                     <CardHead
                         title="Precio histórico → proyección"
                         hint={
                             mode === 'velas'
-                                ? 'Cada vela = una rueda. Las barras de abajo son el volumen operado.'
-                                : 'Cierre de cada rueda. La línea punteada solo se inclina si la lectura combinada se juega por un lado.'
+                                ? 'Cada vela = una rueda. A la derecha de HOY, hasta dónde predice cada modelo que llegue el precio y, en grueso, la lectura combinada.'
+                                : 'Cierre de cada rueda. A la derecha de HOY, hasta dónde predice cada modelo que llegue el precio (cada uno en su plazo) y, en grueso, la lectura combinada.'
                         }
                         right={
                             <div
@@ -407,26 +630,23 @@ export default function Accion() {
                                     onChange={setMode}
                                 />
                                 <Seg
-                                    label="Horizonte"
-                                    options={[
-                                        [5, '5d'],
-                                        [10, '10d'],
-                                        [20, '20d'],
-                                    ]}
-                                    value={horizon}
-                                    onChange={setHorizon}
+                                    label="Período del histórico"
+                                    options={SPANS}
+                                    value={span}
+                                    onChange={setSpan}
                                 />
+                                {mode === 'linea' && fair.data && (
+                                    <Seg
+                                        label="Canal de tendencia"
+                                        options={[
+                                            ['off', 'sin tendencia'],
+                                            ['on', 'tendencia'],
+                                        ]}
+                                        value={showTrend}
+                                        onChange={setShowTrend}
+                                    />
+                                )}
                             </div>
-                        }
-                    />
-                    <SignalBanner
-                        signal={signal}
-                        detail={
-                            signal && score != null && signal !== 'neutral'
-                                ? `Lectura combinada de todos los modelos: esperan ${pct(score * 100, 1)} en el plazo.`
-                                : signal === 'neutral'
-                                  ? 'Lectura combinada de todos los modelos: no se juegan por un lado.'
-                                  : undefined
                         }
                     />
                     {mode === 'velas' ? (
@@ -434,13 +654,14 @@ export default function Accion() {
                             <CandleChart
                                 ariaLabel={`Velas de ${ticker}`}
                                 height={340}
-                                candles={candles.data.candles.slice(-HN)}
+                                candles={shown as typeof candles.data.candles}
+                                forecast={forecast}
                                 projection={
                                     proj
                                         ? {
-                                              mid: proj.mid,
                                               lo: proj.lo68,
                                               hi: proj.hi68,
+                                              coneColor: 'var(--nx-ink-2)',
                                           }
                                         : undefined
                                 }
@@ -460,36 +681,33 @@ export default function Accion() {
                             xFmt={shortDate}
                             yFmt={(v) => '$' + v.toFixed(v > 100 ? 0 : 1)}
                             vline={histSlice.length - 1}
+                            splitAt={histSlice.length - 1}
                             vlineLabel="HOY"
+                            forecast={forecast}
                             bands={[
                                 {
                                     lo: pad(proj.lo95),
                                     hi: pad(proj.hi95),
-                                    color: 'var(--nx-accent-2)',
-                                    opacity: 0.1,
+                                    color: 'var(--nx-ink-2)',
+                                    opacity: 0.06,
                                 },
                                 {
                                     lo: pad(proj.lo68),
                                     hi: pad(proj.hi68),
-                                    color: 'var(--nx-accent-2)',
-                                    opacity: 0.18,
+                                    color: 'var(--nx-ink-2)',
+                                    opacity: 0.1,
                                 },
                             ]}
                             series={[
+                                ...trendSeries,
                                 {
                                     label: 'Cierre',
                                     values: [
                                         ...histSlice.map((c) => c.close),
-                                        ...Array(horizon).fill(null),
+                                        ...Array(reach).fill(null),
                                     ],
                                     color: 'var(--nx-accent)',
                                     area: true,
-                                },
-                                {
-                                    label: 'Proyección',
-                                    values: pad(proj.mid),
-                                    color: 'var(--nx-accent-2)',
-                                    dash: '5 4',
                                 },
                             ]}
                         />
@@ -517,19 +735,66 @@ export default function Accion() {
                             </span>
                         )}
                         <span>
-                            <i style={{ background: 'var(--nx-accent-2)' }} />
-                            Proyección
+                            <i
+                                style={{
+                                    background:
+                                        'linear-gradient(90deg, var(--nx-up) 33%, var(--nx-neu) 33% 66%, var(--nx-down) 66%)',
+                                    height: 2,
+                                }}
+                            />
+                            Predicción de cada modelo
+                        </span>
+                        <span>
+                            <i style={{ background: projColor, height: 4 }} />
+                            Lectura combinada
                         </span>
                         <span>
                             <i
                                 style={{
-                                    background: 'var(--nx-accent-2)',
+                                    background: 'var(--nx-ink-2)',
                                     opacity: 0.35,
                                 }}
                             />
-                            Cono 68% / 95% <Tip k="cono" />
+                            Rango probable 68% / 95% <Tip k="cono" />
                         </span>
+                        {thresholds && (
+                            <span>
+                                <i
+                                    style={{
+                                        background:
+                                            'linear-gradient(90deg, var(--nx-up) 50%, var(--nx-down) 50%)',
+                                    }}
+                                />
+                                Umbral de tu perfil
+                            </span>
+                        )}
+                        {trendSeries.length > 0 && (
+                            <span>
+                                <i style={{ background: 'var(--nx-warn)' }} />
+                                Tendencia del último año ±1 desvío{' '}
+                                <Tip k="tendencia" />
+                            </span>
+                        )}
                     </div>
+                    <div className="nx-strip-head">
+                        <h3>Qué predijo cada modelo</h3>
+                        <p className="nx-muted">{stripSummary}</p>
+                    </div>
+                    <PredictionStrip
+                        ariaLabel={`Retorno que predice cada modelo para ${ticker}`}
+                        rows={predictionRows}
+                        thresholds={thresholds ?? undefined}
+                        combined={
+                            score != null
+                                ? {
+                                      ret: score,
+                                      h: horizon,
+                                      color: projColor,
+                                      verdict,
+                                  }
+                                : undefined
+                        }
+                    />
                 </Card>
                 <Card span="s4" i={3}>
                     <CardHead
@@ -607,6 +872,58 @@ export default function Accion() {
                             </p>
                         </div>
                     )}
+                    {fv && (
+                        <div className="nx-src-block">
+                            <div className="nx-label">
+                                Precio estimado por la tendencia{' '}
+                                <Tip k="tendencia" />
+                            </div>
+                            <p
+                                className="nx-ink"
+                                style={{ fontWeight: 600, margin: '4px 0 2px' }}
+                            >
+                                {usd(fv.precio_estimado)}{' '}
+                                <span
+                                    className={`nx-mono ${
+                                        fv.posicion === 'por_encima'
+                                            ? 'nx-down'
+                                            : fv.posicion === 'por_debajo'
+                                              ? 'nx-up'
+                                              : 'nx-muted'
+                                    }`}
+                                    style={{ marginLeft: 6, fontWeight: 500 }}
+                                >
+                                    {fv.posicion === 'en_linea'
+                                        ? 'en línea'
+                                        : fv.posicion === 'por_encima'
+                                          ? 'por encima'
+                                          : 'por debajo'}
+                                </span>
+                            </p>
+                            <p className="nx-src">
+                                Hoy cotiza {pct(fv.diferencia * 100, 1)}{' '}
+                                respecto de la recta del último año (
+                                {fv.desvios >= 0 ? '+' : '−'}
+                                {Math.abs(fv.desvios)
+                                    .toFixed(1)
+                                    .replace('.', ',')}{' '}
+                                desvíos). La tendencia es de{' '}
+                                {pct(fv.tendencia_anual * 100, 0)} al año y
+                                explica el {Math.round(fv.r2 * 100)}% del
+                                movimiento
+                                {fv.r2 < 0.3
+                                    ? ': poco, así que el estimado pesa poco'
+                                    : ''}
+                                . En el panel, desde una distancia así, la
+                                acción subió en {fv.horizonte} ruedas el{' '}
+                                {Math.round(fv.sube * 100)}% de las veces
+                                {fv.promedio != null
+                                    ? ` (en promedio, ${Math.round(fv.promedio * 100)}%)`
+                                    : ''}
+                                .
+                            </p>
+                        </div>
+                    )}
                     {rsi != null && (
                         <div className="nx-src-block">
                             <div className="nx-sys-row">
@@ -668,6 +985,47 @@ export default function Accion() {
                     </div>
                 </Card>
             </div>
+            <div style={{ marginTop: 16 }}>
+                <Legal />
+            </div>
+            {checks.length > 0 && (
+                <div className="nx-grid" style={{ marginTop: 16 }}>
+                    <Card span="s12" i={4}>
+                        <CardHead
+                            title="Chequeos técnicos rápidos"
+                            hint="Indicadores clásicos sobre el precio. No son un modelo ni una predicción: describen dónde está la acción hoy."
+                            right={
+                                <div
+                                    className="nx-tech-sum"
+                                    aria-label="Resumen de los chequeos"
+                                >
+                                    <span className="nx-up">
+                                        {checkCount.up} alcista
+                                        {checkCount.up === 1 ? '' : 's'}
+                                    </span>
+                                    <span className="nx-muted">
+                                        {checkCount.neutral} neutral
+                                        {checkCount.neutral === 1 ? '' : 'es'}
+                                    </span>
+                                    <span className="nx-down">
+                                        {checkCount.down} bajista
+                                        {checkCount.down === 1 ? '' : 's'}
+                                    </span>
+                                </div>
+                            }
+                        />
+                        <ul className="nx-checks">
+                            {checks.map((c) => (
+                                <li key={c.label} className={c.tone}>
+                                    <i aria-hidden />
+                                    <b>{c.label}</b>
+                                    <span>{c.detail}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </Card>
+                </div>
+            )}
             <div className="nx-grid" style={{ marginTop: 16 }}>
                 <ModelsPanel compare={compare} loading={fetched.loading} />
             </div>
