@@ -15,17 +15,17 @@ interface Node {
 const ARCH: Record<string, Node> = {
     src1: {
         x: 20,
-        y: 40,
+        y: 140,
         t: 'BYMA · Rava',
         s: 'tickers del Merval',
         d: 'Fuentes de la lista de acciones. data-colector refresca la lista de BYMA cada 60 min y la clasificación de Rava cada 10 h.',
     },
     src2: {
         x: 20,
-        y: 140,
+        y: 40,
         t: 'Yahoo Finance',
         s: 'velas diarias OHLC',
-        d: '10 años de velas diarias por ticker (intervalo D1). Oro y petróleo cada 6 h.',
+        d: 'data-colector guarda 10 años de velas diarias por ticker (intervalo D1), y oro y petróleo cada 6 h. api-ml también baja de acá los históricos que usan los modelos.',
     },
     src3: {
         x: 20,
@@ -53,8 +53,8 @@ const ARCH: Record<string, Node> = {
         x: 290,
         y: 330,
         t: 'PostgreSQL',
-        s: 'precios · usuarios',
-        d: 'Base compartida: históricos de precios, tickers, usuarios, carteras, suscripciones a alertas y caché de tendencias.',
+        s: 'precios · macro',
+        d: 'Históricos de precios, lista de tickers, series macro y tasas que guarda data-colector.',
     },
     ml: {
         x: 540,
@@ -62,15 +62,15 @@ const ARCH: Record<string, Node> = {
         t: 'api-ml',
         s: 'Python · FastAPI',
         health: 'api-ml',
-        d: 'Modelos (LSTM, XGBoost, Transformer, ARIMA, Contexto), consenso, GARCH, explicaciones SHAP, historial de señales y Black-Litterman.',
+        d: 'Modelos (LSTM, XGBoost, Transformer, ARIMA, Contexto, Macro), consenso, GARCH, explicaciones SHAP, historial de señales y Black-Litterman. Le pide a data-colector la lista de tickers, las series macro y las tasas.',
     },
     modal: {
         x: 790,
         y: 20,
         t: 'Modal',
-        s: 'GPU remota',
+        s: 'modelos remotos',
         health: 'modal',
-        d: 'Versiones remotas de los modelos para inferencia pesada sin tener GPU local.',
+        d: 'Versiones de LSTM, XGBoost, Transformer, ARIMA, SVM y GARCH que corren en Modal, una por ticker. Las consultan backend-website y api-ml.',
     },
     be: {
         x: 540,
@@ -78,7 +78,14 @@ const ARCH: Record<string, Node> = {
         t: 'backend-website',
         s: 'Rust · axum',
         health: 'backend-website',
-        d: 'Login, registro, 2FA, carteras, P&L, alertas diarias y mail semanal de los lunes. Es la puerta entre el frontend y los otros servicios.',
+        d: 'Login, registro, 2FA, carteras, P&L, alertas diarias y mail semanal de los lunes. Le pide precios a data-colector, predicciones a api-ml y a Modal.',
+    },
+    bedb: {
+        x: 540,
+        y: 350,
+        t: 'PostgreSQL',
+        s: 'usuarios · carteras',
+        d: 'Usuarios, carteras, suscripciones a alertas y cachés de tendencias y de la comparación de modelos.',
     },
     mail: {
         x: 790,
@@ -92,7 +99,7 @@ const ARCH: Record<string, Node> = {
         y: 180,
         t: 'Frontend',
         s: 'React · Vite',
-        d: 'Esta interfaz. Habla solamente con backend-website.',
+        d: 'Esta interfaz. Habla con backend-website; para la ficha de cada acción también consulta a data-colector.',
     },
 };
 const WIRES: Array<[string, string]> = [
@@ -100,11 +107,15 @@ const WIRES: Array<[string, string]> = [
     ['src2', 'dc'],
     ['src3', 'dc'],
     ['src4', 'dc'],
+    ['src2', 'ml'],
     ['dc', 'db'],
     ['dc', 'ml'],
+    ['dc', 'be'],
+    ['dc', 'fe'],
     ['ml', 'modal'],
     ['ml', 'be'],
-    ['be', 'db'],
+    ['be', 'modal'],
+    ['be', 'bedb'],
     ['be', 'fe'],
     ['be', 'mail'],
 ];
@@ -130,7 +141,7 @@ export default function Arquitectura() {
             <PageHead
                 eyebrow="Administración · Arquitectura"
                 title="Cómo está armado FinanciAr"
-                sub="Tres microservicios, una base de datos y varias fuentes externas. Los puntitos que viajan son los datos. Tocá cualquier caja."
+                sub="Tres microservicios, dos bases de datos, modelos en Modal y varias fuentes externas. Los puntitos que viajan son los datos. Tocá cualquier caja."
             />
             <div className="nx-grid">
                 <Card span="s8 nx-arch" i={1}>

@@ -1,5 +1,11 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import {
+    NavLink,
+    Navigate,
+    Outlet,
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
 import Icon from '../ui/Icon';
 import { Empty, LEGAL_TEXT } from '../ui/Blocks';
 import { usePortfolio } from '../data/PortfolioContext';
@@ -10,9 +16,27 @@ import CommandPalette from './CommandPalette';
 import GuideTour from './GuideTour';
 import NotificationsDrawer from './NotificationsDrawer';
 import Report from './Report';
+import PageErrorBoundary from './PageErrorBoundary';
 import RiskProfileGate from '../../components/settings/RiskProfileGate';
 import PortfolioBuilder from '../../components/Portfolio/PortfolioBuilder';
 import { pct1 } from '../format';
+
+// Titulo de la pestaña segun la pantalla: "GGAL · Análisis de acción — FinanciAr".
+function useDocumentTitle(pathname: string) {
+    useEffect(() => {
+        const items = [...USER_NAV, ...ADMIN_NAV].flatMap((g) => g.items);
+        const item = items
+            .filter((i) => pathname === i.to || pathname.startsWith(`${i.to}/`))
+            .sort((a, b) => b.to.length - a.to.length)[0];
+        const ticker = pathname.match(/^\/accion\/([^/]+)/)?.[1];
+        const page = item
+            ? ticker
+                ? `${decodeURIComponent(ticker).toUpperCase()} · ${item.label}`
+                : item.label
+            : null;
+        document.title = page ? `${page} — FinanciAr` : 'FinanciAr';
+    }, [pathname]);
+}
 
 const RISK_LABEL: Record<string, string> = {
     conservative: 'Conservador',
@@ -104,6 +128,8 @@ export default function AppShell({ admin = false }: { admin?: boolean }) {
     const ui = useUi();
     const { setTourOpen } = ui;
     const navigate = useNavigate();
+    const { pathname } = useLocation();
+    useDocumentTitle(pathname);
     const [sideOpen, setSideOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
@@ -177,6 +203,9 @@ export default function AppShell({ admin = false }: { admin?: boolean }) {
             className={`nx-shell ${ui.guide ? '' : 'nx-guide-off'}`}
             data-view={role}
         >
+            <a className="nx-skip" href="#contenido">
+                Saltar al contenido
+            </a>
             <div className="nx-bg-glow" />
             <div className="nx-bg-grid" />
             <div className="nx-scan" />
@@ -377,10 +406,12 @@ export default function AppShell({ admin = false }: { admin?: boolean }) {
                         </button>
                     </span>
                 </div>
-                <main className="nx-view">
-                    <Suspense fallback={<Empty>Cargando…</Empty>}>
-                        <Outlet />
-                    </Suspense>
+                <main className="nx-view" id="contenido" tabIndex={-1}>
+                    <PageErrorBoundary key={pathname}>
+                        <Suspense fallback={<Empty>Cargando…</Empty>}>
+                            <Outlet />
+                        </Suspense>
+                    </PageErrorBoundary>
                 </main>
                 {!admin && <Report />}
             </div>

@@ -5,6 +5,7 @@ import { useHoldingsView } from '../data/useHoldingsView';
 import { useRemote } from '../data/useRemote';
 import {
     getBlackLittermanEndpoint,
+    type BlAlcance,
     type BlDetalle,
 } from '../../api/next/endpoints';
 import { Card, CardHead, Empty, Legal, PageHead, Seg, Tip } from '../ui/Blocks';
@@ -58,11 +59,12 @@ export default function Rebalanceo() {
     const { user, history } = usePortfolio();
     const { rows: holdings, totalValue } = useHoldingsView();
     const [ancla, setAncla] = useState<Ancla>('propia');
+    const [alcance, setAlcance] = useState<BlAlcance>('pocas');
     const bl = useRemote(
         holdings.length
-            ? `bl:${ancla}:${holdings.map((h) => h.ticker).join(',')}`
+            ? `bl:${ancla}:${alcance}:${holdings.map((h) => h.ticker).join(',')}`
             : null,
-        () => getBlackLittermanEndpoint(ancla),
+        () => getBlackLittermanEndpoint(ancla, alcance),
     );
     const [pick, setPick] = useState<string | null>(null);
 
@@ -74,13 +76,26 @@ export default function Rebalanceo() {
             ...Object.keys(bl.data.pesos_recomendados),
             ...holdings.map((h) => h.ticker),
         ]);
+        // Black-Litterman reparte solo la parte de la cartera que está en el
+        // panel: lo de afuera (oro, petróleo, CEDEARs) se mantiene como está.
+        const inBl = new Set([
+            ...Object.keys(bl.data.pesos_recomendados),
+            ...det.keys(),
+        ]);
+        const panelShare =
+            holdings
+                .filter((h) => inBl.has(h.ticker))
+                .reduce((acc, h) => acc + (h.share ?? 0), 0) || 1;
         return [...tickers]
             .map((t) => {
                 const h = cur.get(t);
                 const d = det.get(t) ?? null;
-                const c = d?.peso_actual ?? h?.share ?? 0;
-                const e =
-                    bl.data!.pesos_recomendados[t] ?? d?.peso_recomendado ?? 0;
+                const c = h?.share ?? 0;
+                const e = inBl.has(t)
+                    ? (bl.data!.pesos_recomendados[t] ??
+                          d?.peso_recomendado ??
+                          0) * panelShare
+                    : c;
                 return {
                     ticker: t,
                     cur: c,
@@ -192,6 +207,25 @@ export default function Rebalanceo() {
                 }
             />
             <Legal full />
+            <div className="nx-reb-scope">
+                <div>
+                    <b className="nx-ink">Qué puede cambiar</b>
+                    <span className="nx-muted">
+                        Rearmar toda la cartera tiene costo: por defecto se
+                        reacomoda entre tus acciones y suma como mucho dos.
+                    </span>
+                </div>
+                <Seg
+                    label="Qué puede cambiar"
+                    options={[
+                        ['mias', 'Solo mis acciones'],
+                        ['pocas', 'Sumar hasta 2'],
+                        ['todas', 'Todo el panel'],
+                    ]}
+                    value={alcance}
+                    onChange={setAlcance}
+                />
+            </div>
             {bl.loading && (
                 <Empty>
                     Calculando el reparto estimado… puede tardar unos segundos.
@@ -225,6 +259,8 @@ export default function Rebalanceo() {
                                         : ''}
                                     .
                                 </>
+                            ) : (bl.data.rotacion ?? 1) < 0.01 ? (
+                                'Con lo que hoy predicen los modelos, mover plata no paga las comisiones: conviene quedarse como estás.'
                             ) : (
                                 'Según el cálculo, tu reparto actual ya está cerca del estimado para tu perfil.'
                             )}
@@ -312,6 +348,41 @@ export default function Rebalanceo() {
                                             : 0,
                                     )}{' '}
                                     del total)
+                                </div>
+                            </div>
+                            {bl.data.costo_estimado != null && (
+                                <div className="nx-stat s4">
+                                    <div className="k">
+                                        Costo de hacer los movimientos
+                                    </div>
+                                    <div className="v">
+                                        {usd0(
+                                            bl.data.costo_estimado * totalValue,
+                                        )}
+                                    </div>
+                                    <div className="d nx-muted">
+                                        {pct1(
+                                            (bl.data.costo_operacion ?? 0) *
+                                                100,
+                                        )}{' '}
+                                        por operación entre comisión, derechos y
+                                        spread; ya está descontado del cálculo
+                                    </div>
+                                </div>
+                            )}
+                            <div className="nx-stat s4">
+                                <div className="k">Acciones nuevas</div>
+                                <div className="v">
+                                    {bl.data.acciones_nuevas?.length
+                                        ? bl.data.acciones_nuevas.join(', ')
+                                        : 'Ninguna'}
+                                </div>
+                                <div className="d nx-muted">
+                                    {alcance === 'mias'
+                                        ? 'solo se reacomoda entre las tuyas'
+                                        : bl.data.acciones_nuevas?.length
+                                          ? 'entran porque el retorno esperado paga el costo'
+                                          : 'ninguna paga el costo de sumarla'}
                                 </div>
                             </div>
                         </div>
