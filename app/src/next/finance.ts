@@ -46,6 +46,7 @@ const MODEL_LABELS: Record<string, string> = {
     'lstm-modal': 'LSTM',
     xgboost: 'XGBoost',
     'xgboost-modal': 'XGBoost',
+    'xgboost-5': 'XGBoost 5 ruedas',
     transformer: 'Transformer',
     'transformer-modal': 'Transformer',
     'transformer-v1': 'Transformer v1',
@@ -57,6 +58,14 @@ const MODEL_LABELS: Record<string, string> = {
     'garch-modal': 'GARCH',
     'garch-ann-modal': 'GARCH-ANN',
 };
+
+/** Todos los modelos conocidos (claves de api-ml / Modal). */
+export const MODEL_KEYS = Object.keys(MODEL_LABELS);
+
+/** Nombre para mostrar; las copias de Modal llevan "(nube)". */
+export function modelFullLabel(key: string): string {
+    return modelLabel(key) + (key.endsWith('-modal') ? ' (nube)' : '');
+}
 
 export function modelLabel(key: string): string {
     return MODEL_LABELS[key] ?? key;

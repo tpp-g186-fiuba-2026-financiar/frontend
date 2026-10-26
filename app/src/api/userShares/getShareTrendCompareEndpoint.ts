@@ -1,4 +1,5 @@
 import authAxios from '../authFetch';
+import { hiddenModels, withoutHidden } from '../hiddenModels';
 const ENDPOINT = '/user/shares';
 const apiURL = import.meta.env.VITE_SERVER_API + ENDPOINT;
 
@@ -81,8 +82,11 @@ export interface CompareTrendsResponse {
 export async function getShareTrendCompareEndpoint(
     ticker: string,
 ): Promise<CompareTrendsResponse> {
-    const res = await authAxios.get<CompareTrendsResponse>(
-        `${apiURL}/${ticker}/trends/compare`,
-    );
-    return res.data;
+    const [res, hidden] = await Promise.all([
+        authAxios.get<CompareTrendsResponse>(
+            `${apiURL}/${ticker}/trends/compare`,
+        ),
+        hiddenModels(),
+    ]);
+    return withoutHidden(res.data, hidden);
 }

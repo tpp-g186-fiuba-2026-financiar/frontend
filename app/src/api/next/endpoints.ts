@@ -1,4 +1,5 @@
 import authAxios from '../authFetch';
+import { hiddenModels } from '../hiddenModels';
 
 const base = () => import.meta.env.VITE_SERVER_API as string;
 
@@ -99,8 +100,15 @@ export interface SignalHistoryResponse {
 }
 
 export async function getSignalHistoryEndpoint(): Promise<SignalHistoryResponse> {
-    const res = await authAxios.get(`${base()}/user/signals/history`);
-    const rows: SignalHistoryRow[] = res.data?.rows ?? res.data?.signals ?? [];
+    const [res, hidden] = await Promise.all([
+        authAxios.get(`${base()}/user/signals/history`),
+        hiddenModels(),
+    ]);
+    const rows: SignalHistoryRow[] = (
+        res.data?.rows ??
+        res.data?.signals ??
+        []
+    ).filter((r: SignalHistoryRow) => !hidden.has(r.model));
     return {
         rows,
         summary: res.data?.summary ?? { evaluated: 0, hits: 0, hit_rate: null },
@@ -265,8 +273,16 @@ export async function getTrackRecordEndpoint(): Promise<{
     updated_at: string | null;
     modelos: TrackRecordModel[];
 }> {
-    const res = await authAxios.get(`${base()}/user/signals/track-record`);
-    return res.data;
+    const [res, hidden] = await Promise.all([
+        authAxios.get(`${base()}/user/signals/track-record`),
+        hiddenModels(),
+    ]);
+    return {
+        ...res.data,
+        modelos: (res.data?.modelos ?? []).filter(
+            (m: TrackRecordModel) => !hidden.has(m.model),
+        ),
+    };
 }
 
 export interface VolatilityForecast {

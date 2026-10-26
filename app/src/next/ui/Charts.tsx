@@ -74,7 +74,7 @@ export interface Forecast {
         v: number;
         color: string;
         label: string;
-        sublabel: string;
+        sublabel?: string;
     };
     thresholds?: { up: number; down: number };
 }
@@ -238,19 +238,21 @@ function ForecastLayer({
                     >
                         {main.label}
                     </text>
-                    <text
-                        x={main.ex}
-                        y={labelAbove ? main.ey - 12 : main.ey + 36}
-                        textAnchor="middle"
-                        fill={main.color}
-                        fontSize="11"
-                        fontWeight={600}
-                        paintOrder="stroke"
-                        stroke="var(--nx-panel-solid)"
-                        strokeWidth={5}
-                    >
-                        {main.sublabel}
-                    </text>
+                    {main.sublabel && (
+                        <text
+                            x={main.ex}
+                            y={labelAbove ? main.ey - 12 : main.ey + 36}
+                            textAnchor="middle"
+                            fill={main.color}
+                            fontSize="11"
+                            fontWeight={600}
+                            paintOrder="stroke"
+                            stroke="var(--nx-panel-solid)"
+                            strokeWidth={5}
+                        >
+                            {main.sublabel}
+                        </text>
+                    )}
                 </g>
             )}
         </g>

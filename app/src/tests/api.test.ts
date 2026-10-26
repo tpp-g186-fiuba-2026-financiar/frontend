@@ -55,7 +55,8 @@ describe('API adapters', () => {
         await expect(Promise.all(calls)).resolves.toEqual(
             Array.from({ length: calls.length }, () => payload),
         );
-        expect(get).toHaveBeenCalledTimes(calls.length);
+        // + /models/hidden, que el comparador lee para sacar los modelos ocultos.
+        expect(get).toHaveBeenCalledTimes(calls.length + 1);
     });
 
     test('sends authenticated writes and deletes', async () => {
@@ -184,5 +185,29 @@ describe('endpoints de FinanciAr Next', () => {
             expect.stringContaining('/user/shares/portfolio/recomendacion'),
             { params: { cartera_ancla: 'equal_weight' } },
         );
+    });
+});
+
+describe('modelos ocultos', () => {
+    test('el comparador saca los modelos que oculto el admin', async () => {
+        const { withoutHidden } = await import('../api/hiddenModels');
+        const data = {
+            symbol: 'GGAL',
+            as_of: '2026-10-23',
+            default_model: 'macro',
+            predictions: { macro: {}, lstm: {} },
+            consensus: {
+                components: [{ model: 'macro' }, { model: 'lstm' }],
+            },
+        } as unknown as Parameters<typeof withoutHidden>[0];
+
+        const out = withoutHidden(data, new Set(['macro']));
+
+        expect(Object.keys(out.predictions)).toEqual(['lstm']);
+        expect(out.consensus?.components?.map((c) => c.model)).toEqual([
+            'lstm',
+        ]);
+        expect(out.default_model).toBeNull();
+        expect(withoutHidden(data, new Set())).toBe(data);
     });
 });
