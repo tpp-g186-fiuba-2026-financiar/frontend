@@ -53,6 +53,35 @@ vi.mock('../api/next/endpoints', () => ({
     getAdminHealthEndpoint: vi.fn(),
     getAdminModelsEndpoint: vi.fn(),
     getBlackLittermanEndpoint: vi.fn(),
+    getVolatilityEndpoint: vi.fn(async () => ({
+        symbol: 'GGAL',
+        horizon_days: 20,
+        daily_volatility_pct: Array(20).fill(2),
+        cumulative_volatility_pct: 8.9,
+        last_close: 120,
+        as_of: '2026-10-21',
+    })),
+    getTrackRecordEndpoint: vi.fn(async () => ({
+        updated_at: '2026-10-22',
+        modelos: [
+            {
+                model: 'consensus-moderate',
+                model_version: 'consensus-v1',
+                horizon_days: 5,
+                casos: 200,
+                desde: '2026-09-01',
+                hasta: '2026-10-15',
+                tasa_suba: 0.41,
+                alza: { n: 8, acierto: 0.5, retorno_medio: 0.01 },
+                baja: { n: 23, acierto: 0.43 },
+                retorno_medio_todas: 0.004,
+                curva: [
+                    { mes: '2026-09', sigue: 0.01, todas: 0.004, senales: 4 },
+                    { mes: '2026-10', sigue: 0.02, todas: 0.006, senales: 4 },
+                ],
+            },
+        ],
+    })),
     getFairValueEndpoint: vi.fn(async () => ({
         symbol: 'GGAL',
         as_of: '2026-10-21',
@@ -769,7 +798,9 @@ describe('Rebalanceo', () => {
             screen.getAllByRole('button', { name: /Ver la cuenta/ })[0],
         );
         fireEvent.click(
-            within(screen.getByRole('table')).getByText('ALUA').closest('tr')!,
+            within(screen.getByRole('table', { name: 'Cuenta por acción' }))
+                .getByText('ALUA')
+                .closest('tr')!,
         );
         expect(screen.getAllByText(/Hoy no tenés ALUA/).length).toBe(1);
         fireEvent.click(screen.getByRole('button', { name: 'YPFD' }));

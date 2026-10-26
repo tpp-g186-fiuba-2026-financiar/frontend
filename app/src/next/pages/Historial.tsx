@@ -16,6 +16,7 @@ import {
     Tip,
 } from '../ui/Blocks';
 import Icon from '../ui/Icon';
+import TrackRecord from '../ui/TrackRecord';
 import { longDate, pct1, tone, usd } from '../format';
 import {
     modelLabel,
@@ -194,6 +195,9 @@ export default function Historial() {
                         : ''}
                 </p>
             )}
+            <div style={{ marginBottom: 16 }}>
+                <TrackRecord />
+            </div>
             {all.length > 0 && (
                 <>
                     <div className="nx-chips nx-rv">

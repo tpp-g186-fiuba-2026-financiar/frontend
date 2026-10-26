@@ -24,6 +24,7 @@ export const USER_NAV: NavGroup[] = [
     {
         group: 'Análisis',
         items: [
+            { to: '/ranking', label: 'Ranking del día', icon: 'trend' },
             { to: '/historial', label: 'Historial de señales', icon: 'list' },
             { to: '/riesgo', label: 'Riesgo', icon: 'shield' },
             { to: '/mercado', label: 'Mercado', icon: 'globe' },

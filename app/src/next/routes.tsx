@@ -9,6 +9,7 @@ const Cartera = lazy(() => import('./pages/Cartera'));
 const Accion = lazy(() => import('./pages/Accion'));
 const Rebalanceo = lazy(() => import('./pages/Rebalanceo'));
 const Historial = lazy(() => import('./pages/Historial'));
+const Ranking = lazy(() => import('./pages/Ranking'));
 const Riesgo = lazy(() => import('./pages/Riesgo'));
 const Mercado = lazy(() => import('./pages/Mercado'));
 const Terminal = lazy(() => import('./pages/Terminal'));
@@ -38,6 +39,7 @@ export function AppRoutes(RequireAuth: ComponentType<{ children: ReactNode }>) {
                 <Route path="/accion/:ticker" element={<Accion />} />
                 <Route path="/rebalanceo" element={<Rebalanceo />} />
                 <Route path="/historial" element={<Historial />} />
+                <Route path="/ranking" element={<Ranking />} />
                 <Route path="/riesgo" element={<Riesgo />} />
                 <Route path="/mercado" element={<Mercado />} />
                 <Route path="/terminal" element={<Terminal />} />
