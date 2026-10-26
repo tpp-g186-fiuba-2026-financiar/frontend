@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { useRemote } from '../../data/useRemote';
 import { getAdminHealthEndpoint } from '../../../api/next/endpoints';
 import { Card, PageHead } from '../../ui/Blocks';
+import {
+    ARCH_ENDPOINTS,
+    type ArchGroup,
+    type ArchItem,
+    type Field,
+} from './archEndpoints';
 
 interface Node {
     x: number;
@@ -37,9 +43,9 @@ const ARCH: Record<string, Node> = {
     src4: {
         x: 20,
         y: 340,
-        t: 'BCRA · Tesoro EE.UU.',
+        t: 'BCRA · tasas EE.UU.',
         s: 'tasas y reservas',
-        d: 'TPM, BADLAR, reservas, tipo de cambio mayorista y base monetaria (BCRA), y bonos del Tesoro de EE.UU. (^IRX, ^FVX, ^TNX).',
+        d: 'TPM, BADLAR, reservas, tipo de cambio mayorista y base monetaria (BCRA). Las tasas de los bonos del Tesoro de EE.UU. (^IRX, ^FVX, ^TNX, ^TYX) salen de Yahoo, no del Tesoro directo.',
     },
     dc: {
         x: 290,
@@ -47,7 +53,7 @@ const ARCH: Record<string, Node> = {
         t: 'data-colector',
         s: 'Rust · axum',
         health: 'data-colector',
-        d: 'Recolecta y guarda precios, velas, series macro y tasas. Endpoints /historical-data, /macro/argdatos, /interest-rate, /available-tickers, /health.',
+        d: 'Recolecta y guarda precios, velas, series macro y tasas, y se las sirve a los otros servicios.',
     },
     db: {
         x: 290,
@@ -124,6 +130,8 @@ const NH = 58;
 
 export default function Arquitectura() {
     const [sel, setSel] = useState('ml');
+    const [q, setQ] = useState('');
+    const [open, setOpen] = useState<string | null>(null);
     const health = useRemote('admin-health', getAdminHealthEndpoint);
     const statusOf = (n: Node): boolean | null => {
         if (!n.health) return null;
@@ -189,7 +197,11 @@ export default function Arquitectura() {
                                         key={k}
                                         className={`nd ${sel === k ? 'sel' : ''}`}
                                         transform={`translate(${n.x},${n.y})`}
-                                        onClick={() => setSel(k)}
+                                        onClick={() => {
+                                            setSel(k);
+                                            setQ('');
+                                            setOpen(null);
+                                        }}
                                         role="button"
                                         aria-label={n.t}
                                     >
@@ -238,7 +250,152 @@ export default function Arquitectura() {
                         </div>
                     )}
                 </Card>
+                {(ARCH_ENDPOINTS[sel] ?? []).length > 0 && (
+                    <Card span="s12" i={3}>
+                        <Endpoints
+                            node={node.t}
+                            groups={ARCH_ENDPOINTS[sel] ?? []}
+                            q={q}
+                            setQ={setQ}
+                            open={open}
+                            setOpen={setOpen}
+                        />
+                    </Card>
+                )}
             </div>
         </>
+    );
+}
+
+function Endpoints({
+    node,
+    groups,
+    q,
+    setQ,
+    open,
+    setOpen,
+}: {
+    node: string;
+    groups: ArchGroup[];
+    q: string;
+    setQ: (v: string) => void;
+    open: string | null;
+    setOpen: (v: string | null) => void;
+}) {
+    const total = groups.reduce((n, g) => n + g.items.length, 0);
+    if (!total) return null;
+    const needle = q.trim().toLowerCase();
+    const shown = groups
+        .map((g) => ({
+            ...g,
+            items: g.items.filter(
+                (it) =>
+                    !needle ||
+                    `${it.m} ${it.path} ${it.d}`.toLowerCase().includes(needle),
+            ),
+        }))
+        .filter((g) => g.items.length);
+    const kind = groups[0].items[0].m;
+    const label =
+        kind === 'TABLA'
+            ? 'tablas'
+            : kind === 'MAIL'
+              ? 'mails'
+              : kind === 'PÁG'
+                ? 'pantallas'
+                : 'endpoints';
+
+    return (
+        <div className="nx-arch-eps">
+            <div className="nx-arch-eps-head">
+                <h3>
+                    {node}: {total} {label}
+                    <small>
+                        Tocá uno para ver qué recibe, qué devuelve y para qué se
+                        usa.
+                    </small>
+                </h3>
+                {total > 6 && (
+                    <input
+                        type="search"
+                        placeholder="Buscar…"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        aria-label={`Buscar ${label}`}
+                    />
+                )}
+            </div>
+            {shown.map((g) => (
+                <div key={g.title} className="nx-arch-eps-group">
+                    <div className="nx-eyebrow">{g.title}</div>
+                    {g.items.map((it) => {
+                        const id = `${g.title}${it.m}${it.path}`;
+                        const isOpen = open === id;
+                        return (
+                            <div
+                                key={id}
+                                className={`nx-arch-ep ${isOpen ? 'open' : ''}`}
+                            >
+                                <button
+                                    type="button"
+                                    className="top"
+                                    aria-expanded={isOpen}
+                                    onClick={() => setOpen(isOpen ? null : id)}
+                                >
+                                    <span
+                                        className={`m m-${it.m.split(' ')[0].toLowerCase()}`}
+                                    >
+                                        {it.m}
+                                    </span>
+                                    <code>{it.path}</code>
+                                </button>
+                                {isOpen && <EndpointDetail it={it} />}
+                            </div>
+                        );
+                    })}
+                </div>
+            ))}
+            {!shown.length && (
+                <p className="nx-muted">Nada coincide con “{q}”.</p>
+            )}
+        </div>
+    );
+}
+
+function FieldTable({ title, rows }: { title: string; rows: Field[] }) {
+    return (
+        <div className="nx-arch-fields">
+            <b>{title}</b>
+            <table>
+                <tbody>
+                    {rows.map(([name, type, desc]) => (
+                        <tr key={name}>
+                            <td>
+                                <code>{name}</code>
+                                <small>{type}</small>
+                            </td>
+                            <td>{desc}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function EndpointDetail({ it }: { it: ArchItem }) {
+    return (
+        <div className="d">
+            <p>{it.d}</p>
+            {it.auth && <p className="by">Pide: {it.auth}</p>}
+            {it.by && <p className="by">Lo usa: {it.by}</p>}
+            {it.req && <FieldTable title="Recibe" rows={it.req} />}
+            {it.res && <FieldTable title="Devuelve" rows={it.res} />}
+            {it.uso && (
+                <p className="uso">
+                    <b>Para qué se usa:</b> {it.uso}
+                </p>
+            )}
+        </div>
     );
 }

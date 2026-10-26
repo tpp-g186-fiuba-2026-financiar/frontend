@@ -51,6 +51,12 @@ export const ADMIN_NAV: NavGroup[] = [
             { to: '/admin/servicios', label: 'Servicios', icon: 'db' },
             { to: '/admin/modelos', label: 'Modelos', icon: 'brain' },
             {
+                to: '/admin/fichas',
+                label: 'Cómo funciona cada modelo',
+                icon: 'book',
+            },
+            { to: '/admin/decisiones', label: 'Decisiones', icon: 'list' },
+            {
                 to: '/admin/confiabilidad',
                 label: 'Confiabilidad',
                 icon: 'flask',
