@@ -3486,3 +3486,268 @@ button.nx-brand {
     color: var(--nx-ink-3);
     font-size: 11.5px;
 }
+.nx-arch-eps {
+    column-width: 460px;
+    column-gap: 28px;
+}
+.nx-arch-eps-head {
+    column-span: all;
+}
+.nx-arch-eps-head h3 {
+    margin: 0;
+    font-size: 17px;
+}
+.nx-arch-eps-head h3 small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--nx-ink-3);
+}
+.nx-arch-eps-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.nx-arch-eps-head input {
+    flex: 1;
+    max-width: 260px;
+    background: transparent;
+    border: 1px solid var(--nx-line);
+    border-radius: 8px;
+    padding: 5px 9px;
+    color: var(--nx-ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+.nx-arch-eps-group {
+    margin-bottom: 14px;
+    break-inside: avoid;
+}
+.nx-arch-eps-group .nx-eyebrow {
+    margin-bottom: 6px;
+}
+.nx-arch-ep {
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+.nx-arch-ep:hover,
+.nx-arch-ep.open {
+    border-color: var(--nx-line);
+    background: color-mix(in oklab, var(--nx-ink) 4%, transparent);
+}
+.nx-arch-ep .top {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    padding: 6px 8px;
+    color: var(--nx-ink);
+    cursor: pointer;
+    font: inherit;
+}
+.nx-arch-ep code {
+    font-family: var(--nx-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+.nx-arch-ep .m {
+    flex: none;
+    font-family: var(--nx-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 5px;
+    background: color-mix(in oklab, var(--nx-accent) 18%, transparent);
+    color: var(--nx-accent);
+}
+.nx-arch-ep .m-post {
+    background: color-mix(in oklab, var(--nx-up) 18%, transparent);
+    color: var(--nx-up);
+}
+.nx-arch-ep .m-put,
+.nx-arch-ep .m-patch {
+    background: color-mix(in oklab, var(--nx-warn) 18%, transparent);
+    color: var(--nx-warn);
+}
+.nx-arch-ep .m-delete {
+    background: color-mix(in oklab, var(--nx-down) 18%, transparent);
+    color: var(--nx-down);
+}
+.nx-arch-ep .m-tabla,
+.nx-arch-ep .m-mail,
+.nx-arch-ep .m-pág,
+.nx-arch-ep .m-cron {
+    background: color-mix(in oklab, var(--nx-ink-3) 20%, transparent);
+    color: var(--nx-ink-2);
+}
+.nx-arch-ep .d {
+    padding: 0 10px 10px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--nx-ink-2);
+    animation: nx-replay-fade 0.25s ease-out;
+}
+.nx-arch-ep .d p {
+    margin: 4px 0;
+}
+.nx-arch-ep .by {
+    color: var(--nx-ink-3);
+    font-size: 11.5px;
+}
+.nx-arch-ep .uso {
+    margin-top: 8px;
+    color: var(--nx-ink);
+}
+.nx-arch-fields {
+    margin-top: 8px;
+}
+.nx-arch-fields > b {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--nx-ink-3);
+    margin-bottom: 4px;
+}
+.nx-arch-fields table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.nx-arch-fields td {
+    vertical-align: top;
+    padding: 4px 6px 4px 0;
+    border-top: 1px solid var(--nx-line);
+}
+.nx-arch-fields td:first-child {
+    width: 42%;
+}
+.nx-arch-fields td code {
+    display: block;
+    color: var(--nx-ink);
+}
+.nx-arch-fields td small {
+    color: var(--nx-ink-3);
+    font-size: 10.5px;
+}
+.nx-fichas tr.click {
+    cursor: pointer;
+}
+.nx-ficha-estado {
+    font-size: 11.5px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: color-mix(in oklab, var(--nx-ink-3) 18%, transparent);
+    color: var(--nx-ink-2);
+    white-space: nowrap;
+}
+.nx-ficha-estado.e-principal {
+    background: color-mix(in oklab, var(--nx-up) 18%, transparent);
+    color: var(--nx-up);
+}
+.nx-ficha-estado.e-debil {
+    background: color-mix(in oklab, var(--nx-warn) 18%, transparent);
+    color: var(--nx-warn);
+}
+.nx-ficha-estado.e-oculto {
+    background: color-mix(in oklab, var(--nx-down) 15%, transparent);
+    color: var(--nx-down);
+}
+.nx-ficha h2 {
+    font-size: 26px;
+    margin: 4px 0 14px;
+}
+.nx-ficha-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+}
+.nx-ficha-grid h4 {
+    margin: 0 0 4px;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--nx-ink-3);
+}
+.nx-ficha-grid p,
+.nx-ficha-grid li {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--nx-ink-2);
+    margin: 0 0 14px;
+}
+.nx-ficha-grid ul {
+    margin: 0 0 14px;
+    padding-left: 18px;
+}
+.nx-ficha-grid li {
+    margin: 0;
+}
+.nx-ficha-var {
+    border-left: 2px solid var(--nx-line);
+    padding-left: 10px;
+    margin-bottom: 12px;
+}
+.nx-ficha-var b {
+    font-size: 13.5px;
+    color: var(--nx-ink);
+}
+.nx-ficha-var p {
+    margin: 2px 0 0;
+}
+.nx-ficha-medido {
+    color: var(--nx-ink) !important;
+}
+.nx-decision-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.nx-decision-tag {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: color-mix(in oklab, var(--nx-accent) 16%, transparent);
+    color: var(--nx-accent);
+}
+.nx-decision h3 {
+    margin: 8px 0 10px;
+    font-size: 17px;
+}
+.nx-decision dl {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 6px 12px;
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+}
+.nx-decision dt {
+    color: var(--nx-ink-3);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding-top: 2px;
+}
+.nx-decision dd {
+    margin: 0;
+    color: var(--nx-ink-2);
+}
+.nx-decision-ev {
+    color: var(--nx-up) !important;
+    font-family: var(--nx-mono);
+    font-size: 12.5px;
+}
+@media (max-width: 640px) {
+    .nx-decision dl {
+        grid-template-columns: 1fr;
+    }
+}

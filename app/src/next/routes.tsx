@@ -19,6 +19,8 @@ const Arquitectura = lazy(() => import('./pages/admin/Arquitectura'));
 const Servicios = lazy(() => import('./pages/admin/Servicios'));
 const Modelos = lazy(() => import('./pages/admin/Modelos'));
 const Confiabilidad = lazy(() => import('./pages/admin/Confiabilidad'));
+const Fichas = lazy(() => import('./pages/admin/Fichas'));
+const Decisiones = lazy(() => import('./pages/admin/Decisiones'));
 
 export function AppRoutes(RequireAuth: ComponentType<{ children: ReactNode }>) {
     const shell = (admin: boolean) => (
@@ -51,6 +53,8 @@ export function AppRoutes(RequireAuth: ComponentType<{ children: ReactNode }>) {
                 <Route path="arquitectura" element={<Arquitectura />} />
                 <Route path="servicios" element={<Servicios />} />
                 <Route path="modelos" element={<Modelos />} />
+                <Route path="fichas" element={<Fichas />} />
+                <Route path="decisiones" element={<Decisiones />} />
                 <Route path="confiabilidad" element={<Confiabilidad />} />
             </Route>
         </>
