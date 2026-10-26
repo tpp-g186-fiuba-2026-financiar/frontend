@@ -389,10 +389,23 @@ function insightsOf(
 export default function Resumen() {
     const navigate = useNavigate();
     const ui = useUi();
-    const { user, pnl, compare, loading, error, holdings } = usePortfolio();
+    const { user, compare, loading, pnlLoading, error, holdings } =
+        usePortfolio();
     const { points, simulated } = useValueSeries();
-    const { rows, totalValue, totalCost, weekPct, portfolioProb } =
-        useHoldingsView();
+    const {
+        rows,
+        totalValue,
+        totalCost,
+        totalPnl,
+        totalPnlPct,
+        valueReady,
+        weekPct,
+        portfolioProb,
+    } = useHoldingsView();
+    // Sin ningun precio todavia, los montos irian en 0: se muestra un
+    // marcador hasta que llegue el pnl o el historico.
+    const money = (n: number) =>
+        valueReady ? usd0(n) : pnlLoading ? '…' : '—';
     const [range, setRange] = useState(126);
 
     const ups = rows.filter((r) => r.signal === 'alza').length;
@@ -403,10 +416,6 @@ export default function Resumen() {
         neutral: rows.filter((r) => r.signal === 'neutral').length,
         baja: rows.filter((r) => r.signal === 'baja').length,
     };
-    const totalPnl = pnl?.total_pnl_amount ?? totalValue - totalCost;
-    const totalPnlPct =
-        pnl?.total_pnl_percentage ??
-        (totalCost > 0 ? (totalPnl / totalCost) * 100 : null);
     const movers = [...rows]
         .filter((r) => r.week != null)
         .sort((a, b) => Math.abs(b.week!) - Math.abs(a.week!))
@@ -509,7 +518,7 @@ export default function Resumen() {
                     <div className="nx-mini">
                         <div>
                             Valor <Tip k="valor" />
-                            <b>{usd0(totalValue)}</b>
+                            <b>{money(totalValue)}</b>
                         </div>
                         <div>
                             Semana <Tip k="semana" />
@@ -543,7 +552,7 @@ export default function Resumen() {
                 <Kpi
                     label="Valor de la cartera"
                     tip="valor"
-                    value={usd0(totalValue)}
+                    value={money(totalValue)}
                     i={1}
                 >
                     {weekPct != null && (
@@ -558,18 +567,18 @@ export default function Resumen() {
                 <Kpi
                     label="Ganancia total"
                     tip="pnl"
-                    value={usd0(totalPnl)}
-                    className={tone(totalPnl)}
+                    value={money(totalPnl)}
+                    className={valueReady ? tone(totalPnl) : ''}
                     i={2}
                 >
                     <div className="nx-delta">
-                        {totalPnlPct != null && (
+                        {valueReady && totalPnlPct != null && (
                             <span className={`nx-chip-d ${tone(totalPnlPct)}`}>
                                 {arrow(totalPnlPct)} {pct(totalPnlPct)}
                             </span>
                         )}
                         <span className="nx-muted">
-                            pagaste {usd0(totalCost)}
+                            pagaste {money(totalCost)}
                         </span>
                     </div>
                 </Kpi>

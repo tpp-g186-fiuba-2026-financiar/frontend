@@ -64,12 +64,27 @@ export function useHoldingsView() {
                 model: h.trend?.model ?? null,
             } satisfies HoldingView;
         });
-        const totalValue =
-            pnl?.total_current_value ??
-            base.reduce((s, h) => s + (h.value ?? 0), 0);
-        const totalCost =
-            pnl?.total_invested ?? base.reduce((s, h) => s + (h.cost ?? 0), 0);
-        const sumValues = base.reduce((s, h) => s + (h.value ?? 0), 0);
+        // Si data-colector no respondio, el back devuelve los totales en 0
+        // aunque haya tenencias: en ese caso se calcula con el historico.
+        const pnlPriced = pnl != null && pnl.total_current_value > 0;
+        const priced = base.filter((h) => h.value != null);
+        const valueReady = pnlPriced || priced.length > 0;
+        const sumValues = priced.reduce((s, h) => s + h.value!, 0);
+        // El costo y la ganancia de respaldo solo cuentan tenencias con
+        // precio, para no restar lo invertido en acciones todavia sin valor.
+        const withBoth = priced.filter((h) => h.cost != null);
+        const totalValue = pnlPriced ? pnl.total_current_value : sumValues;
+        const totalCost = pnlPriced
+            ? pnl.total_invested
+            : withBoth.reduce((s, h) => s + h.cost!, 0);
+        const totalPnl = pnlPriced
+            ? pnl.total_pnl_amount
+            : withBoth.reduce((s, h) => s + h.value! - h.cost!, 0);
+        const totalPnlPct = pnlPriced
+            ? pnl.total_pnl_percentage
+            : totalCost > 0
+              ? (totalPnl / totalCost) * 100
+              : null;
         const rows = base.map((h) => ({
             ...h,
             share:
@@ -101,6 +116,9 @@ export function useHoldingsView() {
             rows,
             totalValue,
             totalCost,
+            totalPnl,
+            totalPnlPct,
+            valueReady,
             weekAmount,
             weekPct,
             portfolioProb,
