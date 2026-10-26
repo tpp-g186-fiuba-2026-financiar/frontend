@@ -63,6 +63,7 @@ interface PortfolioState {
     balanceHistory: DailyBalancePoint[];
     modelConfig: DefaultModelsConfig | null;
     loading: boolean;
+    pnlLoading: boolean;
     trendsLoading: boolean;
     error: string | null;
     reload: () => Promise<void>;
@@ -162,6 +163,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         null,
     );
     const [loading, setLoading] = useState(true);
+    const [pnlLoading, setPnlLoading] = useState(true);
     const [trendsLoading, setTrendsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -196,28 +198,31 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
             setError(null);
             setLoading(false);
             setTrendsLoading(true);
-            const [pnlRes, trendsRes] = await Promise.allSettled([
-                getUserSharesPnlEndpoint(),
-                getUserSharesTrendsEndpoint(),
-            ]);
-            const pnlByTicker: Record<string, SharePnlItem> | null =
-                pnlRes.status === 'fulfilled'
-                    ? Object.fromEntries(
-                          pnlRes.value.shares.map((s) => [s.ticker, s]),
-                      )
-                    : null;
-            setPnl(
-                pnlRes.status === 'fulfilled' ? pnlRes.value.portfolio : null,
+            // El pnl sale de la base y del data-colector; las tendencias pasan
+            // por Modal y pueden tardar minutos. Cada uno se aplica apenas
+            // llega, asi el valor de la cartera no espera a los modelos.
+            let pnlByTicker: Record<string, SharePnlItem> | null = null;
+            let trends: ShareTrend[] | null = null;
+            const pnlDone = getUserSharesPnlEndpoint().then(
+                (res) => {
+                    pnlByTicker = Object.fromEntries(
+                        res.shares.map((s) => [s.ticker, s]),
+                    );
+                    setPnl(res.portfolio);
+                    setBase(toHoldings(shares.shares, trends, pnlByTicker));
+                },
+                () => setPnl(null),
             );
-            setBase(
-                toHoldings(
-                    shares.shares,
-                    trendsRes.status === 'fulfilled'
-                        ? trendsRes.value.trends
-                        : null,
-                    pnlByTicker,
-                ),
+            const trendsDone = getUserSharesTrendsEndpoint().then(
+                (res) => {
+                    trends = res.trends;
+                    setBase(toHoldings(shares.shares, trends, pnlByTicker));
+                },
+                () => undefined,
             );
+            await pnlDone;
+            setPnlLoading(false);
+            await trendsDone;
             setTrendsLoading(false);
             getUserSharesBalanceHistoryEndpoint().then(setBalanceHistory, () =>
                 setBalanceHistory([]),
@@ -225,6 +230,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         } catch {
             setError('No se pudo cargar tu cartera.');
             setLoading(false);
+            setPnlLoading(false);
             setTrendsLoading(false);
         }
     }, []);
@@ -284,6 +290,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
             balanceHistory,
             modelConfig,
             loading,
+            pnlLoading,
             trendsLoading,
             error,
             reload,
@@ -303,6 +310,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
             balanceHistory,
             modelConfig,
             loading,
+            pnlLoading,
             trendsLoading,
             error,
             reload,

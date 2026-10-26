@@ -642,6 +642,42 @@ describe('Resumen', () => {
         expect(where()).toBe('/cartera');
     });
 
+    test('muestra el valor sin esperar a las tendencias', async () => {
+        m(getUserSharesTrendsEndpoint).mockReturnValue(new Promise(() => {}));
+        m(getShareHistoryEndpoint).mockReturnValue(new Promise(() => {}));
+        renderApp('/home');
+        expect((await screen.findAllByText('$4.100')).length).toBeGreaterThan(
+            0,
+        );
+        expect(screen.queryByText('$0')).not.toBeInTheDocument();
+    });
+
+    test('no muestra $0 mientras no hay precios', async () => {
+        let resolvePnl: (v: never) => void = () => undefined;
+        m(getUserSharesPnlEndpoint).mockReturnValue(
+            new Promise((r) => (resolvePnl = r)),
+        );
+        m(getShareHistoryEndpoint).mockReturnValue(new Promise(() => {}));
+        renderApp('/home');
+        await screen.findAllByText('Valor de la cartera');
+        expect(screen.getAllByText('…').length).toBeGreaterThan(0);
+        expect(screen.queryByText('$0')).not.toBeInTheDocument();
+        // El back sin precios del data-colector devuelve los totales en 0.
+        resolvePnl({
+            shares: [],
+            portfolio: {
+                total_invested: 0,
+                total_current_value: 0,
+                total_pnl_amount: 0,
+                total_pnl_percentage: null,
+            },
+        } as never);
+        await waitFor(() =>
+            expect(screen.getAllByText('—').length).toBeGreaterThan(0),
+        );
+        expect(screen.queryByText('$0')).not.toBeInTheDocument();
+    });
+
     test('invita a armar la cartera cuando está vacía', async () => {
         setup({ empty: true });
         renderApp('/home');

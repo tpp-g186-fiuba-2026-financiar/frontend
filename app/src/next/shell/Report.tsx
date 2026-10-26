@@ -23,7 +23,8 @@ const SIG: Record<string, string> = {
 
 export default function Report() {
     const { user, history, compare, balanceHistory } = usePortfolio();
-    const { rows, totalValue, totalCost, weekPct } = useHoldingsView();
+    const { rows, totalValue, totalPnlPct, valueReady, weekPct } =
+        useHoldingsView();
     const v = valueAtRisk(logReturns(portfolioSeries(rows, history).values));
     const asOf = balanceHistory.length
         ? longDate(balanceHistory[balanceHistory.length - 1].date)
@@ -74,7 +75,7 @@ export default function Report() {
             <div className="kp">
                 <div>
                     <small>Valor total</small>
-                    <b>{usd0(totalValue)}</b>
+                    <b>{valueReady ? usd0(totalValue) : '—'}</b>
                 </div>
                 <div>
                     <small>Semana</small>
@@ -84,9 +85,9 @@ export default function Report() {
                 </div>
                 <div>
                     <small>Ganancia total</small>
-                    <b className={totalValue >= totalCost ? 'pos' : 'neg'}>
-                        {totalCost > 0
-                            ? pct(((totalValue - totalCost) / totalCost) * 100)
+                    <b className={(totalPnlPct ?? 0) >= 0 ? 'pos' : 'neg'}>
+                        {valueReady && totalPnlPct != null
+                            ? pct(totalPnlPct)
                             : '—'}
                     </b>
                 </div>
