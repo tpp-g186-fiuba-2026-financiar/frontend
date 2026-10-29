@@ -49,7 +49,6 @@ const MODEL_LABELS: Record<string, string> = {
     'xgboost-5': 'XGBoost 5 ruedas',
     transformer: 'Transformer',
     'transformer-modal': 'Transformer',
-    'transformer-v1': 'Transformer v1',
     arima: 'ARIMA',
     'arima-modal': 'ARIMA',
     contexto: 'Contexto',
