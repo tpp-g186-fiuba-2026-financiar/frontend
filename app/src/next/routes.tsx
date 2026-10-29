@@ -21,6 +21,8 @@ const Modelos = lazy(() => import('./pages/admin/Modelos'));
 const Confiabilidad = lazy(() => import('./pages/admin/Confiabilidad'));
 const Fichas = lazy(() => import('./pages/admin/Fichas'));
 const Decisiones = lazy(() => import('./pages/admin/Decisiones'));
+const BlackLitterman = lazy(() => import('./pages/admin/BlackLitterman'));
+const Proyecto = lazy(() => import('./pages/admin/Proyecto'));
 
 export function AppRoutes(RequireAuth: ComponentType<{ children: ReactNode }>) {
     const shell = (admin: boolean) => (
@@ -51,10 +53,12 @@ export function AppRoutes(RequireAuth: ComponentType<{ children: ReactNode }>) {
             <Route path="/admin" element={shell(true)}>
                 <Route index element={<Navigate to="arquitectura" replace />} />
                 <Route path="arquitectura" element={<Arquitectura />} />
+                <Route path="proyecto" element={<Proyecto />} />
                 <Route path="servicios" element={<Servicios />} />
                 <Route path="modelos" element={<Modelos />} />
                 <Route path="fichas" element={<Fichas />} />
                 <Route path="decisiones" element={<Decisiones />} />
+                <Route path="black-litterman" element={<BlackLitterman />} />
                 <Route path="confiabilidad" element={<Confiabilidad />} />
             </Route>
         </>

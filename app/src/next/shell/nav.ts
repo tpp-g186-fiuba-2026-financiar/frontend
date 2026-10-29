@@ -47,6 +47,7 @@ export const ADMIN_NAV: NavGroup[] = [
     {
         group: 'Administración',
         items: [
+            { to: '/admin/proyecto', label: 'De punta a punta', icon: 'help' },
             { to: '/admin/arquitectura', label: 'Arquitectura', icon: 'nodes' },
             { to: '/admin/servicios', label: 'Servicios', icon: 'db' },
             { to: '/admin/modelos', label: 'Modelos', icon: 'brain' },
@@ -54,6 +55,11 @@ export const ADMIN_NAV: NavGroup[] = [
                 to: '/admin/fichas',
                 label: 'Cómo funciona cada modelo',
                 icon: 'book',
+            },
+            {
+                to: '/admin/black-litterman',
+                label: 'Cómo arma la cartera',
+                icon: 'scale',
             },
             { to: '/admin/decisiones', label: 'Decisiones', icon: 'list' },
             {

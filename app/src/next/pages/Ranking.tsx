@@ -29,20 +29,28 @@ export default function Ranking() {
             />
             <Legal />
             <Explain title="Cómo leer este ranking">
-                <p>
-                    XGBoost compara cada acción con las otras del panel el mismo
-                    día (cuánto cayó desde su máximo, su tendencia, cómo viene
-                    el mercado…) y estima qué tan seguido, en situaciones
-                    parecidas, la acción terminó más arriba 20 ruedas después.
-                </p>
-                <p>
-                    Medido con 10 años de historia, el modelo acierta más que la
-                    tasa base cuando se juega por un lado (por eso la señal es
-                    casi siempre neutral). Pero comprar solo las de arriba del
-                    ranking <b>no le ganó al panel</b> después de comisiones: su
-                    ventaja está en detectar momentos, no en elegir acciones. Es
-                    una herramienta para mirar, no una lista de compras.
-                </p>
+                <ul>
+                    <li>
+                        <b>Qué es:</b> las acciones del panel ordenadas por las
+                        chances de suba que les da XGBoost hoy. Arriba, las que
+                        en situaciones parecidas más seguido terminaron más
+                        arriba 20 ruedas después.
+                    </li>
+                    <li>
+                        <b>Puntaje:</b> el puesto convertido a 1–10. Un 10 está
+                        entre las mejores del día; un 1, entre las peores. Es
+                        relativo: compara contra las otras, no contra cero.
+                    </li>
+                    <li>
+                        <b>Señal:</b> el 20% de arriba es alza, el 20% de abajo
+                        es baja, el resto neutral.
+                    </li>
+                    <li>
+                        <b>Ojo:</b> comprar solo las de arriba no le ganó al
+                        panel después de comisiones. Sirve para mirar, no es una
+                        lista de compras.
+                    </li>
+                </ul>
             </Explain>
             {ranking.loading && (
                 <Empty>Armando el ranking con las acciones del panel…</Empty>

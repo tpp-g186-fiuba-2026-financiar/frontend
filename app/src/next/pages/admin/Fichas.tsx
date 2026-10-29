@@ -89,7 +89,11 @@ export default function Fichas() {
                             </ul>
                         </section>
                         <section>
-                            <h4>Variables (features)</h4>
+                            <h4>
+                                {f.tipo === 'cartera'
+                                    ? 'Cómo hace la cuenta'
+                                    : 'Variables (features)'}
+                            </h4>
                             {f.variables.map((v) => (
                                 <div key={v.grupo} className="nx-ficha-var">
                                     <b>
@@ -106,7 +110,11 @@ export default function Fichas() {
                             ))}
                         </section>
                         <section>
-                            <h4>Cómo arma la señal</h4>
+                            <h4>
+                                {f.tipo === 'cartera'
+                                    ? 'Cuándo propone cambios'
+                                    : 'Cómo arma la señal'}
+                            </h4>
                             <p>{f.senal}</p>
                             <h4>Entrenamiento</h4>
                             <p>{f.entrenamiento}</p>
