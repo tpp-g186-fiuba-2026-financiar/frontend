@@ -137,30 +137,27 @@ export const FICHAS: Ficha[] = [
         nombre: 'Transformer',
         tipo: 'dirección',
         plazo: '5 ruedas',
-        corre: 'api-ml (+ copia en Modal)',
+        corre: 'api-ml',
         algoritmo:
-            'Transformer de panel: atención sobre los días de cada acción y entre las acciones del mismo día. Se promedian varias semillas.',
+            'Transformer (solo encoder) que mira los últimos 20 días de cada acción. Clasificador: probabilidad de que suba, entrenado balanceando subas y bajas.',
         predice:
-            'Si la acción le va a ganar al resto del panel en 5 ruedas, en dólares CCL.',
+            'Si la acción sube o baja en dólares CCL en 5 ruedas; el precio esperado se muestra en pesos, a CCL constante.',
         datos: [
-            'Velas del data-colector convertidas a dólares CCL',
-            'Series macro (CCL, brecha, riesgo país, BADLAR, reservas)',
+            'Velas de cada acción convertidas a dólares CCL, con splits sin ajustar corregidos',
+            'Riesgo país (cambio de 5 días) y una tasa macro',
         ],
         variables: [
             {
-                grupo: 'De la acción',
+                grupo: 'Serie de la propia acción',
+                cuantas: 9,
                 ejemplos:
-                    'retornos de 1 a 60 ruedas, reversión frente al panel y al sector, volatilidades, volumen anormal, distancias a medias, caídas y beta',
-            },
-            {
-                grupo: 'Del mercado',
-                ejemplos: 'un "token" con el contexto macro del día',
+                    'retorno, cambio de volumen, rango del día, RSI, distancia a la media de 20, MACD, momentum de 10, cambio de la tasa y del riesgo país',
             },
         ],
-        senal: 'Signo del retorno predicho.',
+        senal: 'Alza si la probabilidad de suba lleva el retorno esperado a más de +1%, baja si a menos de −1%; si no, neutral. No predice GOLD, OIL ni especies en dólares.',
         entrenamiento:
-            'El día 1 de cada mes (GitHub Actions). El original (Transformer v1) queda para las acciones fuera del panel.',
-        medido: 'En vivo acierta la dirección el 51,6%.',
+            'Lunes a viernes 20:00 (GitHub Actions). Valida con walk-forward (3 bloques del último 15%) y se guarda si el acierto balanceado fuera de muestra supera 50% con IC positivo.',
+        medido: 'Walk-forward may–oct 2026: acierto balanceado 52,9%, IC 0,039 (con 5 semillas y 2 períodos, 55,3% e IC 0,036). No le gana con seguridad a la regla de reversión.',
         estado: 'débil',
     },
     {

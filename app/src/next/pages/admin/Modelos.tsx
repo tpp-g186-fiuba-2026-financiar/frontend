@@ -14,7 +14,7 @@ const ARCH: Record<string, string> = {
     ensemble: 'Promedio de los modelos',
     lstm: 'Red recurrente LSTM sobre ventanas de precios',
     xgboost: 'Árboles de gradiente con precio + contexto macro',
-    transformer: 'Transformer con atención sobre la serie',
+    transformer: 'Transformer sobre 20 ruedas en dólares (sube / baja)',
     arima: 'Modelo estadístico ARIMA, ajustado a demanda',
     contexto: 'Regresión con variables del mercado argentino',
 };
