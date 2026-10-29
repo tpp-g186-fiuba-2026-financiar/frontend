@@ -137,7 +137,7 @@ export const FICHAS: Ficha[] = [
         nombre: 'Transformer',
         tipo: 'dirección',
         plazo: '5 ruedas',
-        corre: 'api-ml',
+        corre: 'api-ml (+ copia en Modal)',
         algoritmo:
             'Transformer (solo encoder) que mira los últimos 20 días de cada acción. Clasificador: probabilidad de que suba, entrenado balanceando subas y bajas.',
         predice:
@@ -157,7 +157,7 @@ export const FICHAS: Ficha[] = [
         senal: 'Alza si la probabilidad de suba lleva el retorno esperado a más de +1%, baja si a menos de −1%; si no, neutral. No predice GOLD, OIL ni especies en dólares.',
         entrenamiento:
             'Lunes a viernes 20:00 (GitHub Actions). Valida con walk-forward (3 bloques del último 15%) y se guarda si el acierto balanceado fuera de muestra supera 50% con IC positivo.',
-        medido: 'Walk-forward may–oct 2026: acierto balanceado 52,9%, IC 0,039 (con 5 semillas y 2 períodos, 55,3% e IC 0,036). No le gana con seguridad a la regla de reversión.',
+        medido: 'Walk-forward del modelo vigente (may–oct 2026): acierto balanceado 52,5%, IC 0,019; con 5 semillas y 2 períodos, 55,3% e IC 0,036. Simulación con reentreno mensual: 52,7% en 2025 y 52,4% en 2026. Empata con la regla de reversión.',
         estado: 'débil',
     },
     {
