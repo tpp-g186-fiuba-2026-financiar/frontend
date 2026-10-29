@@ -292,6 +292,29 @@ export interface VolatilityForecast {
     cumulative_volatility_pct: number;
     last_close: number;
     as_of: string;
+    regime?: {
+        daily_pct: number;
+        long_run_daily_pct: number | null;
+        percentile: number | null;
+        level: 'baja' | 'normal' | 'alta' | null;
+        persistence: number;
+    } | null;
+    backtest?: {
+        windows: Array<{
+            as_of: string;
+            forecast_pct: number;
+            naive_pct: number;
+            realized_pct: number;
+            return_pct: number;
+        }>;
+        horizon_days: number;
+        inside_68_pct: number;
+        inside_95_pct: number;
+        corr_garch: number | null;
+        corr_naive: number | null;
+        mae_garch_pct: number;
+        mae_naive_pct: number;
+    } | null;
 }
 
 export async function getVolatilityEndpoint(

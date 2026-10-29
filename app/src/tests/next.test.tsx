@@ -1158,6 +1158,81 @@ describe('Administración', () => {
         expect(where()).toBe('/home');
     });
 
+    test('de punta a punta recorre sus pestañas', async () => {
+        setup({ admin: true });
+        renderApp('/admin/proyecto');
+        expect(
+            await screen.findByText('El recorrido de un dato'),
+        ).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'Entrenamiento' }));
+        expect(
+            screen.getByText('retrain.yml → src/train.py'),
+        ).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'División de datos' }));
+        expect(
+            screen.getByRole('img', { name: /walk-forward/ }),
+        ).toBeInTheDocument();
+        fireEvent.click(
+            screen.getByRole('tab', { name: 'Qué pasa al predecir' }),
+        );
+        expect(
+            screen.getByRole('img', { name: /secuencia/ }),
+        ).toBeInTheDocument();
+        fireEvent.click(
+            screen.getByRole('tab', { name: 'Servicios por dentro' }),
+        );
+        expect(
+            screen.getByText('Ciclo de vida de una cuenta'),
+        ).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: /Segundo factor/ }));
+        expect(screen.getByText(/otpauth:\/\//)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: /data-colector/ }));
+        expect(screen.getByText('Un pedido de histórico')).toBeInTheDocument();
+        fireEvent.click(
+            screen.getByRole('tab', { name: 'Patrones de diseño' }),
+        );
+        // Strategy: elegir otra estrategia cambia la salida
+        fireEvent.click(screen.getByRole('button', { name: 'Usar arima' }));
+        expect(
+            screen.getByText('ARIMA ajustado al vuelo con el precio'),
+        ).toBeInTheDocument();
+        // Adapter: la traduccion de svm-modal
+        fireEvent.click(screen.getByRole('tab', { name: /Adapter/ }));
+        expect(
+            screen.getByText('translate_modal_svm_response()'),
+        ).toBeInTheDocument();
+        // Composite: un pedido de admin pasa por require_admin
+        fireEvent.click(screen.getByRole('tab', { name: /Composite/ }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'GET /admin/health' }),
+        );
+        expect(
+            screen.getByText('require_admin: role = admin en la base'),
+        ).toBeInTheDocument();
+        // y el ensamble: con pesos iguales el promedio de ejemplo da neutral
+        fireEvent.click(
+            screen.getByRole('button', { name: 'api-ml · ensamble' }),
+        );
+        for (const m of ['lstm', 'xgboost', 'transformer']) {
+            fireEvent.change(screen.getByLabelText(`Peso de ${m}`), {
+                target: { value: '0.5' },
+            });
+        }
+        expect(screen.getByText('+1.0% → neutral')).toBeInTheDocument();
+        // Factory: un artefacto viejo queda sin cargar
+        fireEvent.click(screen.getByRole('tab', { name: /Factory/ }));
+        fireEvent.click(screen.getByLabelText(/xgb.pkl entrenado/));
+        expect(
+            screen.getByText(/variables distintas → no cargado/),
+        ).toBeInTheDocument();
+        // Microservicios: tirar un servicio muestra que se rompe
+        fireEvent.click(screen.getByRole('tab', { name: /Microservicios/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Tirar Modal' }));
+        expect(
+            screen.getByText('Si se cae Modal, deja de andar'),
+        ).toBeInTheDocument();
+    });
+
     test('servicios y modelos que no responden', async () => {
         setup({ admin: true });
         m(getAdminHealthEndpoint).mockRejectedValue(new Error('x'));

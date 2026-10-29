@@ -43,6 +43,7 @@ import {
 } from '../ui/Charts';
 import ModelsPanel from '../ui/ModelsPanel';
 import PredictionReplay from '../ui/PredictionReplay';
+import VolatilityPanel from '../ui/VolatilityPanel';
 import Icon from '../ui/Icon';
 import {
     featureValue,
@@ -438,21 +439,21 @@ export default function Accion() {
         showTrend === 'on' && mode === 'linea' && fair.data
             ? [
                   {
-                      label: 'Tendencia (regresión)',
+                      label: 'Recta del último año',
                       values: onHist((p) => p.estimado),
                       color: 'var(--nx-warn)',
                       dash: '6 4',
                       width: 1.6,
                   },
                   {
-                      label: '+1 desvío',
+                      label: 'Rango normal (arriba)',
                       values: onHist((p) => p.hi1),
                       color: 'var(--nx-warn)',
                       dash: '2 4',
                       width: 1,
                   },
                   {
-                      label: '−1 desvío',
+                      label: 'Rango normal (abajo)',
                       values: onHist((p) => p.lo1),
                       color: 'var(--nx-warn)',
                       dash: '2 4',
@@ -937,11 +938,33 @@ export default function Accion() {
                         {trendSeries.length > 0 && (
                             <span>
                                 <i style={{ background: 'var(--nx-warn)' }} />
-                                Tendencia del último año ±1 desvío{' '}
+                                Recta del último año y su rango normal{' '}
                                 <Tip k="tendencia" />
                             </span>
                         )}
                     </div>
+                    {trendSeries.length > 0 && fv && (
+                        <div className="nx-trend-note">
+                            <b>Cómo leer las líneas amarillas.</b> No son una
+                            predicción (la predicción es el cono gris de la
+                            derecha). La del medio es la recta que mejor sigue
+                            el precio del último año:{' '}
+                            {fv.tendencia_anual >= 0 ? 'sube' : 'baja'}{' '}
+                            {Math.round(Math.abs(fv.tendencia_anual) * 100)}% al
+                            año. Las punteadas marcan lo normal alrededor de esa
+                            recta. Hoy el precio está{' '}
+                            <b>
+                                {fv.posicion === 'por_debajo'
+                                    ? 'debajo de la punteada de abajo: barato para su tendencia'
+                                    : fv.posicion === 'por_encima'
+                                      ? 'arriba de la punteada de arriba: caro para su tendencia'
+                                      : 'entre las punteadas: dentro de lo normal'}
+                            </b>
+                            . Desde una distancia así, la acción subió en{' '}
+                            {fv.horizonte} ruedas el {Math.round(fv.sube * 100)}
+                            % de las veces.
+                        </div>
+                    )}
                     <div className="nx-strip-head">
                         <h3>Qué predijo cada modelo</h3>
                         <p className="nx-muted">{stripSummary}</p>
@@ -1184,6 +1207,16 @@ export default function Accion() {
                     </div>
                 </Card>
             </div>
+            {vol.data && last != null && (
+                <div className="nx-grid" style={{ marginTop: 16 }}>
+                    <VolatilityPanel
+                        vol={vol.data}
+                        last={last}
+                        position={row?.value ?? null}
+                        view={chosen}
+                    />
+                </div>
+            )}
             <div style={{ marginTop: 16 }}>
                 <Legal />
             </div>

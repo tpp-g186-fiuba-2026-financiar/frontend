@@ -4,7 +4,7 @@
 export interface Ficha {
     key: string;
     nombre: string;
-    tipo: 'dirección' | 'volatilidad';
+    tipo: 'dirección' | 'volatilidad' | 'cartera';
     plazo: string;
     corre: string;
     algoritmo: string;
@@ -59,8 +59,8 @@ export const FICHAS: Ficha[] = [
         ],
         senal: 'Cada día se ordenan las acciones por P(sube): el 20% de arriba es alza, el 20% de abajo es baja y el resto neutral.',
         entrenamiento:
-            'Datos recientes pesan más (vida media 3 años). Se mide fuera de muestra con el último 25% de las fechas en 4 reentrenos sucesivos. Se reentrena el día 2 de cada mes (GitHub Actions) y solo se guarda si el AUC fuera de muestra llega a 0,52.',
-        medido: 'Walk-forward 2016–2026: AUC por mes 0,588. Alza acierta 61% (lo normal 58%), baja 45% (lo normal 42%). Su ventaja es detectar momentos del mercado, no elegir acciones.',
+            'Datos recientes pesan más (vida media 3 años). Prueba al entrenar (de ahí salen el 66% y el 77% de la página): se separa el último 25% de las fechas en 4 cortes de un año, nov-2022→oct-2023, nov-2023→oct-2024, oct-2024→oct-2025 y oct-2025→oct-2026. Cada corte se predice con un modelo entrenado solo con lo anterior, dejando 20 ruedas de margen para no mirar el futuro. Se reentrena el día 2 de cada mes (GitHub Actions) y solo se guarda si el AUC fuera de muestra llega a 0,52.',
+        medido: 'Walk-forward 2016–2026 (11 cortes, uno por año: para predecir 2016 se entrena con 2008–2015, para 2017 con 2008–2016, y así hasta 2026). AUC por mes 0,588. Alza acierta 61% (lo normal 58%), baja 45% (lo normal 42%). Su ventaja es detectar momentos del mercado, no elegir acciones.',
         estado: 'principal',
     },
     {
@@ -81,8 +81,8 @@ export const FICHAS: Ficha[] = [
         ],
         senal: 'Ranking del día: 20% de arriba alza, 20% de abajo baja.',
         entrenamiento:
-            'Junto con XGBoost, el día 2 de cada mes (piso de AUC 0,50).',
-        medido: 'Walk-forward 2016–2026: AUC por mes 0,546 (IC 0,526–0,565). Al entrenar: alza 62,9% (lo normal 54,9%), baja 50,3% (lo normal 45,1%). Reemplaza a los modelos de 5 ruedas que miran solo el precio.',
+            'Junto con XGBoost, el día 2 de cada mes (piso de AUC 0,50). Misma prueba al entrenar: los mismos 4 cortes de nov-2022 a oct-2026, con 5 ruedas de margen.',
+        medido: 'Walk-forward 2016–2026 (11 cortes, uno por año: para predecir 2016 se entrena con 2008–2015, para 2017 con 2008–2016, y así hasta 2026). AUC por mes 0,546 (IC 0,526–0,565). Al entrenar: alza 62,9% (lo normal 54,9%), baja 50,3% (lo normal 45,1%). Reemplaza a los modelos de 5 ruedas que miran solo el precio.',
         estado: 'principal',
     },
     {
@@ -104,8 +104,9 @@ export const FICHAS: Ficha[] = [
         ],
         senal: 'Ranking del día: el 20% con más P(baja) es baja, el 20% con menos es alza.',
         entrenamiento:
-            'El día 1 de cada mes (GitHub Actions), piso de AUC 0,52.',
-        medido: 'Walk-forward: AUC por mes 0,589, casi igual que XGBoost (+0,007, no es una diferencia segura). Combinarlos no suma.',
+            'El día 1 de cada mes (GitHub Actions), piso de AUC 0,52. Prueba al entrenar (de ahí sale el 77%): se separa el último 25% de las fechas en 4 cortes de un año, nov-2022→oct-2023, nov-2023→oct-2024, oct-2024→oct-2025 y oct-2025→oct-2026. Cada corte se predice con un modelo entrenado solo con lo anterior, dejando 20 ruedas de margen para no mirar el futuro.',
+
+        medido: 'Walk-forward 2016–2026 (11 cortes, uno por año: para predecir 2016 se entrena con 2008–2015, para 2017 con 2008–2016, y así hasta 2026). AUC por mes 0,589, casi igual que XGBoost (+0,007, no es una diferencia segura). Combinarlos no suma.',
         estado: 'activo',
     },
     {
@@ -260,6 +261,49 @@ export const FICHAS: Ficha[] = [
         entrenamiento: 'En Modal, por ticker.',
         medido: 'Sin medición propia en el paper trading.',
         estado: 'activo',
+    },
+    {
+        key: 'black-litterman',
+        nombre: 'Black-Litterman',
+        tipo: 'cartera',
+        plazo: 'tenencia de 3 meses',
+        corre: 'api-ml (/portfolio/recomendacion)',
+        algoritmo:
+            'Black-Litterman: mezcla bayesiana entre lo que "descuenta el mercado" y lo que opinan los modelos; después, optimización media-varianza con techo por acción y costo de operar.',
+        predice:
+            'No predice: arma cuánto poner en cada acción (pesos de la cartera recomendada).',
+        datos: [
+            'Precios históricos de tus acciones y del panel (para la covarianza)',
+            'Volatilidad de GARCH (ajusta la covarianza manteniendo las correlaciones)',
+            'Retorno que espera el modelo de tendencia para cada acción (las "vistas")',
+            'Tu perfil de riesgo y tu cartera actual',
+        ],
+        variables: [
+            {
+                grupo: '1. Punto de partida (Π)',
+                ejemplos:
+                    'el retorno que haría óptima a tu cartera actual: Π = δ·Σ·w, con δ = 2,5 (aversión del mercado), Σ la covarianza y w tus pesos de hoy',
+            },
+            {
+                grupo: '2. Opinión de los modelos (Q, Ω)',
+                ejemplos:
+                    'una vista por acción con el retorno predicho; confianza 5% (los modelos casi no predicen, así que la mezcla se mueve poco desde Π)',
+            },
+            {
+                grupo: '3. Mezcla (μ)',
+                ejemplos:
+                    'μ = [(τΣ)⁻¹ + Ω⁻¹]⁻¹ · [(τΣ)⁻¹Π + Ω⁻¹Q], con τ = 0,05: un promedio de Π y Q pesado por cuánto se confía en cada uno',
+            },
+            {
+                grupo: '4. Cartera final',
+                ejemplos:
+                    'maximiza retorno − aversión·riesgo − costo. Aversión por perfil: conservador 6, moderado 3, arriesgado 1,5. Techo por acción: 15% / 20% / 30%',
+            },
+        ],
+        senal: 'Solo propone mover algo si la mejora paga el costo: 0,6% por operación, repartido en 63 ruedas (3 meses de tenencia). Usa tus acciones y como mucho 2 nuevas (peso mínimo 3%).',
+        entrenamiento: 'No se entrena: se calcula en cada pedido.',
+        medido: 'Backtest 2017–2026 con 40 carteras de 5 acciones al azar, rebalanceando una vez por mes y pagando 0,6% por punta, contra no tocar nada: conservador +8,6% por año (mejoraron 40 de 40), moderado +2,0% (38 de 40), arriesgado −7,4% (0 de 40: concentra en 2 o 3 acciones). La mejora viene de repartir el riesgo, no de las vistas: sin ellas da casi igual.',
+        estado: 'principal',
     },
 ];
 
